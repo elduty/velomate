@@ -1,7 +1,9 @@
 {
   "uid": "veloai-overview",
   "title": "Overview",
-  "tags": ["veloai"],
+  "tags": [
+    "veloai"
+  ],
   "timezone": "browser",
   "editable": true,
   "time": {
@@ -12,10 +14,18 @@
   "panels": [
     {
       "id": 1,
-      "title": "Rides This Week",
+      "title": "Rides",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
-      "datasource": { "type": "postgres", "uid": "veloai" },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
       "targets": [
         {
           "rawSql": "SELECT COUNT(*) AS \"rides\" FROM activities WHERE $__timeFilter(date);",
@@ -28,9 +38,18 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "red", "value": null },
-              { "color": "yellow", "value": 1 },
-              { "color": "green", "value": 3 }
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "green",
+                "value": 3
+              }
             ]
           },
           "unit": "none"
@@ -40,15 +59,27 @@
         "colorMode": "value",
         "graphMode": "none",
         "textMode": "auto",
-        "reduceOptions": { "calcs": ["lastNotNull"] }
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
       }
     },
     {
       "id": 2,
-      "title": "Distance This Week",
+      "title": "Distance",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
-      "datasource": { "type": "postgres", "uid": "veloai" },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 0
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
       "targets": [
         {
           "rawSql": "SELECT ROUND((SUM(distance_m) / 1000.0)::numeric, 1) AS \"km\" FROM activities WHERE $__timeFilter(date);",
@@ -62,9 +93,18 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "red", "value": null },
-              { "color": "yellow", "value": 50 },
-              { "color": "green", "value": 100 }
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 50
+              },
+              {
+                "color": "green",
+                "value": 100
+              }
             ]
           }
         }
@@ -73,15 +113,27 @@
         "colorMode": "value",
         "graphMode": "none",
         "textMode": "auto",
-        "reduceOptions": { "calcs": ["lastNotNull"] }
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
       }
     },
     {
       "id": 3,
-      "title": "Elevation This Week",
+      "title": "Elevation",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
-      "datasource": { "type": "postgres", "uid": "veloai" },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 0
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
       "targets": [
         {
           "rawSql": "SELECT ROUND(SUM(elevation_m)::numeric, 0) AS \"meters\" FROM activities WHERE $__timeFilter(date);",
@@ -95,9 +147,18 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "blue", "value": null },
-              { "color": "yellow", "value": 500 },
-              { "color": "green", "value": 1000 }
+              {
+                "color": "blue",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 500
+              },
+              {
+                "color": "green",
+                "value": 1000
+              }
             ]
           }
         }
@@ -106,15 +167,27 @@
         "colorMode": "value",
         "graphMode": "none",
         "textMode": "auto",
-        "reduceOptions": { "calcs": ["lastNotNull"] }
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
       }
     },
     {
       "id": 4,
       "title": "Current Form (TSB)",
       "type": "gauge",
-      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 0 },
-      "datasource": { "type": "postgres", "uid": "veloai" },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
       "targets": [
         {
           "rawSql": "SELECT tsb AS \"TSB\" FROM athlete_stats ORDER BY date DESC LIMIT 1;",
@@ -129,11 +202,26 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "red", "value": null },
-              { "color": "orange", "value": -10 },
-              { "color": "green", "value": 0 },
-              { "color": "super-light-green", "value": 15 },
-              { "color": "blue", "value": 25 }
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": -10
+              },
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "super-light-green",
+                "value": 15
+              },
+              {
+                "color": "blue",
+                "value": 25
+              }
             ]
           }
         }
@@ -141,15 +229,27 @@
       "options": {
         "showThresholdLabels": true,
         "showThresholdMarkers": true,
-        "reduceOptions": { "calcs": ["lastNotNull"] }
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
       }
     },
     {
       "id": 5,
       "title": "Recent Activities",
       "type": "table",
-      "gridPos": { "h": 8, "w": 18, "x": 0, "y": 6 },
-      "datasource": { "type": "postgres", "uid": "veloai" },
+      "gridPos": {
+        "h": 8,
+        "w": 18,
+        "x": 0,
+        "y": 6
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
       "targets": [
         {
           "rawSql": "SELECT name, date::date, ROUND((distance_m / 1000.0)::numeric, 1) AS \"km\", ROUND((duration_s / 60.0)::numeric, 0) AS \"min\", avg_hr, ROUND(elevation_m::numeric, 0) AS \"elev_m\", device FROM activities ORDER BY date DESC LIMIT 10;",
