@@ -464,7 +464,7 @@
     },
     {
       "id": 9,
-      "title": "Recent Activities",
+      "title": "Activities",
       "type": "table",
       "gridPos": {
         "h": 8,
