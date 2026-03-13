@@ -63,7 +63,7 @@
       "datasource": { "type": "postgres", "uid": "veloai" },
       "targets": [
         {
-          "rawSql": "SELECT ROUND((COALESCE(SUM(distance_m), 0) / 1000.0)::numeric, 1) AS \"Distance (km)\" FROM activities WHERE $__timeFilter(date);",
+          "rawSql": "SELECT ROUND((COALESCE(SUM(distance_m), 0) / 1000.0)::numeric, 1) AS \"Distance\" FROM activities WHERE $__timeFilter(date);",
           "format": "table",
           "refId": "A"
         }
@@ -76,6 +76,7 @@
       },
       "fieldConfig": {
         "defaults": {
+          "unit": "lengthkm",
           "color": { "mode": "thresholds" },
           "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
         }
@@ -89,7 +90,7 @@
       "datasource": { "type": "postgres", "uid": "veloai" },
       "targets": [
         {
-          "rawSql": "SELECT ROUND(COALESCE(SUM(elevation_m), 0)::numeric, 0) AS \"Elevation (m)\" FROM activities WHERE $__timeFilter(date);",
+          "rawSql": "SELECT ROUND(COALESCE(SUM(elevation_m), 0)::numeric, 0) AS \"Elevation\" FROM activities WHERE $__timeFilter(date);",
           "format": "table",
           "refId": "A"
         }
@@ -102,6 +103,7 @@
       },
       "fieldConfig": {
         "defaults": {
+          "unit": "lengthm",
           "color": { "mode": "thresholds" },
           "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
         }
@@ -115,7 +117,7 @@
       "datasource": { "type": "postgres", "uid": "veloai" },
       "targets": [
         {
-          "rawSql": "SELECT TO_CHAR(COALESCE(SUM(duration_s), 0) * interval '1 second', 'HH24:MI') AS \"Duration (h:m)\" FROM activities WHERE $__timeFilter(date);",
+          "rawSql": "SELECT COALESCE(SUM(duration_s), 0) AS \"Duration\" FROM activities WHERE $__timeFilter(date);",
           "format": "table",
           "refId": "A"
         }
@@ -128,6 +130,7 @@
       },
       "fieldConfig": {
         "defaults": {
+          "unit": "dtdurations",
           "color": { "mode": "thresholds" },
           "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
         }
@@ -141,7 +144,7 @@
       "datasource": { "type": "postgres", "uid": "veloai" },
       "targets": [
         {
-          "rawSql": "SELECT COALESCE(SUM(calories), 0) AS \"Calories (kcal)\" FROM activities WHERE $__timeFilter(date) AND calories IS NOT NULL;",
+          "rawSql": "SELECT COALESCE(SUM(calories), 0) AS \"Calories\" FROM activities WHERE $__timeFilter(date) AND calories IS NOT NULL;",
           "format": "table",
           "refId": "A"
         }
@@ -201,7 +204,7 @@
       "datasource": { "type": "postgres", "uid": "veloai" },
       "targets": [
         {
-          "rawSql": "SELECT ROUND((COALESCE(curr.dist, 0) - COALESCE(prev.dist, 0))::numeric, 1) AS \"Delta (km)\" FROM (SELECT SUM(distance_m)/1000.0 AS dist FROM activities WHERE $__timeFilter(date)) curr, (SELECT SUM(distance_m)/1000.0 AS dist FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz) prev;",
+          "rawSql": "SELECT ROUND((COALESCE(curr.dist, 0) - COALESCE(prev.dist, 0))::numeric, 1) AS \"Delta\" FROM (SELECT SUM(distance_m)/1000.0 AS dist FROM activities WHERE $__timeFilter(date)) curr, (SELECT SUM(distance_m)/1000.0 AS dist FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz) prev;",
           "format": "table",
           "refId": "A"
         }
@@ -214,6 +217,7 @@
       },
       "fieldConfig": {
         "defaults": {
+          "unit": "lengthkm",
           "color": { "mode": "thresholds" },
           "thresholds": {
             "mode": "absolute",
@@ -227,13 +231,13 @@
     },
     {
       "id": 8,
-      "title": "Avg per Ride (km)",
+      "title": "Avg per Ride",
       "type": "stat",
       "gridPos": { "h": 3, "w": 6, "x": 6, "y": 4 },
       "datasource": { "type": "postgres", "uid": "veloai" },
       "targets": [
         {
-          "rawSql": "SELECT ROUND((COALESCE(SUM(distance_m), 0) / GREATEST(COUNT(*), 1) / 1000.0)::numeric, 1) AS \"Avg (km)\" FROM activities WHERE $__timeFilter(date);",
+          "rawSql": "SELECT ROUND((COALESCE(SUM(distance_m), 0) / GREATEST(COUNT(*), 1) / 1000.0)::numeric, 1) AS \"Avg\" FROM activities WHERE $__timeFilter(date);",
           "format": "table",
           "refId": "A"
         }
@@ -246,6 +250,7 @@
       },
       "fieldConfig": {
         "defaults": {
+          "unit": "lengthkm",
           "color": { "mode": "thresholds" },
           "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
         }
@@ -471,7 +476,7 @@
           "datasource": { "type": "postgres", "uid": "veloai" },
           "targets": [
             {
-              "rawSql": "SELECT ROUND((MAX(distance_m) / 1000.0)::numeric, 1) AS \"Longest (km)\" FROM activities WHERE distance_m > 0;",
+              "rawSql": "SELECT ROUND((distance_m / 1000.0)::numeric, 1) AS \"Longest\" FROM activities WHERE distance_m > 0 AND sport_type IN ('cycling_outdoor', 'cycling_indoor', 'zwift') ORDER BY distance_m DESC LIMIT 1;",
               "format": "table",
               "refId": "A"
             }
@@ -484,6 +489,7 @@
           },
           "fieldConfig": {
             "defaults": {
+              "unit": "lengthkm",
               "color": { "mode": "thresholds" },
               "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
             }
@@ -497,7 +503,7 @@
           "datasource": { "type": "postgres", "uid": "veloai" },
           "targets": [
             {
-              "rawSql": "SELECT ROUND(MAX(elevation_m)::numeric, 0) AS \"Most Elev (m)\" FROM activities WHERE elevation_m > 0;",
+              "rawSql": "SELECT ROUND(MAX(elevation_m)::numeric, 0) AS \"Most Elev\" FROM activities WHERE elevation_m > 0;",
               "format": "table",
               "refId": "A"
             }
@@ -510,6 +516,7 @@
           },
           "fieldConfig": {
             "defaults": {
+              "unit": "lengthm",
               "color": { "mode": "thresholds" },
               "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
             }
@@ -523,7 +530,7 @@
           "datasource": { "type": "postgres", "uid": "veloai" },
           "targets": [
             {
-              "rawSql": "SELECT ROUND(MAX(avg_speed_kmh)::numeric, 1) AS \"Fastest (km/h)\" FROM activities WHERE distance_m > 5000;",
+              "rawSql": "SELECT ROUND(MAX(avg_speed_kmh)::numeric, 1) AS \"Fastest\" FROM activities WHERE distance_m > 5000;",
               "format": "table",
               "refId": "A"
             }
@@ -536,6 +543,7 @@
           },
           "fieldConfig": {
             "defaults": {
+              "unit": "velocitykmh",
               "color": { "mode": "thresholds" },
               "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
             }
@@ -549,7 +557,7 @@
           "datasource": { "type": "postgres", "uid": "veloai" },
           "targets": [
             {
-              "rawSql": "SELECT MAX(avg_power) AS \"Best Power (W)\" FROM activities WHERE duration_s > 1200 AND avg_power IS NOT NULL;",
+              "rawSql": "SELECT MAX(avg_power) AS \"Best Power\" FROM activities WHERE duration_s > 1200 AND avg_power IS NOT NULL;",
               "format": "table",
               "refId": "A"
             }
@@ -562,6 +570,7 @@
           },
           "fieldConfig": {
             "defaults": {
+              "unit": "watt",
               "color": { "mode": "thresholds" },
               "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
             }
