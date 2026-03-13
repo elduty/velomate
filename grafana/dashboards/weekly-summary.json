@@ -18,7 +18,7 @@
       "datasource": { "type": "postgres", "uid": "veloai" },
       "targets": [
         {
-          "rawSql": "SELECT date_trunc('week', date)::date AS time, ROUND((SUM(distance_m) / 1000.0)::numeric, 1) AS \"Distance (km)\" FROM activities WHERE date >= NOW() - INTERVAL '12 weeks' GROUP BY 1 ORDER BY 1;",
+          "rawSql": "SELECT date_trunc('week', date)::date AS time, ROUND((SUM(distance_m) / 1000.0)::numeric, 1) AS \"Distance (km)\" FROM activities WHERE $__timeFilter(date) GROUP BY 1 ORDER BY 1;",
           "format": "time_series",
           "refId": "A"
         }
@@ -48,7 +48,7 @@
       "datasource": { "type": "postgres", "uid": "veloai" },
       "targets": [
         {
-          "rawSql": "SELECT date_trunc('week', date)::date AS time, ROUND(SUM(elevation_m)::numeric, 0) AS \"Elevation (m)\" FROM activities WHERE date >= NOW() - INTERVAL '12 weeks' GROUP BY 1 ORDER BY 1;",
+          "rawSql": "SELECT date_trunc('week', date)::date AS time, ROUND(SUM(elevation_m)::numeric, 0) AS \"Elevation (m)\" FROM activities WHERE $__timeFilter(date) GROUP BY 1 ORDER BY 1;",
           "format": "time_series",
           "refId": "A"
         }
@@ -78,7 +78,7 @@
       "datasource": { "type": "postgres", "uid": "veloai" },
       "targets": [
         {
-          "rawSql": "SELECT date_trunc('week', date)::date AS time, SUM(calories) AS \"Calories\" FROM activities WHERE date >= NOW() - INTERVAL '12 weeks' AND calories IS NOT NULL GROUP BY 1 ORDER BY 1;",
+          "rawSql": "SELECT date_trunc('week', date)::date AS time, SUM(calories) AS \"Calories\" FROM activities WHERE $__timeFilter(date) AND calories IS NOT NULL GROUP BY 1 ORDER BY 1;",
           "format": "time_series",
           "refId": "A"
         }

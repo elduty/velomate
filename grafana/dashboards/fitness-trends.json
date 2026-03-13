@@ -115,7 +115,7 @@
       "datasource": { "type": "postgres", "uid": "veloai" },
       "targets": [
         {
-          "rawSql": "SELECT date AS time, ctl AS \"Fitness (CTL)\", atl AS \"Fatigue (ATL)\", tsb AS \"Form (TSB)\" FROM athlete_stats WHERE date >= NOW() - INTERVAL '90 days' ORDER BY date;",
+          "rawSql": "SELECT date AS time, ctl AS \"Fitness (CTL)\", atl AS \"Fatigue (ATL)\", tsb AS \"Form (TSB)\" FROM athlete_stats WHERE $__timeFilter(date) ORDER BY date;",
           "format": "time_series",
           "refId": "A"
         }
@@ -157,7 +157,7 @@
       "datasource": { "type": "postgres", "uid": "veloai" },
       "targets": [
         {
-          "rawSql": "SELECT date AS time, resting_hr AS \"Resting HR\" FROM athlete_stats WHERE resting_hr IS NOT NULL AND date >= NOW() - INTERVAL '90 days' ORDER BY date;",
+          "rawSql": "SELECT date AS time, resting_hr AS \"Resting HR\" FROM athlete_stats WHERE $__timeFilter(date) AND resting_hr IS NOT NULL ORDER BY date;",
           "format": "time_series",
           "refId": "A"
         }
