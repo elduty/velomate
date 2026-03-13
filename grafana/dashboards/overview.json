@@ -420,7 +420,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT \n  name,\n  date::date AS date,\n  CASE WHEN distance_m > 0 THEN ROUND((distance_m / 1000.0)::numeric, 1)::text ELSE 'N/A' END AS \"km\",\n  ROUND((duration_s / 60.0)::numeric, 0) AS \"min\",\n  COALESCE(avg_hr::text, 'N/A') AS \"avg_hr\",\n  CASE WHEN elevation_m > 0 THEN ROUND(elevation_m::numeric, 0)::text ELSE 'N/A' END AS \"elev_m\",\n  CASE WHEN is_indoor THEN 'Indoor' ELSE 'Outdoor' END AS \"type\",\n  device\nFROM activities\nWHERE $__timeFilter(date)\nORDER BY date DESC\nLIMIT 20;",
+          "rawSql": "SELECT \n  name,\n  date::date AS date,\n  CASE WHEN distance_m > 0 THEN ROUND((distance_m / 1000.0)::numeric, 1)::text ELSE 'N/A' END AS \"km\",\n  ROUND((duration_s / 60.0)::numeric, 0) AS \"min\",\n  COALESCE(avg_hr::text, 'N/A') AS \"avg_hr\",\n  CASE WHEN elevation_m > 0 THEN ROUND(elevation_m::numeric, 0)::text ELSE 'N/A' END AS \"elev_m\",\n  COALESCE(calories::text, 'N/A') AS \"kcal\",\n  CASE WHEN is_indoor THEN 'Indoor' ELSE 'Outdoor' END AS \"type\",\n  device\nFROM activities\nWHERE $__timeFilter(date)\nORDER BY date DESC\nLIMIT 20;",
           "format": "table",
           "refId": "A"
         }
