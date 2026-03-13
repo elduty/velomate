@@ -115,6 +115,8 @@ def find_duplicate_by_distance(conn, date_str: str, distance_m: float, tolerance
     vs Komoot elapsed time differ significantly for the same ride).
     Returns (id, strava_id, device, distance_m, avg_hr, avg_power) or None.
     """
+    if not distance_m or distance_m <= 0:
+        return None
     with conn.cursor() as cur:
         cur.execute("""
             SELECT id, strava_id, device, distance_m, avg_hr, avg_power
@@ -166,29 +168,8 @@ def merge_activity_data(existing: tuple, new_data: dict) -> dict:
     return merged
 
 
-def upsert_activity(conn, data: dict) -> int:
-    """Insert or update an activity. Returns the activity id.
-    Detects cross-device duplicates and merges data instead of creating duplicates.
-    """
-    now = datetime.now(timezone.utc)
-    data = classify_activity(data)
-
-    # Duplicate detection: check if another activity started within 5 min with similar duration
-    if data.get("date") and data.get("duration_s"):
-        duplicate = find_duplicate(conn, data["date"], data["duration_s"])
-        if duplicate and duplicate[1] != data.get("strava_id"):
-            ex_id = duplicate[0]
-            merged = merge_activity_data(duplicate, data)
-            if merged.get("_skip_insert"):
-                print(f"  [dedup] Skipping {data['name']} — weaker duplicate of existing activity {ex_id}")
-                return ex_id
-            else:
-                # Delete weaker duplicate, insert richer merged record
-                print(f"  [dedup] Merging {data['name']} with existing activity {ex_id} (device priority)")
-                with conn.cursor() as cur:
-                    cur.execute("DELETE FROM activities WHERE id = %s", (ex_id,))
-                data = merged
-
+def _do_insert(conn, data: dict, now) -> int:
+    """Execute the INSERT ... ON CONFLICT for an activity. Returns activity id."""
     with conn.cursor() as cur:
         cur.execute("""
             INSERT INTO activities (
@@ -222,6 +203,42 @@ def upsert_activity(conn, data: dict) -> int:
             RETURNING id
         """, {**data, "synced_at": now})
         return cur.fetchone()[0]
+
+
+def upsert_activity(conn, data: dict) -> int:
+    """Insert or update an activity. Returns the activity id.
+    Detects cross-device duplicates and merges data instead of creating duplicates.
+    """
+    now = datetime.now(timezone.utc)
+    data = classify_activity(data)
+
+    # Duplicate detection: check if another activity started within 5 min with similar duration
+    if data.get("date") and data.get("duration_s"):
+        duplicate = find_duplicate(conn, data["date"], data["duration_s"])
+        if duplicate and duplicate[1] != data.get("strava_id"):
+            ex_id = duplicate[0]
+            merged = merge_activity_data(duplicate, data)
+            if merged.get("_skip_insert"):
+                print(f"  [dedup] Skipping {data['name']} — weaker duplicate of existing activity {ex_id}")
+                return ex_id
+            else:
+                # Atomic merge: disable autocommit so DELETE + INSERT are one transaction
+                print(f"  [dedup] Merging {data['name']} with existing activity {ex_id} (device priority)")
+                conn.autocommit = False
+                try:
+                    with conn.cursor() as cur:
+                        cur.execute("DELETE FROM activities WHERE id = %s", (ex_id,))
+                    data = merged
+                    activity_id = _do_insert(conn, data, now)
+                    conn.commit()
+                    return activity_id
+                except Exception:
+                    conn.rollback()
+                    raise
+                finally:
+                    conn.autocommit = True
+
+    return _do_insert(conn, data, now)
 
 
 def upsert_streams(conn, activity_id: int, streams: list):
