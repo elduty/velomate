@@ -61,7 +61,7 @@ Komoot API ◀── hourly poll ──────▶  [ ingestor service ]
 | `ingestor` | custom Python | — | Strava poller + Komoot poller |
 | `grafana` | grafana/grafana | 3000 | Dashboards (behind homelab reverse proxy) |
 
-VeloAI CLI runs on Mac mini, connects to homelab PostgreSQL over LAN (10.7.40.x).
+VeloAI CLI runs on Mac mini, connects to homelab PostgreSQL over LAN (10.7.40.15).
 
 ---
 
