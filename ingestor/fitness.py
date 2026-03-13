@@ -68,6 +68,25 @@ def recalculate_fitness(conn):
     ftp = estimate_ftp(conn)
     print(f"[fitness] Threshold HR: {threshold_hr}, Estimated FTP: {ftp}W")
 
+    # Store per-activity TSS
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT id, duration_s, avg_hr, avg_power
+            FROM activities
+            WHERE date IS NOT NULL
+        """)
+        activity_rows = cur.fetchall()
+
+    for act_id, duration_s, avg_hr, avg_power in activity_rows:
+        if avg_power and avg_power > 0:
+            tss = calculate_tss_power(duration_s, avg_power, ftp)
+        elif avg_hr and avg_hr > 0:
+            tss = calculate_tss(duration_s, avg_hr, threshold_hr)
+        else:
+            tss = 0
+        with conn.cursor() as cur:
+            cur.execute("UPDATE activities SET tss = %s WHERE id = %s", (round(tss, 1), act_id))
+
     # Get all activities ordered by date (include power data)
     with conn.cursor() as cur:
         cur.execute("""
