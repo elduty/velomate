@@ -718,7 +718,7 @@
     {
       "id": 20,
       "title": "Speed & Elevation",
-      "type": "xychart",
+      "type": "trend",
       "gridPos": {
         "h": 12,
         "w": 24,
@@ -741,7 +741,7 @@
         }
       ],
       "options": {
-        "mapping": "auto",
+        "xField": "Distance (km)",
         "tooltip": {
           "mode": "multi",
           "sort": "none"
@@ -762,7 +762,8 @@
             "fillOpacity": 0,
             "spanNulls": false,
             "pointSize": 3,
-            "showPoints": "never"
+            "showPoints": "never",
+            "lineInterpolation": "smooth"
           }
         },
         "overrides": [
@@ -842,7 +843,7 @@
     {
       "id": 21,
       "title": "Heart Rate & Power",
-      "type": "xychart",
+      "type": "trend",
       "gridPos": {
         "h": 10,
         "w": 24,
@@ -865,7 +866,7 @@
         }
       ],
       "options": {
-        "mapping": "auto",
+        "xField": "Distance (km)",
         "tooltip": {
           "mode": "multi",
           "sort": "none"
@@ -886,7 +887,8 @@
             "fillOpacity": 0,
             "spanNulls": false,
             "showPoints": "never",
-            "pointSize": 3
+            "pointSize": 3,
+            "lineInterpolation": "smooth"
           },
           "noValue": "No data for this activity"
         },
@@ -955,7 +957,7 @@
     {
       "id": 22,
       "title": "Cadence",
-      "type": "xychart",
+      "type": "trend",
       "gridPos": {
         "h": 8,
         "w": 24,
@@ -978,9 +980,9 @@
         }
       ],
       "options": {
-        "mapping": "auto",
+        "xField": "Distance (km)",
         "tooltip": {
-          "mode": "single",
+          "mode": "multi",
           "sort": "none"
         },
         "legend": {
@@ -995,11 +997,12 @@
       "fieldConfig": {
         "defaults": {
           "custom": {
-            "lineWidth": 1,
-            "fillOpacity": 15,
+            "lineWidth": 2,
+            "fillOpacity": 0,
             "spanNulls": false,
             "showPoints": "never",
-            "pointSize": 3
+            "pointSize": 3,
+            "lineInterpolation": "smooth"
           },
           "unit": "rpm",
           "noValue": "No data for this activity",
