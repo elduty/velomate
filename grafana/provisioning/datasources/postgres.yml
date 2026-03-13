@@ -3,8 +3,10 @@ datasources:
   - name: VeloAI
     uid: veloai
     type: postgres
+    access: proxy
     url: veloai-postgres:5432
     user: veloai
+    orgId: 1
     secureJsonData:
       password: ${POSTGRES_PASSWORD}
     jsonData:
@@ -13,3 +15,4 @@ datasources:
       timescaledb: false
       postgresVersion: 1500
     editable: true
+    isDefault: true
