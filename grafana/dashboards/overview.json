@@ -478,13 +478,48 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT\n  name AS \"Name\",\n  date::date AS \"Date\",\n  CASE WHEN distance_m > 0 THEN ROUND((distance_m / 1000.0)::numeric, 1)::text ELSE 'N/A' END AS \"Distance (km)\",\n  ROUND((duration_s / 60.0)::numeric, 0) AS \"Duration (min)\",\n  COALESCE(avg_hr::text, 'N/A') AS \"Avg HR (bpm)\",\n  CASE WHEN elevation_m > 0 THEN ROUND(elevation_m::numeric, 0)::text ELSE 'N/A' END AS \"Elevation (m)\",\n  COALESCE(calories::text, 'N/A') AS \"Calories (kcal)\",\n  CASE WHEN is_indoor THEN 'Indoor' ELSE 'Outdoor' END AS \"Type\",\n  device AS \"Device\"\nFROM activities\nWHERE $__timeFilter(date)\nORDER BY date DESC\nLIMIT 20;",
+          "rawSql": "SELECT\n  id AS \"id\",\n  name AS \"Name\",\n  date::date AS \"Date\",\n  CASE WHEN distance_m > 0 THEN ROUND((distance_m / 1000.0)::numeric, 1)::text ELSE 'N/A' END AS \"Distance (km)\",\n  ROUND((duration_s / 60.0)::numeric, 0) AS \"Duration (min)\",\n  COALESCE(avg_hr::text, 'N/A') AS \"Avg HR (bpm)\",\n  CASE WHEN elevation_m > 0 THEN ROUND(elevation_m::numeric, 0)::text ELSE 'N/A' END AS \"Elevation (m)\",\n  COALESCE(calories::text, 'N/A') AS \"Calories (kcal)\",\n  CASE WHEN is_indoor THEN 'Indoor' ELSE 'Outdoor' END AS \"Type\",\n  device AS \"Device\"\nFROM activities\nWHERE $__timeFilter(date)\nORDER BY date DESC\nLIMIT 50;",
           "format": "table",
           "refId": "A"
         }
       ],
       "options": {
         "showHeader": true
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "id"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Name"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "View Activity",
+                    "url": "/d/veloai-activity/activity-detail?var-activity_id=${__data.fields.id}",
+                    "targetBlank": true
+                  }
+                ]
+              }
+            ]
+          }
+        ]
       }
     },
     {

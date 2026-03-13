@@ -1,0 +1,190 @@
+{
+  "uid": "veloai-activity",
+  "title": "Activity Detail",
+  "tags": ["veloai"],
+  "timezone": "browser",
+  "editable": true,
+  "schemaVersion": 39,
+  "version": 1,
+  "time": {"from": "now-1y", "to": "now"},
+  "refresh": "",
+  "templating": {
+    "list": [
+      {
+        "name": "activity_id",
+        "type": "textbox",
+        "label": "Activity ID",
+        "hide": 2,
+        "current": {"value": "0"},
+        "options": [],
+        "query": "0"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Name",
+      "type": "stat",
+      "gridPos": {"h": 3, "w": 8, "x": 0, "y": 0},
+      "datasource": {"type": "postgres", "uid": "veloai"},
+      "targets": [{
+        "rawSql": "SELECT name AS \"Name\" FROM activities WHERE id = ${activity_id};",
+        "format": "table",
+        "refId": "A"
+      }],
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value", "colorMode": "none"},
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}}, "overrides": []}
+    },
+    {
+      "id": 2,
+      "title": "Date",
+      "type": "stat",
+      "gridPos": {"h": 3, "w": 4, "x": 8, "y": 0},
+      "datasource": {"type": "postgres", "uid": "veloai"},
+      "targets": [{
+        "rawSql": "SELECT date::date AS \"Date\" FROM activities WHERE id = ${activity_id};",
+        "format": "table",
+        "refId": "A"
+      }],
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value", "colorMode": "none"},
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}}, "overrides": []}
+    },
+    {
+      "id": 3,
+      "title": "Distance",
+      "type": "stat",
+      "gridPos": {"h": 3, "w": 3, "x": 12, "y": 0},
+      "datasource": {"type": "postgres", "uid": "veloai"},
+      "targets": [{
+        "rawSql": "SELECT ROUND((distance_m/1000.0)::numeric,1) AS \"km\" FROM activities WHERE id = ${activity_id};",
+        "format": "table",
+        "refId": "A"
+      }],
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value_and_name", "colorMode": "none"},
+      "fieldConfig": {"defaults": {"unit": "km", "color": {"mode": "thresholds"}}, "overrides": []}
+    },
+    {
+      "id": 4,
+      "title": "Duration",
+      "type": "stat",
+      "gridPos": {"h": 3, "w": 3, "x": 15, "y": 0},
+      "datasource": {"type": "postgres", "uid": "veloai"},
+      "targets": [{
+        "rawSql": "SELECT ROUND((duration_s/60.0)::numeric,0) AS \"min\" FROM activities WHERE id = ${activity_id};",
+        "format": "table",
+        "refId": "A"
+      }],
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value_and_name", "colorMode": "none"},
+      "fieldConfig": {"defaults": {"unit": "m", "color": {"mode": "thresholds"}}, "overrides": []}
+    },
+    {
+      "id": 5,
+      "title": "Avg HR",
+      "type": "stat",
+      "gridPos": {"h": 3, "w": 3, "x": 18, "y": 0},
+      "datasource": {"type": "postgres", "uid": "veloai"},
+      "targets": [{
+        "rawSql": "SELECT avg_hr AS \"bpm\" FROM activities WHERE id = ${activity_id};",
+        "format": "table",
+        "refId": "A"
+      }],
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value_and_name", "colorMode": "none"},
+      "fieldConfig": {"defaults": {"unit": "bpm", "color": {"mode": "thresholds"}}, "overrides": []}
+    },
+    {
+      "id": 6,
+      "title": "Elevation",
+      "type": "stat",
+      "gridPos": {"h": 3, "w": 3, "x": 21, "y": 0},
+      "datasource": {"type": "postgres", "uid": "veloai"},
+      "targets": [{
+        "rawSql": "SELECT ROUND(elevation_m::numeric,0) AS \"m\" FROM activities WHERE id = ${activity_id};",
+        "format": "table",
+        "refId": "A"
+      }],
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value_and_name", "colorMode": "none"},
+      "fieldConfig": {"defaults": {"unit": "lengthm", "color": {"mode": "thresholds"}}, "overrides": []}
+    },
+    {
+      "id": 7,
+      "title": "Heart Rate",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 3},
+      "datasource": {"type": "postgres", "uid": "veloai"},
+      "targets": [{
+        "rawSql": "SELECT a.date + (s.time_offset * interval '1 second') AS time, s.hr AS \"bpm\" FROM activity_streams s JOIN activities a ON a.id = s.activity_id WHERE s.activity_id = ${activity_id} AND s.hr IS NOT NULL ORDER BY time;",
+        "format": "time_series",
+        "refId": "A"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bpm",
+          "custom": {"lineWidth": 2, "fillOpacity": 15, "spanNulls": false}
+        },
+        "overrides": []
+      },
+      "options": {"tooltip": {"mode": "single"}}
+    },
+    {
+      "id": 8,
+      "title": "Speed",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 3},
+      "datasource": {"type": "postgres", "uid": "veloai"},
+      "targets": [{
+        "rawSql": "SELECT a.date + (s.time_offset * interval '1 second') AS time, ROUND(s.speed_kmh::numeric,1) AS \"km/h\" FROM activity_streams s JOIN activities a ON a.id = s.activity_id WHERE s.activity_id = ${activity_id} AND s.speed_kmh IS NOT NULL ORDER BY time;",
+        "format": "time_series",
+        "refId": "A"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "velocitykmh",
+          "custom": {"lineWidth": 2, "fillOpacity": 15, "spanNulls": false}
+        },
+        "overrides": []
+      },
+      "options": {"tooltip": {"mode": "single"}}
+    },
+    {
+      "id": 9,
+      "title": "Altitude",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 11},
+      "datasource": {"type": "postgres", "uid": "veloai"},
+      "targets": [{
+        "rawSql": "SELECT a.date + (s.time_offset * interval '1 second') AS time, ROUND(s.altitude_m::numeric,1) AS \"m\" FROM activity_streams s JOIN activities a ON a.id = s.activity_id WHERE s.activity_id = ${activity_id} AND s.altitude_m IS NOT NULL ORDER BY time;",
+        "format": "time_series",
+        "refId": "A"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "lengthm",
+          "custom": {"lineWidth": 2, "fillOpacity": 20, "spanNulls": false}
+        },
+        "overrides": []
+      },
+      "options": {"tooltip": {"mode": "single"}}
+    },
+    {
+      "id": 10,
+      "title": "Power",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 11},
+      "datasource": {"type": "postgres", "uid": "veloai"},
+      "targets": [{
+        "rawSql": "SELECT a.date + (s.time_offset * interval '1 second') AS time, s.power AS \"W\" FROM activity_streams s JOIN activities a ON a.id = s.activity_id WHERE s.activity_id = ${activity_id} AND s.power IS NOT NULL ORDER BY time;",
+        "format": "time_series",
+        "refId": "A"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "watt",
+          "custom": {"lineWidth": 2, "fillOpacity": 15, "spanNulls": false}
+        },
+        "overrides": []
+      },
+      "options": {"tooltip": {"mode": "single"}}
+    }
+  ]
+}
