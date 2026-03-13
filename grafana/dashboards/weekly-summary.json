@@ -1,6 +1,6 @@
 {
   "uid": "veloai-weekly",
-  "title": "Weekly Summary",
+  "title": "Activity Summary",
   "tags": [
     "veloai"
   ],
@@ -14,7 +14,7 @@
   "panels": [
     {
       "id": 1,
-      "title": "Weekly Distance (km)",
+      "title": "Distance (km)",
       "type": "barchart",
       "gridPos": {
         "h": 8,
@@ -35,7 +35,7 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "km",
+          "unit": "lengthkm",
           "color": {
             "fixedColor": "blue",
             "mode": "fixed"
@@ -59,7 +59,7 @@
     },
     {
       "id": 2,
-      "title": "Weekly Elevation (m)",
+      "title": "Elevation (m)",
       "type": "barchart",
       "gridPos": {
         "h": 8,
@@ -80,7 +80,7 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "m",
+          "unit": "lengthm",
           "color": {
             "fixedColor": "orange",
             "mode": "fixed"
@@ -104,7 +104,7 @@
     },
     {
       "id": 3,
-      "title": "Weekly Calories",
+      "title": "Calories",
       "type": "barchart",
       "gridPos": {
         "h": 8,
