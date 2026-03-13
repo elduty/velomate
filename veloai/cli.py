@@ -42,6 +42,10 @@ def main():
     print("Fetching weather forecast...", file=sys.stderr)
     days = weather.fetch_forecast(LOCATION["lat"], LOCATION["lon"])
 
+    if not days:
+        print("Weather unavailable — skipping recommendation", file=sys.stderr)
+        return
+
     print(planner.recommend(days, tours, fitness=fitness))
 
 

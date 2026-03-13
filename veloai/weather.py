@@ -1,3 +1,4 @@
+import sys
 from datetime import datetime
 from typing import Dict, List
 
@@ -66,10 +67,14 @@ def _score_weather(precip: float, wind: float, temp_max: float, code: int) -> in
 
 
 def fetch_forecast(lat: float, lon: float) -> List[Dict]:
-    """Return list of 7 day dicts: {date, day_name, temp_max, temp_min, precip, wind, code, label, score}"""
+    """Return list of 7 day dicts. Returns empty list if API unavailable."""
     url = WEATHER_URL.format(lat=lat, lon=lon)
-    r = requests.get(url, timeout=10)
-    r.raise_for_status()
+    try:
+        r = requests.get(url, timeout=10)
+        r.raise_for_status()
+    except requests.RequestException as e:
+        print(f"[weather] Open-Meteo API error: {e}", file=sys.stderr)
+        return []
     data = r.json()["daily"]
 
     forecast = []
