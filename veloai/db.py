@@ -3,10 +3,22 @@
 import os
 
 DB_HOST = os.environ.get("VELOAI_DB_HOST", "10.7.40.15")
-DB_PORT = os.environ.get("VELOAI_DB_PORT", "5432")
+DB_PORT = os.environ.get("VELOAI_DB_PORT", "5423")
 DB_NAME = os.environ.get("VELOAI_DB_NAME", "veloai")
 DB_USER = os.environ.get("VELOAI_DB_USER", "veloai")
-DB_PASS = os.environ.get("VELOAI_DB_PASS", "veloai_secret_2026")
+DB_PASS = os.environ.get("VELOAI_DB_PASS", "")
+
+
+def _get_password():
+    """Get DB password from env or keychain."""
+    if DB_PASS:
+        return DB_PASS
+    try:
+        from veloai.keychain import get
+        creds = get("openclaw/veloai-db")
+        return creds.get("password", "")
+    except Exception:
+        return ""
 
 
 def get_connection():
@@ -15,7 +27,7 @@ def get_connection():
         import psycopg2
         conn = psycopg2.connect(
             host=DB_HOST, port=DB_PORT,
-            dbname=DB_NAME, user=DB_USER, password=DB_PASS,
+            dbname=DB_NAME, user=DB_USER, password=_get_password(),
             connect_timeout=5,
         )
         conn.autocommit = True
