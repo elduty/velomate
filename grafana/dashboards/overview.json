@@ -18,7 +18,7 @@
       "type": "stat",
       "gridPos": {
         "h": 4,
-        "w": 5,
+        "w": 4,
         "x": 0,
         "y": 0
       },
@@ -73,7 +73,7 @@
       "gridPos": {
         "h": 4,
         "w": 5,
-        "x": 5,
+        "x": 4,
         "y": 0
       },
       "datasource": {
@@ -121,13 +121,71 @@
       }
     },
     {
+      "id": 99,
+      "title": "Calories",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 10,
+        "y": 0
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT SUM(calories) AS \"kcal\" FROM activities WHERE $__timeFilter(date) AND calories IS NOT NULL AND calories > 0;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "kcal",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 50
+              },
+              {
+                "color": "green",
+                "value": 100
+              }
+            ]
+          },
+          "color": {
+            "fixedColor": "orange",
+            "mode": "fixed"
+          }
+        }
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
       "id": 3,
       "title": "Elevation",
       "type": "stat",
       "gridPos": {
         "h": 4,
         "w": 5,
-        "x": 10,
+        "x": 14,
         "y": 0
       },
       "datasource": {
@@ -180,8 +238,8 @@
       "type": "gauge",
       "gridPos": {
         "h": 4,
-        "w": 9,
-        "x": 15,
+        "w": 5,
+        "x": 19,
         "y": 0
       },
       "datasource": {
@@ -353,10 +411,10 @@
       "title": "Calories",
       "type": "timeseries",
       "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 12
+        "h": 4,
+        "w": 5,
+        "x": 9,
+        "y": 0
       },
       "datasource": {
         "type": "postgres",
