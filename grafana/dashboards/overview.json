@@ -51,7 +51,7 @@
       "datasource": { "type": "postgres", "uid": "veloai" },
       "targets": [
         {
-          "rawSql": "SELECT ROUND(SUM(distance_m) / 1000.0, 1) AS \"km\" FROM activities WHERE date >= date_trunc('week', CURRENT_DATE);",
+          "rawSql": "SELECT ROUND((SUM(distance_m) / 1000.0)::numeric, 1) AS \"km\" FROM activities WHERE date >= date_trunc('week', CURRENT_DATE);",
           "format": "table",
           "refId": "A"
         }
@@ -152,7 +152,7 @@
       "datasource": { "type": "postgres", "uid": "veloai" },
       "targets": [
         {
-          "rawSql": "SELECT name, date::date, ROUND(distance_m / 1000.0, 1) AS \"km\", ROUND(duration_s / 60.0, 0) AS \"min\", avg_hr, ROUND(elevation_m::numeric, 0) AS \"elev_m\", device FROM activities ORDER BY date DESC LIMIT 10;",
+          "rawSql": "SELECT name, date::date, ROUND((distance_m / 1000.0)::numeric, 1) AS \"km\", ROUND((duration_s / 60.0)::numeric, 0) AS \"min\", avg_hr, ROUND(elevation_m::numeric, 0) AS \"elev_m\", device FROM activities ORDER BY date DESC LIMIT 10;",
           "format": "table",
           "refId": "A"
         }
