@@ -310,22 +310,22 @@
       },
       "targets": [
         {
+          "rawSql": "SELECT gs.day AS time, ROUND((SUM(a.distance_m)/1000.0)::numeric,1) AS \"Outdoor km\"\nFROM generate_series(date_trunc('day',$__timeFrom()::timestamptz), date_trunc('day',$__timeTo()::timestamptz),'1 day'::interval) gs(day)\nLEFT JOIN activities a ON date_trunc('day',a.date)=gs.day AND a.distance_m>0 AND a.is_indoor=false\nGROUP BY 1 ORDER BY 1;",
+          "refId": "A",
           "datasource": {
             "type": "postgres",
             "uid": "veloai"
           },
-          "rawSql": "SELECT date_trunc('day', date) AS time, ROUND((SUM(distance_m)/1000.0)::numeric,1) AS \"Outdoor km\" FROM activities WHERE $__timeFilter(date) AND distance_m > 0 AND is_indoor = false GROUP BY 1 ORDER BY 1;",
-          "format": "time_series",
-          "refId": "A"
+          "format": "time_series"
         },
         {
+          "rawSql": "SELECT gs.day AS time, ROUND((SUM(a.distance_m)/1000.0)::numeric,1) AS \"Indoor km\"\nFROM generate_series(date_trunc('day',$__timeFrom()::timestamptz), date_trunc('day',$__timeTo()::timestamptz),'1 day'::interval) gs(day)\nLEFT JOIN activities a ON date_trunc('day',a.date)=gs.day AND a.distance_m>0 AND a.is_indoor=true\nGROUP BY 1 ORDER BY 1;",
+          "refId": "B",
           "datasource": {
             "type": "postgres",
             "uid": "veloai"
           },
-          "rawSql": "SELECT date_trunc('day', date) AS time, ROUND((SUM(distance_m)/1000.0)::numeric,1) AS \"Indoor km\" FROM activities WHERE $__timeFilter(date) AND distance_m > 0 AND is_indoor = true GROUP BY 1 ORDER BY 1;",
-          "format": "time_series",
-          "refId": "B"
+          "format": "time_series"
         }
       ],
       "fieldConfig": {
@@ -366,22 +366,22 @@
       },
       "targets": [
         {
+          "rawSql": "SELECT gs.day AS time, ROUND(SUM(a.elevation_m)::numeric,0) AS \"Outdoor m\"\nFROM generate_series(date_trunc('day',$__timeFrom()::timestamptz), date_trunc('day',$__timeTo()::timestamptz),'1 day'::interval) gs(day)\nLEFT JOIN activities a ON date_trunc('day',a.date)=gs.day AND a.elevation_m>0 AND a.is_indoor=false\nGROUP BY 1 ORDER BY 1;",
+          "refId": "A",
           "datasource": {
             "type": "postgres",
             "uid": "veloai"
           },
-          "rawSql": "SELECT date_trunc('day', date) AS time, ROUND(SUM(elevation_m)::numeric,0) AS \"Outdoor m\" FROM activities WHERE $__timeFilter(date) AND distance_m > 0 AND is_indoor = false GROUP BY 1 ORDER BY 1;",
-          "format": "time_series",
-          "refId": "A"
+          "format": "time_series"
         },
         {
+          "rawSql": "SELECT gs.day AS time, ROUND(SUM(a.elevation_m)::numeric,0) AS \"Indoor m\"\nFROM generate_series(date_trunc('day',$__timeFrom()::timestamptz), date_trunc('day',$__timeTo()::timestamptz),'1 day'::interval) gs(day)\nLEFT JOIN activities a ON date_trunc('day',a.date)=gs.day AND a.elevation_m>0 AND a.is_indoor=true\nGROUP BY 1 ORDER BY 1;",
+          "refId": "B",
           "datasource": {
             "type": "postgres",
             "uid": "veloai"
           },
-          "rawSql": "SELECT date_trunc('day', date) AS time, ROUND(SUM(elevation_m)::numeric,0) AS \"Indoor m\" FROM activities WHERE $__timeFilter(date) AND distance_m > 0 AND is_indoor = true GROUP BY 1 ORDER BY 1;",
-          "format": "time_series",
-          "refId": "B"
+          "format": "time_series"
         }
       ],
       "fieldConfig": {
@@ -422,22 +422,22 @@
       },
       "targets": [
         {
+          "rawSql": "SELECT gs.day AS time, ROUND(SUM(a.calories)::numeric,0) AS \"Outdoor kcal\"\nFROM generate_series(date_trunc('day',$__timeFrom()::timestamptz), date_trunc('day',$__timeTo()::timestamptz),'1 day'::interval) gs(day)\nLEFT JOIN activities a ON date_trunc('day',a.date)=gs.day AND a.calories>0 AND a.is_indoor=false\nGROUP BY 1 ORDER BY 1;",
+          "refId": "A",
           "datasource": {
             "type": "postgres",
             "uid": "veloai"
           },
-          "rawSql": "SELECT date_trunc('day', date) AS time, SUM(calories) AS \"Outdoor kcal\" FROM activities WHERE $__timeFilter(date) AND calories IS NOT NULL AND is_indoor = false GROUP BY 1 ORDER BY 1;",
-          "format": "time_series",
-          "refId": "A"
+          "format": "time_series"
         },
         {
+          "rawSql": "SELECT gs.day AS time, ROUND(SUM(a.calories)::numeric,0) AS \"Indoor kcal\"\nFROM generate_series(date_trunc('day',$__timeFrom()::timestamptz), date_trunc('day',$__timeTo()::timestamptz),'1 day'::interval) gs(day)\nLEFT JOIN activities a ON date_trunc('day',a.date)=gs.day AND a.calories>0 AND a.is_indoor=true\nGROUP BY 1 ORDER BY 1;",
+          "refId": "B",
           "datasource": {
             "type": "postgres",
             "uid": "veloai"
           },
-          "rawSql": "SELECT date_trunc('day', date) AS time, SUM(calories) AS \"Indoor kcal\" FROM activities WHERE $__timeFilter(date) AND calories IS NOT NULL AND is_indoor = true GROUP BY 1 ORDER BY 1;",
-          "format": "time_series",
-          "refId": "B"
+          "format": "time_series"
         }
       ],
       "fieldConfig": {
