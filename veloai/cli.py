@@ -17,15 +17,17 @@ def main():
         from veloai.db import get_connection, get_latest_fitness, get_routes
         conn = get_connection()
         if conn:
-            print("Connected to VeloAI DB", file=sys.stderr)
-            fitness = get_latest_fitness(conn)
-            db_routes = get_routes(conn)
-            if db_routes:
-                tours = db_routes
-                print(f"  → {len(tours)} routes from DB", file=sys.stderr)
-            if fitness:
-                print(f"  → Fitness: CTL={fitness.get('ctl', '?')}, ATL={fitness.get('atl', '?')}, TSB={fitness.get('tsb', '?')}", file=sys.stderr)
-            conn.close()
+            try:
+                print("Connected to VeloAI DB", file=sys.stderr)
+                fitness = get_latest_fitness(conn)
+                db_routes = get_routes(conn)
+                if db_routes:
+                    tours = db_routes
+                    print(f"  → {len(tours)} routes from DB", file=sys.stderr)
+                if fitness:
+                    print(f"  → Fitness: CTL={fitness.get('ctl', '?')}, ATL={fitness.get('atl', '?')}, TSB={fitness.get('tsb', '?')}", file=sys.stderr)
+            finally:
+                conn.close()
         else:
             print("DB unavailable, falling back to Komoot API", file=sys.stderr)
     except Exception as e:
