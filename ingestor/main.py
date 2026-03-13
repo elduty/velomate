@@ -64,12 +64,15 @@ def poll_komoot():
 def run_backfill():
     """One-time backfill — call manually or on first run."""
     conn = get_connection()
-    create_schema(conn)
-    count = backfill(conn, months=12)
-    recalculate_fitness(conn)
-    sync_komoot(conn)
-    print(f"[backfill] Complete — {count} Strava + Komoot activities ingested")
-    return count
+    try:
+        create_schema(conn)
+        count = backfill(conn, months=12)
+        recalculate_fitness(conn)
+        sync_komoot(conn)
+        print(f"[backfill] Complete — {count} Strava + Komoot activities ingested")
+        return count
+    finally:
+        conn.close()
 
 
 def run():
