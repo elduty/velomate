@@ -11,7 +11,7 @@ services:
     volumes:
       - veloai-postgres-data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "5423:5432"
     restart: unless-stopped
 
   veloai-ingestor:
