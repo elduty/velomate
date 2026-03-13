@@ -16,11 +16,83 @@
 
 | File | Action | Responsibility |
 |------|--------|----------------|
+| `ingestor/db.py` | Modify | Add `tss` column to schema |
+| `ingestor/fitness.py` | Modify | Store per-activity TSS during recalculation |
 | `grafana/dashboards/overview.json` | Full rewrite | All new panels |
 | `grafana/dashboards/fitness-trends.json` | Modify | Add dashboard nav links |
 | `grafana/dashboards/activity.json` | Modify | Add dashboard nav links |
 
-All tasks modify the same primary file (`overview.json`), so they must run sequentially.
+Task 0 (schema) is independent. Tasks 1-7 modify the same file (`overview.json`) and must run sequentially.
+
+---
+
+## Chunk 0: Schema Enhancement
+
+### Task 0: Add `tss` column to activities and backfill
+
+Store per-activity TSS at ingest time using the auto-estimated thresholds, so the dashboard can just `SUM(tss)` instead of recalculating with hardcoded defaults.
+
+**Files:**
+- Modify: `ingestor/db.py:84-85` (schema migration)
+- Modify: `ingestor/fitness.py:56-132` (store TSS per activity during recalculation)
+
+- [ ] **Step 1: Add `tss` column to schema**
+
+In `ingestor/db.py`, after the existing `ALTER TABLE` lines (line 85), add:
+
+```python
+            ALTER TABLE activities ADD COLUMN IF NOT EXISTS tss FLOAT;
+```
+
+- [ ] **Step 2: Update `recalculate_fitness()` to store per-activity TSS**
+
+In `ingestor/fitness.py`, modify `recalculate_fitness()` to update each activity's `tss` column. After estimating thresholds (line 68-69), add a pass that writes TSS back to each activity:
+
+```python
+    # Store per-activity TSS
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT id, duration_s, avg_hr, avg_power
+            FROM activities
+            WHERE date IS NOT NULL
+        """)
+        activity_rows = cur.fetchall()
+
+    for act_id, duration_s, avg_hr, avg_power in activity_rows:
+        if avg_power and avg_power > 0:
+            tss = calculate_tss_power(duration_s, avg_power, ftp)
+        elif avg_hr and avg_hr > 0:
+            tss = calculate_tss(duration_s, avg_hr, threshold_hr)
+        else:
+            tss = 0
+        with conn.cursor() as cur:
+            cur.execute("UPDATE activities SET tss = %s WHERE id = %s", (round(tss, 1), act_id))
+```
+
+Insert this block after line 69 (`print(f"[fitness] Threshold HR..."`), before the existing daily TSS aggregation loop.
+
+- [ ] **Step 3: Verify schema migration and backfill**
+
+Run:
+```bash
+docker compose up -d --build
+docker compose exec veloai-ingestor python3 -c "
+from db import get_connection, create_schema
+from fitness import recalculate_fitness
+conn = get_connection()
+create_schema(conn)
+recalculate_fitness(conn)
+"
+docker compose exec veloai-postgres psql -U veloai -c "SELECT id, name, tss FROM activities WHERE tss > 0 LIMIT 5;"
+```
+Expected: Activities now have `tss` values populated.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add ingestor/db.py ingestor/fitness.py
+git commit -m "feat: add tss column to activities, compute at fitness recalculation time"
+```
 
 ---
 
@@ -350,15 +422,7 @@ Type: `timeseries`, drawStyle: bars.
 ```sql
 SELECT
   gs AS "time",
-  COALESCE(SUM(
-    CASE
-      WHEN a.avg_power > 0 AND a.avg_power IS NOT NULL THEN
-        (a.duration_s * a.avg_power * (a.avg_power::float / 150)) / (150 * 3600) * 100
-      WHEN a.avg_hr > 0 AND a.avg_hr IS NOT NULL THEN
-        (a.duration_s / 3600.0) * POWER(a.avg_hr::float / 170, 2) * 100
-      ELSE 0
-    END
-  ), 0) AS "TSS"
+  COALESCE(SUM(a.tss), 0) AS "TSS"
 FROM generate_series(
   date_trunc('${group_by}', $__timeFrom()::timestamptz),
   date_trunc('${group_by}', $__timeTo()::timestamptz),
@@ -369,6 +433,7 @@ LEFT JOIN activities a
 GROUP BY gs
 ORDER BY gs;
 ```
+Uses the pre-computed `tss` column from Task 0 — no CASE expression needed.
 Color: fixed purple `#8b5cf6`.
 
 **CTL/ATL/TSB lines (id:14, w:12 h:8 x:12 y:17):**

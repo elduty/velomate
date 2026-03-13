@@ -228,22 +228,9 @@ No ingestor or schema changes needed — all data already exists in the database
 
 ---
 
-## TSS Calculation in SQL
+## TSS Column
 
-The training load section needs TSS calculated in SQL (currently only done in Python). Uses hardcoded defaults matching `fitness.py` (`DEFAULT_FTP = 150`, `DEFAULT_THRESHOLD_HR = 170`):
-
-```sql
--- Per-activity TSS: power-based preferred, HR-based fallback
-CASE
-  WHEN avg_power > 0 AND avg_power IS NOT NULL THEN
-    (duration_s * avg_power * (avg_power::float / 150)) / (150 * 3600) * 100
-  WHEN avg_hr > 0 AND avg_hr IS NOT NULL THEN
-    (duration_s / 3600.0) * POWER(avg_hr::float / 170, 2) * 100
-  ELSE 0
-END AS tss
-```
-
-These defaults (FTP=150W, threshold HR=170bpm) match the Python fallbacks in `ingestor/fitness.py:7-8`. The Python code auto-estimates from 95th percentile of historical data, but for dashboard SQL, hardcoded values are simpler and sufficient.
+Per-activity TSS is pre-computed by the ingestor during `recalculate_fitness()` and stored in `activities.tss`. This uses the auto-estimated thresholds (95th percentile of historical data), matching the values used for CTL/ATL/TSB calculation. The dashboard simply uses `SUM(tss)` — no SQL-side calculation needed.
 
 ---
 
