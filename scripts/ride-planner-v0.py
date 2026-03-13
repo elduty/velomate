@@ -1,3 +1,4 @@
+# ARCHIVED — superseded by the veloai/ package
 #!/usr/bin/env python3
 """
 Ride Planner — recommends the best days and routes for Marcin's cycling.

@@ -1,7 +1,7 @@
 import sys
 import warnings
 
-from veloai import komoot, strava, weather, planner
+from veloai import komoot, weather, planner
 
 warnings.filterwarnings("ignore")
 
@@ -16,11 +16,7 @@ def main():
     print("Fetching weather forecast...", file=sys.stderr)
     days = weather.fetch_forecast(LOCATION["lat"], LOCATION["lon"])
 
-    print("Fetching Strava activities...", file=sys.stderr)
-    fitness = strava.get_fitness_level()
-    print(f"  → Fitness level: {fitness['level']}", file=sys.stderr)
-
-    print(planner.recommend(days, tours, fitness))
+    print(planner.recommend(days, tours))
 
 
 if __name__ == "__main__":
