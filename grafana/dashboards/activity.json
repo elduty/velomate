@@ -41,6 +41,18 @@
         },
         "options": [],
         "query": "0"
+      },
+      {
+        "name": "map_metric",
+        "type": "custom",
+        "label": "Map color",
+        "query": "speed_kmh,hr,power",
+        "current": { "text": "Speed", "value": "speed_kmh" },
+        "options": [
+          { "text": "Speed", "value": "speed_kmh", "selected": true },
+          { "text": "Heart Rate", "value": "hr", "selected": false },
+          { "text": "Power", "value": "power", "selected": false }
+        ]
       }
     ]
   },
@@ -732,6 +744,66 @@
       }
     },
     {
+      "id": 30,
+      "title": "Route",
+      "type": "geomap",
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 6 },
+      "datasource": { "type": "postgres", "uid": "veloai" },
+      "targets": [
+        {
+          "rawSql": "SELECT lat AS \"latitude\", lng AS \"longitude\", CASE '${map_metric}' WHEN 'speed_kmh' THEN speed_kmh WHEN 'hr' THEN hr WHEN 'power' THEN power END AS \"metric\", time_offset FROM activity_streams WHERE activity_id = ${activity_id} AND lat IS NOT NULL AND lng IS NOT NULL ORDER BY time_offset;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "view": {
+          "id": "fit",
+          "lat": 38.69,
+          "lon": -9.32,
+          "zoom": 12
+        },
+        "layers": [
+          {
+            "type": "markers",
+            "name": "Route",
+            "config": {
+              "showLegend": false,
+              "style": {
+                "color": {
+                  "field": "metric",
+                  "fixed": "green"
+                },
+                "opacity": 0.8,
+                "rotation": { "fixed": 0 },
+                "size": { "fixed": 3 }
+              }
+            },
+            "location": {
+              "mode": "coords",
+              "latitude": "latitude",
+              "longitude": "longitude"
+            }
+          }
+        ]
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-GrYlRd"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "metric" },
+            "properties": [
+              { "id": "color", "value": { "mode": "continuous-GrYlRd" } }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "id": 20,
       "title": "Speed & Elevation",
       "type": "trend",
@@ -739,7 +811,7 @@
         "h": 12,
         "w": 24,
         "x": 0,
-        "y": 6
+        "y": 18
       },
       "datasource": {
         "type": "postgres",
@@ -864,7 +936,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 18
+        "y": 30
       },
       "datasource": {
         "type": "postgres",
@@ -978,7 +1050,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 28
+        "y": 40
       },
       "datasource": {
         "type": "postgres",
