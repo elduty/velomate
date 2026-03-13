@@ -15,7 +15,7 @@
       "title": "Weekly Distance (km)",
       "type": "barchart",
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "veloai" },
+      "datasource": { "type": "postgres", "uid": "veloai" },
       "targets": [
         {
           "rawSql": "SELECT date_trunc('week', date)::date AS time, ROUND(SUM(distance_m) / 1000.0, 1) AS \"Distance (km)\" FROM activities WHERE date >= NOW() - INTERVAL '12 weeks' GROUP BY 1 ORDER BY 1;",
@@ -45,7 +45,7 @@
       "title": "Weekly Elevation (m)",
       "type": "barchart",
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "veloai" },
+      "datasource": { "type": "postgres", "uid": "veloai" },
       "targets": [
         {
           "rawSql": "SELECT date_trunc('week', date)::date AS time, ROUND(SUM(elevation_m)::numeric, 0) AS \"Elevation (m)\" FROM activities WHERE date >= NOW() - INTERVAL '12 weeks' GROUP BY 1 ORDER BY 1;",
@@ -75,7 +75,7 @@
       "title": "Weekly Calories",
       "type": "barchart",
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "veloai" },
+      "datasource": { "type": "postgres", "uid": "veloai" },
       "targets": [
         {
           "rawSql": "SELECT date_trunc('week', date)::date AS time, SUM(calories) AS \"Calories\" FROM activities WHERE date >= NOW() - INTERVAL '12 weeks' AND calories IS NOT NULL GROUP BY 1 ORDER BY 1;",
