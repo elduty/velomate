@@ -1,6 +1,6 @@
 {
-  "uid": "veloai-overview",
-  "title": "Overview",
+  "uid": "veloai-main",
+  "title": "VeloAI",
   "tags": [
     "veloai"
   ],
@@ -18,7 +18,7 @@
       "type": "stat",
       "gridPos": {
         "h": 4,
-        "w": 4,
+        "w": 5,
         "x": 0,
         "y": 0
       },
@@ -72,8 +72,8 @@
       "type": "stat",
       "gridPos": {
         "h": 4,
-        "w": 4,
-        "x": 4,
+        "w": 5,
+        "x": 5,
         "y": 0
       },
       "datasource": {
@@ -126,8 +126,8 @@
       "type": "stat",
       "gridPos": {
         "h": 4,
-        "w": 4,
-        "x": 8,
+        "w": 5,
+        "x": 10,
         "y": 0
       },
       "datasource": {
@@ -179,9 +179,9 @@
       "title": "Current Form (TSB)",
       "type": "gauge",
       "gridPos": {
-        "h": 6,
-        "w": 6,
-        "x": 12,
+        "h": 4,
+        "w": 9,
+        "x": 15,
         "y": 0
       },
       "datasource": {
@@ -237,14 +237,182 @@
       }
     },
     {
+      "id": 1,
+      "title": "Distance (km)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 4
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "veloai"
+          },
+          "rawSql": "SELECT date_trunc('day', date) AS time, ROUND((SUM(distance_m)/1000.0)::numeric,1) AS \"Outdoor km\" FROM activities WHERE $__timeFilter(date) AND distance_m > 0 AND is_indoor = false GROUP BY 1 ORDER BY 1;",
+          "format": "time_series",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "veloai"
+          },
+          "rawSql": "SELECT date_trunc('day', date) AS time, ROUND((SUM(distance_m)/1000.0)::numeric,1) AS \"Indoor km\" FROM activities WHERE $__timeFilter(date) AND distance_m > 0 AND is_indoor = true GROUP BY 1 ORDER BY 1;",
+          "format": "time_series",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "lengthkm",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "lineWidth": 0,
+            "barMaxWidth": 50
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Elevation (m)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 4
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "veloai"
+          },
+          "rawSql": "SELECT date_trunc('day', date) AS time, ROUND(SUM(elevation_m)::numeric,0) AS \"Outdoor m\" FROM activities WHERE $__timeFilter(date) AND distance_m > 0 AND is_indoor = false GROUP BY 1 ORDER BY 1;",
+          "format": "time_series",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "veloai"
+          },
+          "rawSql": "SELECT date_trunc('day', date) AS time, ROUND(SUM(elevation_m)::numeric,0) AS \"Indoor m\" FROM activities WHERE $__timeFilter(date) AND distance_m > 0 AND is_indoor = true GROUP BY 1 ORDER BY 1;",
+          "format": "time_series",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "lengthm",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "lineWidth": 0,
+            "barMaxWidth": 50
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Calories",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 12
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "veloai"
+          },
+          "rawSql": "SELECT date_trunc('day', date) AS time, SUM(calories) AS \"Outdoor kcal\" FROM activities WHERE $__timeFilter(date) AND calories IS NOT NULL AND is_indoor = false GROUP BY 1 ORDER BY 1;",
+          "format": "time_series",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "veloai"
+          },
+          "rawSql": "SELECT date_trunc('day', date) AS time, SUM(calories) AS \"Indoor kcal\" FROM activities WHERE $__timeFilter(date) AND calories IS NOT NULL AND is_indoor = true GROUP BY 1 ORDER BY 1;",
+          "format": "time_series",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "kcal",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "lineWidth": 0,
+            "barMaxWidth": 50
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
       "id": 5,
       "title": "Recent Activities",
       "type": "table",
       "gridPos": {
         "h": 8,
-        "w": 18,
-        "x": 0,
-        "y": 6
+        "w": 12,
+        "x": 12,
+        "y": 12
       },
       "datasource": {
         "type": "postgres",
