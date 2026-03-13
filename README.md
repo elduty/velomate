@@ -8,7 +8,7 @@ Inspired by TeslaMate. Built for Marcin's Karoo 3 + Strava setup.
 
 ## What it does
 
-- **Ingestor** — polls Strava every 10 min, pulls every ride with full streams (HR, power, cadence, speed, altitude, GPS), calculates CTL/ATL/TSB fitness metrics, stores everything in PostgreSQL
+- **Ingestor** — polls Strava every 10 min, pulls every ride with full streams (HR, power, cadence, speed, altitude, GPS), calculates CTL/ATL/TSB fitness metrics, stores everything in PostgreSQL. Handles cross-device deduplication (Karoo > unknown/Zwift > Watch) and Strava-Komoot matching (same-day ±10% distance)
 - **Grafana** — dashboards for activity history, fitness trends, and per-activity detail (speed, elevation, HR, power, cadence vs distance)
 - **VeloAI CLI** — reads from DB to produce WhatsApp-friendly ride recommendations based on current fitness (TSB) + weather forecast + Komoot routes
 
@@ -65,8 +65,8 @@ STRAVA_REFRESH_TOKEN=    # obtained via OAuth (see below)
 KOMOOT_EMAIL=            # Komoot account email
 KOMOOT_PASSWORD=         # Komoot account password
 GRAFANA_PASSWORD=        # Grafana admin password
-DB_HOST=10.7.40.15       # homelab IP
-DB_PORT=5432             # internal port (5423 is host-mapped)
+VELOAI_DB_HOST=10.7.40.15  # homelab IP (CLI only)
+VELOAI_DB_PORT=5423        # host-mapped port (CLI only)
 ```
 
 #### Getting a Strava refresh token
@@ -120,7 +120,7 @@ DB credentials are read from `.env` or env vars (`VELOAI_DB_HOST`, `VELOAI_DB_PO
 
 | Table | Contents |
 |---|---|
-| `activities` | Every ride — distance, duration, HR, power, cadence, elevation, calories |
+| `activities` | Every ride — distance, duration, HR, power, cadence, elevation, calories, `is_indoor`, `sport_type`, `device` |
 | `activity_streams` | Per-second stream data — HR, power, cadence, speed, altitude, GPS |
 | `athlete_stats` | Daily CTL/ATL/TSB fitness metrics |
 | `routes` | Komoot route library with ride counts |
@@ -129,13 +129,15 @@ DB credentials are read from `.env` or env vars (`VELOAI_DB_HOST`, `VELOAI_DB_PO
 ### Fitness metrics
 
 ```
-TSS (per ride) = (duration_h) × (avg_hr / threshold_hr)² × 100
+Power TSS      = (duration_s × avg_power × IF) / (FTP × 3600) × 100   (preferred)
+HR TSS         = (duration_h) × (avg_hr / threshold_hr)² × 100         (fallback)
 CTL            = 42-day EMA of daily TSS  (fitness)
 ATL            = 7-day EMA of daily TSS   (fatigue)
 TSB            = CTL − ATL               (form)
 ```
 
-Threshold HR = 95th percentile of max HRs from ride history.
+Power-based TSS is preferred when power data is available; HR-based is the fallback.
+Threshold HR = 95th percentile of max HRs; FTP estimated from 95th percentile of avg power.
 
 Interpretation: TSB > +10 = fresh (push hard) · TSB -10..+10 = neutral · TSB < -10 = fatigued (easy or rest)
 
