@@ -7,7 +7,7 @@ datasources:
     database: veloai
     user: veloai
     secureJsonData:
-      password: veloai_secret_2026
+      password: ${POSTGRES_PASSWORD}
     jsonData:
       sslmode: disable
       timescaledb: false
