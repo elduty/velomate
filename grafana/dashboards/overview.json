@@ -15,7 +15,7 @@
       "title": "Rides This Week",
       "type": "stat",
       "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
-      "datasource": { "type": "postgres", "uid": "veloai" },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "veloai" },
       "targets": [
         {
           "rawSql": "SELECT COUNT(*) AS \"rides\" FROM activities WHERE date >= date_trunc('week', CURRENT_DATE);",
@@ -48,7 +48,7 @@
       "title": "Distance This Week",
       "type": "stat",
       "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
-      "datasource": { "type": "postgres", "uid": "veloai" },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "veloai" },
       "targets": [
         {
           "rawSql": "SELECT ROUND(SUM(distance_m) / 1000.0, 1) AS \"km\" FROM activities WHERE date >= date_trunc('week', CURRENT_DATE);",
@@ -81,7 +81,7 @@
       "title": "Elevation This Week",
       "type": "stat",
       "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
-      "datasource": { "type": "postgres", "uid": "veloai" },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "veloai" },
       "targets": [
         {
           "rawSql": "SELECT ROUND(SUM(elevation_m)::numeric, 0) AS \"meters\" FROM activities WHERE date >= date_trunc('week', CURRENT_DATE);",
@@ -114,7 +114,7 @@
       "title": "Current Form (TSB)",
       "type": "gauge",
       "gridPos": { "h": 6, "w": 6, "x": 12, "y": 0 },
-      "datasource": { "type": "postgres", "uid": "veloai" },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "veloai" },
       "targets": [
         {
           "rawSql": "SELECT tsb AS \"TSB\" FROM athlete_stats ORDER BY date DESC LIMIT 1;",
@@ -149,7 +149,7 @@
       "title": "Recent Activities",
       "type": "table",
       "gridPos": { "h": 8, "w": 18, "x": 0, "y": 6 },
-      "datasource": { "type": "postgres", "uid": "veloai" },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "veloai" },
       "targets": [
         {
           "rawSql": "SELECT name, date::date, ROUND(distance_m / 1000.0, 1) AS \"km\", ROUND(duration_s / 60.0, 0) AS \"min\", avg_hr, ROUND(elevation_m::numeric, 0) AS \"elev_m\", device FROM activities ORDER BY date DESC LIMIT 10;",

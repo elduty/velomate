@@ -15,7 +15,7 @@
       "title": "Current CTL (Fitness)",
       "type": "stat",
       "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
-      "datasource": { "type": "postgres", "uid": "veloai" },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "veloai" },
       "targets": [
         {
           "rawSql": "SELECT ctl FROM athlete_stats ORDER BY date DESC LIMIT 1;",
@@ -47,7 +47,7 @@
       "title": "Current ATL (Fatigue)",
       "type": "stat",
       "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
-      "datasource": { "type": "postgres", "uid": "veloai" },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "veloai" },
       "targets": [
         {
           "rawSql": "SELECT atl FROM athlete_stats ORDER BY date DESC LIMIT 1;",
@@ -79,7 +79,7 @@
       "title": "Current TSB (Form)",
       "type": "stat",
       "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
-      "datasource": { "type": "postgres", "uid": "veloai" },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "veloai" },
       "targets": [
         {
           "rawSql": "SELECT tsb FROM athlete_stats ORDER BY date DESC LIMIT 1;",
@@ -112,7 +112,7 @@
       "title": "CTL / ATL / TSB (90 days)",
       "type": "timeseries",
       "gridPos": { "h": 10, "w": 24, "x": 0, "y": 4 },
-      "datasource": { "type": "postgres", "uid": "veloai" },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "veloai" },
       "targets": [
         {
           "rawSql": "SELECT date AS time, ctl AS \"Fitness (CTL)\", atl AS \"Fatigue (ATL)\", tsb AS \"Form (TSB)\" FROM athlete_stats WHERE date >= NOW() - INTERVAL '90 days' ORDER BY date;",
@@ -154,7 +154,7 @@
       "title": "Resting Heart Rate",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 14 },
-      "datasource": { "type": "postgres", "uid": "veloai" },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "veloai" },
       "targets": [
         {
           "rawSql": "SELECT date AS time, resting_hr AS \"Resting HR\" FROM athlete_stats WHERE resting_hr IS NOT NULL AND date >= NOW() - INTERVAL '90 days' ORDER BY date;",
