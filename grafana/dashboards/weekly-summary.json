@@ -15,7 +15,7 @@
     {
       "id": 1,
       "title": "Distance (km)",
-      "type": "barchart",
+      "type": "timeseries",
       "gridPos": {
         "h": 8,
         "w": 24,
@@ -49,31 +49,29 @@
       "fieldConfig": {
         "defaults": {
           "unit": "lengthkm",
-          "color": {
-            "fixedColor": "blue",
-            "mode": "fixed"
-          },
           "custom": {
+            "drawStyle": "bars",
             "fillOpacity": 80,
-            "gradientMode": "scheme"
+            "lineWidth": 0,
+            "barMaxWidth": 50
           }
-        }
+        },
+        "overrides": []
       },
       "options": {
-        "barWidth": 0.7,
-        "groupWidth": 0.7,
         "tooltip": {
-          "mode": "single"
+          "mode": "multi"
         },
         "legend": {
-          "displayMode": "hidden"
+          "displayMode": "list",
+          "placement": "bottom"
         }
       }
     },
     {
       "id": 2,
       "title": "Elevation (m)",
-      "type": "barchart",
+      "type": "timeseries",
       "gridPos": {
         "h": 8,
         "w": 24,
@@ -107,31 +105,29 @@
       "fieldConfig": {
         "defaults": {
           "unit": "lengthm",
-          "color": {
-            "fixedColor": "orange",
-            "mode": "fixed"
-          },
           "custom": {
+            "drawStyle": "bars",
             "fillOpacity": 80,
-            "gradientMode": "scheme"
+            "lineWidth": 0,
+            "barMaxWidth": 50
           }
-        }
+        },
+        "overrides": []
       },
       "options": {
-        "barWidth": 0.7,
-        "groupWidth": 0.7,
         "tooltip": {
-          "mode": "single"
+          "mode": "multi"
         },
         "legend": {
-          "displayMode": "hidden"
+          "displayMode": "list",
+          "placement": "bottom"
         }
       }
     },
     {
       "id": 3,
       "title": "Calories",
-      "type": "barchart",
+      "type": "timeseries",
       "gridPos": {
         "h": 8,
         "w": 24,
@@ -165,24 +161,22 @@
       "fieldConfig": {
         "defaults": {
           "unit": "kcal",
-          "color": {
-            "fixedColor": "green",
-            "mode": "fixed"
-          },
           "custom": {
+            "drawStyle": "bars",
             "fillOpacity": 80,
-            "gradientMode": "scheme"
+            "lineWidth": 0,
+            "barMaxWidth": 50
           }
-        }
+        },
+        "overrides": []
       },
       "options": {
-        "barWidth": 0.7,
-        "groupWidth": 0.7,
         "tooltip": {
-          "mode": "single"
+          "mode": "multi"
         },
         "legend": {
-          "displayMode": "hidden"
+          "displayMode": "list",
+          "placement": "bottom"
         }
       }
     }
