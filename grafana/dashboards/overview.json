@@ -117,7 +117,7 @@
       "datasource": { "type": "postgres", "uid": "veloai" },
       "targets": [
         {
-          "rawSql": "SELECT COALESCE(SUM(duration_s), 0) AS \"Duration\" FROM activities WHERE $__timeFilter(date);",
+          "rawSql": "SELECT FLOOR(COALESCE(SUM(duration_s), 0) / 3600) || 'h ' || LPAD((COALESCE(SUM(duration_s), 0) % 3600 / 60)::text, 2, '0') || 'm' AS \"Duration\" FROM activities WHERE $__timeFilter(date);",
           "format": "table",
           "refId": "A"
         }
@@ -130,7 +130,6 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "s",
           "color": { "mode": "thresholds" },
           "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
         }
