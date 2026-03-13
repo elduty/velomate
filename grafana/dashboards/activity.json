@@ -578,7 +578,7 @@
         "justifyMode": "center",
         "text": {
           "valueSize": 28,
-          "titleSize": 14
+          "titleSize": 0
         }
       },
       "fieldConfig": {
@@ -635,7 +635,7 @@
         "justifyMode": "center",
         "text": {
           "valueSize": 28,
-          "titleSize": 14
+          "titleSize": 0
         }
       },
       "fieldConfig": {
@@ -692,7 +692,7 @@
         "justifyMode": "center",
         "text": {
           "valueSize": 28,
-          "titleSize": 14
+          "titleSize": 0
         }
       },
       "fieldConfig": {
