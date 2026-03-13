@@ -408,12 +408,12 @@
       "datasource": {"type": "postgres", "uid": "veloai"},
       "targets": [
         {
-          "rawSql": "SELECT\n  a.date + (s.time_offset * interval '1 second') AS time,\n  s.speed_kmh AS \"Speed (km/h)\"\nFROM activity_streams s\nJOIN activities a ON a.id = s.activity_id\nWHERE s.activity_id = ${activity_id}\n  AND $__timeFilter(a.date + (s.time_offset * interval '1 second'))\n  AND s.speed_kmh IS NOT NULL\nORDER BY time;",
+          "rawSql": "SELECT\n  a.date + (s.time_offset * interval '1 second') AS time,\n  s.speed_kmh AS \"Speed (km/h)\"\nFROM activity_streams s\nJOIN activities a ON a.id = s.activity_id\nWHERE s.activity_id = ${activity_id}\n  AND a.date + (s.time_offset * interval '1 second') BETWEEN $__timeFrom() AND $__timeTo()\n  AND s.speed_kmh IS NOT NULL\nORDER BY time;",
           "format": "time_series",
           "refId": "A"
         },
         {
-          "rawSql": "SELECT\n  a.date + (s.time_offset * interval '1 second') AS time,\n  s.altitude_m AS \"Elevation (m)\"\nFROM activity_streams s\nJOIN activities a ON a.id = s.activity_id\nWHERE s.activity_id = ${activity_id}\n  AND $__timeFilter(a.date + (s.time_offset * interval '1 second'))\n  AND s.altitude_m IS NOT NULL\nORDER BY time;",
+          "rawSql": "SELECT\n  a.date + (s.time_offset * interval '1 second') AS time,\n  s.altitude_m AS \"Elevation (m)\"\nFROM activity_streams s\nJOIN activities a ON a.id = s.activity_id\nWHERE s.activity_id = ${activity_id}\n  AND a.date + (s.time_offset * interval '1 second') BETWEEN $__timeFrom() AND $__timeTo()\n  AND s.altitude_m IS NOT NULL\nORDER BY time;",
           "format": "time_series",
           "refId": "B"
         }
@@ -467,12 +467,12 @@
       "datasource": {"type": "postgres", "uid": "veloai"},
       "targets": [
         {
-          "rawSql": "SELECT\n  a.date + (s.time_offset * interval '1 second') AS time,\n  s.hr AS \"HR (bpm)\"\nFROM activity_streams s\nJOIN activities a ON a.id = s.activity_id\nWHERE s.activity_id = ${activity_id}\n  AND $__timeFilter(a.date + (s.time_offset * interval '1 second'))\n  AND s.hr IS NOT NULL\nORDER BY time;",
+          "rawSql": "SELECT\n  a.date + (s.time_offset * interval '1 second') AS time,\n  s.hr AS \"HR (bpm)\"\nFROM activity_streams s\nJOIN activities a ON a.id = s.activity_id\nWHERE s.activity_id = ${activity_id}\n  AND a.date + (s.time_offset * interval '1 second') BETWEEN $__timeFrom() AND $__timeTo()\n  AND s.hr IS NOT NULL\nORDER BY time;",
           "format": "time_series",
           "refId": "A"
         },
         {
-          "rawSql": "SELECT\n  a.date + (s.time_offset * interval '1 second') AS time,\n  s.power AS \"Power (W)\"\nFROM activity_streams s\nJOIN activities a ON a.id = s.activity_id\nWHERE s.activity_id = ${activity_id}\n  AND $__timeFilter(a.date + (s.time_offset * interval '1 second'))\n  AND s.power IS NOT NULL\nORDER BY time;",
+          "rawSql": "SELECT\n  a.date + (s.time_offset * interval '1 second') AS time,\n  s.power AS \"Power (W)\"\nFROM activity_streams s\nJOIN activities a ON a.id = s.activity_id\nWHERE s.activity_id = ${activity_id}\n  AND a.date + (s.time_offset * interval '1 second') BETWEEN $__timeFrom() AND $__timeTo()\n  AND s.power IS NOT NULL\nORDER BY time;",
           "format": "time_series",
           "refId": "B"
         }
@@ -523,7 +523,7 @@
       "datasource": {"type": "postgres", "uid": "veloai"},
       "targets": [
         {
-          "rawSql": "SELECT\n  a.date + (s.time_offset * interval '1 second') AS time,\n  s.cadence AS \"Cadence (rpm)\"\nFROM activity_streams s\nJOIN activities a ON a.id = s.activity_id\nWHERE s.activity_id = ${activity_id}\n  AND $__timeFilter(a.date + (s.time_offset * interval '1 second'))\n  AND s.cadence IS NOT NULL\nORDER BY time;",
+          "rawSql": "SELECT\n  a.date + (s.time_offset * interval '1 second') AS time,\n  s.cadence AS \"Cadence (rpm)\"\nFROM activity_streams s\nJOIN activities a ON a.id = s.activity_id\nWHERE s.activity_id = ${activity_id}\n  AND a.date + (s.time_offset * interval '1 second') BETWEEN $__timeFrom() AND $__timeTo()\n  AND s.cadence IS NOT NULL\nORDER BY time;",
           "format": "time_series",
           "refId": "A"
         }
