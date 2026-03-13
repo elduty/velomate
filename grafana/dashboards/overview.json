@@ -335,7 +335,7 @@
             "drawStyle": "bars",
             "fillOpacity": 80,
             "lineWidth": 0,
-            "barMaxWidth": 50
+            "barMaxWidth": 10
           }
         },
         "overrides": []
@@ -391,7 +391,7 @@
             "drawStyle": "bars",
             "fillOpacity": 80,
             "lineWidth": 0,
-            "barMaxWidth": 50
+            "barMaxWidth": 10
           }
         },
         "overrides": []
@@ -447,7 +447,7 @@
             "drawStyle": "bars",
             "fillOpacity": 80,
             "lineWidth": 0,
-            "barMaxWidth": 50
+            "barMaxWidth": 10
           }
         },
         "overrides": []
