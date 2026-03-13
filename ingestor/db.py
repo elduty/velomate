@@ -109,6 +109,23 @@ def classify_activity(data: dict) -> dict:
     return {**data, "is_indoor": is_indoor, "sport_type": sport_type}
 
 
+def find_duplicate_by_distance(conn, date_str: str, distance_m: float, tolerance_pct: float = 0.10):
+    """Find an existing activity on the same calendar day with similar distance (±10%).
+    More reliable than duration-based dedup for cross-platform matching (Strava moving time
+    vs Komoot elapsed time differ significantly for the same ride).
+    Returns (id, strava_id, device, distance_m, avg_hr, avg_power) or None.
+    """
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT id, strava_id, device, distance_m, avg_hr, avg_power
+            FROM activities
+            WHERE date::date = %s::date
+              AND distance_m > 0
+              AND ABS(distance_m - %s) / %s < %s
+        """, (date_str, distance_m, distance_m, tolerance_pct))
+        return cur.fetchone()
+
+
 def find_duplicate(conn, date_str: str, duration_s: int, tolerance_seconds: int = 300) -> int:
     """Find an existing activity that started within tolerance of date_str
     and has a similar duration. Returns activity id or None.

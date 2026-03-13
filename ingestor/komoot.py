@@ -67,7 +67,7 @@ def sync_activities(conn) -> int:
 
     Returns number of newly inserted activities.
     """
-    from db import find_duplicate, upsert_komoot_activity
+    from db import find_duplicate_by_distance, upsert_komoot_activity
 
     api = _get_api()
     all_tours = api.get_user_tours_list(tour_type=TourType.RECORDED)
@@ -93,8 +93,10 @@ def sync_activities(conn) -> int:
             continue
 
         # Does a Strava activity already cover this ride?
-        if data["date"] and data["duration_s"]:
-            dup = find_duplicate(conn, data["date"], data["duration_s"], tolerance_seconds=300)
+        # Match on same day + distance within 10% — more reliable than duration
+        # since Strava records moving time but Komoot records total elapsed time.
+        if data["date"] and data["distance_m"]:
+            dup = find_duplicate_by_distance(conn, data["date"], data["distance_m"])
             if dup:
                 with conn.cursor() as cur:
                     cur.execute(
