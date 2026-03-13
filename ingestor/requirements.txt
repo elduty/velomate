@@ -1,4 +1,4 @@
-psycopg2-binary
-requests
-schedule
-komPYoot
+psycopg2-binary>=2.9
+requests>=2.28
+schedule>=1.2
+komPYoot>=0.1

@@ -39,7 +39,7 @@ services:
 
   veloai-grafana:
     container_name: veloai-grafana
-    image: grafana/grafana:latest
+    image: grafana/grafana:12.0.0
     ports:
       - "3021:3000"
     volumes:
