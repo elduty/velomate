@@ -2,7 +2,7 @@ apiVersion: 1
 datasources:
   - name: VeloAI
     type: postgres
-    url: postgres:5432
+    url: veloai-postgres:5432
     database: veloai
     user: veloai
     secureJsonData:
