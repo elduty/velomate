@@ -463,7 +463,7 @@
     {
       "id": 102,
       "type": "row",
-      "title": "Personal Records",
+      "title": "Personal Records (All Time)",
       "collapsed": true,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 25 },
       "panels": [
@@ -475,7 +475,7 @@
           "datasource": { "type": "postgres", "uid": "veloai" },
           "targets": [
             {
-              "rawSql": "SELECT ROUND((distance_m / 1000.0)::numeric, 1) AS \"Longest\" FROM activities WHERE $__timeFilter(date) AND distance_m > 0 ORDER BY distance_m DESC LIMIT 1;",
+              "rawSql": "SELECT ROUND((distance_m / 1000.0)::numeric, 1) AS \"Longest\" FROM activities WHERE distance_m > 0 ORDER BY distance_m DESC LIMIT 1;",
               "format": "table",
               "refId": "A"
             }
@@ -502,7 +502,7 @@
           "datasource": { "type": "postgres", "uid": "veloai" },
           "targets": [
             {
-              "rawSql": "SELECT ROUND(MAX(elevation_m)::numeric, 0) AS \"Most Elev\" FROM activities WHERE $__timeFilter(date) AND elevation_m > 0;",
+              "rawSql": "SELECT ROUND(MAX(elevation_m)::numeric, 0) AS \"Most Elev\" FROM activities WHERE elevation_m > 0;",
               "format": "table",
               "refId": "A"
             }
@@ -529,7 +529,7 @@
           "datasource": { "type": "postgres", "uid": "veloai" },
           "targets": [
             {
-              "rawSql": "SELECT ROUND(MAX(avg_speed_kmh)::numeric, 1) AS \"Fastest\" FROM activities WHERE $__timeFilter(date) AND distance_m > 5000;",
+              "rawSql": "SELECT ROUND(MAX(avg_speed_kmh)::numeric, 1) AS \"Fastest\" FROM activities WHERE distance_m > 5000;",
               "format": "table",
               "refId": "A"
             }
@@ -556,7 +556,7 @@
           "datasource": { "type": "postgres", "uid": "veloai" },
           "targets": [
             {
-              "rawSql": "SELECT MAX(avg_power) AS \"Best Power\" FROM activities WHERE $__timeFilter(date) AND duration_s > 1200 AND avg_power IS NOT NULL;",
+              "rawSql": "SELECT MAX(avg_power) AS \"Best Power\" FROM activities WHERE duration_s > 1200 AND avg_power IS NOT NULL;",
               "format": "table",
               "refId": "A"
             }
