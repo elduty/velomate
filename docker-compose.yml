@@ -25,6 +25,7 @@ services:
       KOMOOT_EMAIL: ${KOMOOT_EMAIL}
       KOMOOT_PASSWORD: ${KOMOOT_PASSWORD}
       POLL_INTERVAL_MINUTES: 10
+      PYTHONUNBUFFERED: "1"
     depends_on:
       - veloai-postgres
     restart: unless-stopped
