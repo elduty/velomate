@@ -9,6 +9,21 @@ import requests
 TOKEN_URL = "https://www.strava.com/oauth/token"
 API_BASE = "https://www.strava.com/api/v3"
 
+
+def _request_with_retry(method, url, max_retries=3, **kwargs):
+    """Make an HTTP request with exponential backoff on 429."""
+    kwargs.setdefault("timeout", 15)
+    for attempt in range(max_retries + 1):
+        resp = method(url, **kwargs)
+        if resp.status_code == 429:
+            wait = min(60 * (2 ** attempt), 900)  # max 15 min
+            print(f"[strava] Rate limited (429), waiting {wait}s (attempt {attempt + 1})")
+            time.sleep(wait)
+            continue
+        return resp
+    return resp  # return last response even if still 429
+
+
 # Module-level token cache
 _access_token = None
 _token_expires_at = 0
@@ -23,12 +38,12 @@ def refresh_access_token(client_id: str, client_secret: str, refresh_token: str)
     if _access_token and time.time() < _token_expires_at - 60:
         return _access_token
 
-    resp = requests.post(TOKEN_URL, data={
+    resp = _request_with_retry(requests.post, TOKEN_URL, data={
         "client_id": client_id,
         "client_secret": client_secret,
         "refresh_token": refresh_token,
         "grant_type": "refresh_token",
-    }, timeout=15)
+    })
     resp.raise_for_status()
     data = resp.json()
     _access_token = data["access_token"]
@@ -67,8 +82,8 @@ def _get_token() -> str:
             if stored:
                 refresh_token = stored
                 _current_refresh_token = stored
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[strava] Could not load stored refresh token: {e}")
 
     return refresh_access_token(
         os.environ["STRAVA_CLIENT_ID"],
@@ -88,11 +103,11 @@ def fetch_recent_activities(access_token: str, after_epoch: int) -> list:
     page = 1
 
     while True:
-        resp = requests.get(
+        resp = _request_with_retry(
+            requests.get,
             f"{API_BASE}/athlete/activities",
             headers=headers,
             params={"after": after_epoch, "per_page": 50, "page": page},
-            timeout=15,
         )
         resp.raise_for_status()
         batch = resp.json()
@@ -110,10 +125,10 @@ def fetch_recent_activities(access_token: str, after_epoch: int) -> list:
 def fetch_activity_detail(access_token: str, activity_id: int) -> dict:
     """GET /activities/{id} — returns full detail including calories, HR, suffer_score."""
     headers = {"Authorization": f"Bearer {access_token}"}
-    resp = requests.get(
+    resp = _request_with_retry(
+        requests.get,
         f"{API_BASE}/activities/{activity_id}",
         headers=headers,
-        timeout=15,
     )
     if resp.status_code == 404:
         return {}
@@ -126,7 +141,8 @@ def fetch_activity_streams(access_token: str, activity_id: int) -> dict:
     headers = {"Authorization": f"Bearer {access_token}"}
     keys = "time,heartrate,watts,cadence,velocity_smooth,altitude,latlng"
 
-    resp = requests.get(
+    resp = _request_with_retry(
+        requests.get,
         f"{API_BASE}/activities/{activity_id}/streams",
         headers=headers,
         params={"keys": keys, "key_type": "time"},
