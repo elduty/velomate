@@ -12,9 +12,30 @@ from komoot import sync_routes
 from fitness import recalculate_fitness
 
 
-def poll_strava(conn):
+def _get_healthy_conn():
+    """Get a healthy DB connection, reconnecting if needed."""
+    try:
+        conn = get_connection()
+        # Verify connection is alive
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1")
+        return conn
+    except Exception as e:
+        print(f"[main] DB connection failed, reconnecting: {e}")
+        try:
+            return get_connection()
+        except Exception as e2:
+            print(f"[main] DB reconnect failed: {e2}")
+            return None
+
+
+def poll_strava():
     """Fetch activities since last sync, store streams, recalculate fitness."""
     try:
+        conn = _get_healthy_conn()
+        if not conn:
+            print("[poll] Strava: skipped — no DB connection")
+            return
         count = sync_activities(conn)
         if count > 0:
             recalculate_fitness(conn)
@@ -24,9 +45,13 @@ def poll_strava(conn):
         traceback.print_exc()
 
 
-def poll_komoot(conn):
+def poll_komoot():
     """Sync routes to DB."""
     try:
+        conn = _get_healthy_conn()
+        if not conn:
+            print("[poll] Komoot: skipped — no DB connection")
+            return
         count = sync_routes(conn)
         print(f"[poll] Komoot: {count} routes synced")
     except Exception as e:
@@ -58,14 +83,14 @@ def run():
         run_backfill()
 
     interval = int(os.environ.get("POLL_INTERVAL_MINUTES", 10))
-    schedule.every(interval).minutes.do(poll_strava, conn)
-    schedule.every(1).hours.do(poll_komoot, conn)
+    schedule.every(interval).minutes.do(poll_strava)
+    schedule.every(1).hours.do(poll_komoot)
 
     print(f"[main] Polling Strava every {interval}min, Komoot every 1h")
 
     # Run once immediately
-    poll_strava(conn)
-    poll_komoot(conn)
+    poll_strava()
+    poll_komoot()
 
     while True:
         schedule.run_pending()

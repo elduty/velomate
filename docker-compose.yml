@@ -13,6 +13,12 @@ services:
     ports:
       - "5423:5432"
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U veloai -d veloai"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   veloai-ingestor:
     container_name: veloai-ingestor
@@ -27,7 +33,8 @@ services:
       POLL_INTERVAL_MINUTES: 10
       PYTHONUNBUFFERED: "1"
     depends_on:
-      - veloai-postgres
+      veloai-postgres:
+        condition: service_healthy
     restart: unless-stopped
 
   veloai-grafana:

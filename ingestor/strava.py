@@ -15,8 +15,10 @@ _token_expires_at = 0
 
 
 def refresh_access_token(client_id: str, client_secret: str, refresh_token: str) -> str:
-    """POST to Strava token endpoint, return fresh access_token."""
-    global _access_token, _token_expires_at
+    """POST to Strava token endpoint, return fresh access_token.
+    Also stores the new refresh_token from the response (Strava rotates it).
+    """
+    global _access_token, _token_expires_at, _current_refresh_token
 
     if _access_token and time.time() < _token_expires_at - 60:
         return _access_token
@@ -31,15 +33,47 @@ def refresh_access_token(client_id: str, client_secret: str, refresh_token: str)
     data = resp.json()
     _access_token = data["access_token"]
     _token_expires_at = data["expires_at"]
+
+    # Strava rotates refresh tokens — persist the new one
+    new_refresh = data.get("refresh_token")
+    if new_refresh and new_refresh != refresh_token:
+        _current_refresh_token = new_refresh
+        try:
+            from db import get_connection, set_sync_state
+            conn = get_connection()
+            set_sync_state(conn, "strava_refresh_token", new_refresh)
+            print(f"[strava] Refresh token rotated and persisted")
+        except Exception as e:
+            print(f"[strava] WARNING: Could not persist new refresh token: {e}")
+
     return _access_token
 
 
+# Track the latest refresh token
+_current_refresh_token = None
+
+
 def _get_token() -> str:
-    """Get a valid access token from env vars."""
+    """Get a valid access token, using persisted refresh token if available."""
+    global _current_refresh_token
+
+    # Prefer DB-stored refresh token over env var (Strava rotates them)
+    refresh_token = _current_refresh_token or os.environ["STRAVA_REFRESH_TOKEN"]
+    if not _current_refresh_token:
+        try:
+            from db import get_connection, get_sync_state
+            conn = get_connection()
+            stored = get_sync_state(conn, "strava_refresh_token")
+            if stored:
+                refresh_token = stored
+                _current_refresh_token = stored
+        except Exception:
+            pass
+
     return refresh_access_token(
         os.environ["STRAVA_CLIENT_ID"],
         os.environ["STRAVA_CLIENT_SECRET"],
-        os.environ["STRAVA_REFRESH_TOKEN"],
+        refresh_token,
     )
 
 
@@ -175,8 +209,8 @@ def sync_activities(conn, after_epoch: int = None):
         streams = _parse_streams(raw_streams)
         upsert_streams(conn, activity_id, streams)
 
-        # Track latest activity time
-        start = raw.get("start_date_local", raw.get("start_date", ""))
+        # Track latest activity time (use UTC start_date, not local)
+        start = raw.get("start_date", "")
         if start:
             try:
                 dt = datetime.fromisoformat(start.replace("Z", "+00:00"))

@@ -4,15 +4,25 @@ from datetime import timedelta
 
 
 DEFAULT_THRESHOLD_HR = 170
+DEFAULT_FTP = 150  # Estimated FTP (watts) for recreational cyclist
 
 
 def calculate_tss(duration_s: int, avg_hr: int, threshold_hr: int) -> float:
-    """TSS = (duration_h) × (avg_hr / threshold_hr)² × 100"""
+    """HR-based TSS = (duration_h) × (avg_hr / threshold_hr)² × 100"""
     if not duration_s or not avg_hr or not threshold_hr:
         return 0.0
     duration_h = duration_s / 3600
     intensity = avg_hr / threshold_hr
     return duration_h * (intensity ** 2) * 100
+
+
+def calculate_tss_power(duration_s: int, avg_power: int, ftp: int) -> float:
+    """Power-based TSS = (duration_s × avg_power × IF) / (FTP × 3600) × 100
+    where IF (Intensity Factor) = avg_power / FTP"""
+    if not duration_s or not avg_power or not ftp:
+        return 0.0
+    intensity = avg_power / ftp
+    return (duration_s * avg_power * intensity) / (ftp * 3600) * 100
 
 
 def estimate_threshold_hr(conn) -> int:
@@ -29,23 +39,39 @@ def estimate_threshold_hr(conn) -> int:
     return DEFAULT_THRESHOLD_HR
 
 
+def estimate_ftp(conn) -> int:
+    """Return estimated FTP from 95th percentile of avg_power, or default."""
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY avg_power)
+            FROM activities
+            WHERE avg_power IS NOT NULL AND avg_power > 0
+        """)
+        row = cur.fetchone()
+        if row and row[0]:
+            return int(row[0])
+    return DEFAULT_FTP
+
+
 def recalculate_fitness(conn):
     """
     Walk day-by-day from earliest activity, applying EMA:
       CTL = CTL_prev × (1 - 1/42) + tss × (1/42)
       ATL = ATL_prev × (1 - 1/7)  + tss × (1/7)
       TSB = CTL - ATL
+    Uses power-based TSS when available, HR-based as fallback.
     Upsert into athlete_stats.
     """
     from db import upsert_athlete_stats
 
     threshold_hr = estimate_threshold_hr(conn)
-    print(f"[fitness] Threshold HR: {threshold_hr}")
+    ftp = estimate_ftp(conn)
+    print(f"[fitness] Threshold HR: {threshold_hr}, Estimated FTP: {ftp}W")
 
-    # Get all activities with HR data, ordered by date
+    # Get all activities ordered by date (include power data)
     with conn.cursor() as cur:
         cur.execute("""
-            SELECT date::date, duration_s, avg_hr, distance_m, elevation_m
+            SELECT date::date, duration_s, avg_hr, avg_power, distance_m, elevation_m
             FROM activities
             WHERE date IS NOT NULL
             ORDER BY date
@@ -56,12 +82,17 @@ def recalculate_fitness(conn):
         print("[fitness] No activities found, skipping")
         return
 
-    # Build daily TSS map
+    # Build daily TSS map — prefer power-based TSS, fall back to HR-based
     daily_tss = {}
     daily_distance = {}
     daily_elevation = {}
-    for date, duration_s, avg_hr, distance_m, elevation_m in rows:
-        tss = calculate_tss(duration_s, avg_hr, threshold_hr) if avg_hr else 0
+    for date, duration_s, avg_hr, avg_power, distance_m, elevation_m in rows:
+        if avg_power and avg_power > 0:
+            tss = calculate_tss_power(duration_s, avg_power, ftp)
+        elif avg_hr and avg_hr > 0:
+            tss = calculate_tss(duration_s, avg_hr, threshold_hr)
+        else:
+            tss = 0
         daily_tss[date] = daily_tss.get(date, 0) + tss
         daily_distance[date] = daily_distance.get(date, 0) + (distance_m or 0)
         daily_elevation[date] = daily_elevation.get(date, 0) + (elevation_m or 0)

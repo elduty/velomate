@@ -82,7 +82,6 @@ def create_schema(conn):
             );
 
             CREATE INDEX IF NOT EXISTS idx_activities_date ON activities(date);
-            CREATE INDEX IF NOT EXISTS idx_activities_strava_id ON activities(strava_id);
             CREATE INDEX IF NOT EXISTS idx_activity_streams_activity_id ON activity_streams(activity_id);
         """)
 
