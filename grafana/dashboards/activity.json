@@ -1,12 +1,17 @@
 {
   "uid": "veloai-activity",
   "title": "Activity Detail",
-  "tags": ["veloai"],
+  "tags": [
+    "veloai"
+  ],
   "timezone": "browser",
   "editable": true,
   "schemaVersion": 39,
   "version": 3,
-  "time": {"from": "now-2y", "to": "now"},
+  "time": {
+    "from": "now-2y",
+    "to": "now"
+  },
   "refresh": "",
   "templating": {
     "list": [
@@ -15,7 +20,9 @@
         "type": "textbox",
         "label": "Activity ID",
         "hide": 2,
-        "current": {"value": "0"},
+        "current": {
+          "value": "0"
+        },
         "options": [],
         "query": "0"
       }
@@ -26,8 +33,16 @@
       "id": 1,
       "title": "",
       "type": "stat",
-      "gridPos": {"h": 3, "w": 6, "x": 0, "y": 0},
-      "datasource": {"type": "postgres", "uid": "veloai"},
+      "gridPos": {
+        "h": 3,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
       "targets": [
         {
           "rawSql": "SELECT name AS \"Name\" FROM activities WHERE id = ${activity_id};",
@@ -36,7 +51,12 @@
         }
       ],
       "options": {
-        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "/Name/"},
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/Name/"
+        },
         "textMode": "value",
         "colorMode": "background",
         "graphMode": "none",
@@ -44,36 +64,19 @@
       },
       "fieldConfig": {
         "defaults": {
-          "color": {"mode": "fixed", "fixedColor": "dark-blue"},
-          "thresholds": {"mode": "absolute", "steps": [{"color": "dark-blue", "value": null}]}
-        },
-        "overrides": []
-      }
-    },
-    {
-      "id": 2,
-      "title": "",
-      "type": "stat",
-      "gridPos": {"h": 3, "w": 3, "x": 6, "y": 0},
-      "datasource": {"type": "postgres", "uid": "veloai"},
-      "targets": [
-        {
-          "rawSql": "SELECT CASE WHEN is_indoor THEN 'Indoor' ELSE 'Outdoor' END AS \"Type\" FROM activities WHERE id = ${activity_id};",
-          "format": "table",
-          "refId": "A"
-        }
-      ],
-      "options": {
-        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "/Type/"},
-        "textMode": "value_and_name",
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {"mode": "fixed", "fixedColor": "dark-purple"},
-          "thresholds": {"mode": "absolute", "steps": [{"color": "dark-purple", "value": null}]}
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-blue"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-blue",
+                "value": null
+              }
+            ]
+          }
         },
         "overrides": []
       }
@@ -82,8 +85,16 @@
       "id": 3,
       "title": "",
       "type": "stat",
-      "gridPos": {"h": 3, "w": 3, "x": 9, "y": 0},
-      "datasource": {"type": "postgres", "uid": "veloai"},
+      "gridPos": {
+        "h": 3,
+        "w": 3,
+        "x": 9,
+        "y": 0
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
       "targets": [
         {
           "rawSql": "SELECT ROUND((distance_m / 1000.0)::numeric, 1) AS \"Distance\" FROM activities WHERE id = ${activity_id};",
@@ -92,7 +103,12 @@
         }
       ],
       "options": {
-        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "/Distance/"},
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/Distance/"
+        },
         "textMode": "value_and_name",
         "colorMode": "background",
         "graphMode": "none",
@@ -101,8 +117,19 @@
       "fieldConfig": {
         "defaults": {
           "unit": "lengthkm",
-          "color": {"mode": "fixed", "fixedColor": "dark-green"},
-          "thresholds": {"mode": "absolute", "steps": [{"color": "dark-green", "value": null}]}
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-green"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-green",
+                "value": null
+              }
+            ]
+          }
         },
         "overrides": []
       }
@@ -111,8 +138,16 @@
       "id": 4,
       "title": "",
       "type": "stat",
-      "gridPos": {"h": 3, "w": 3, "x": 12, "y": 0},
-      "datasource": {"type": "postgres", "uid": "veloai"},
+      "gridPos": {
+        "h": 3,
+        "w": 3,
+        "x": 12,
+        "y": 0
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
       "targets": [
         {
           "rawSql": "SELECT duration_s AS \"Duration\" FROM activities WHERE id = ${activity_id};",
@@ -121,7 +156,12 @@
         }
       ],
       "options": {
-        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "/Duration/"},
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/Duration/"
+        },
         "textMode": "value_and_name",
         "colorMode": "background",
         "graphMode": "none",
@@ -130,8 +170,19 @@
       "fieldConfig": {
         "defaults": {
           "unit": "s",
-          "color": {"mode": "fixed", "fixedColor": "dark-orange"},
-          "thresholds": {"mode": "absolute", "steps": [{"color": "dark-orange", "value": null}]}
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-orange"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-orange",
+                "value": null
+              }
+            ]
+          }
         },
         "overrides": []
       }
@@ -140,8 +191,16 @@
       "id": 5,
       "title": "",
       "type": "stat",
-      "gridPos": {"h": 3, "w": 3, "x": 15, "y": 0},
-      "datasource": {"type": "postgres", "uid": "veloai"},
+      "gridPos": {
+        "h": 3,
+        "w": 3,
+        "x": 15,
+        "y": 0
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
       "targets": [
         {
           "rawSql": "SELECT ROUND(elevation_m::numeric, 0) AS \"Elevation\" FROM activities WHERE id = ${activity_id};",
@@ -150,7 +209,12 @@
         }
       ],
       "options": {
-        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "/Elevation/"},
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/Elevation/"
+        },
         "textMode": "value_and_name",
         "colorMode": "background",
         "graphMode": "none",
@@ -159,8 +223,19 @@
       "fieldConfig": {
         "defaults": {
           "unit": "lengthm",
-          "color": {"mode": "fixed", "fixedColor": "dark-green"},
-          "thresholds": {"mode": "absolute", "steps": [{"color": "dark-green", "value": null}]}
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-green"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-green",
+                "value": null
+              }
+            ]
+          }
         },
         "overrides": []
       }
@@ -169,8 +244,16 @@
       "id": 6,
       "title": "",
       "type": "stat",
-      "gridPos": {"h": 3, "w": 3, "x": 18, "y": 0},
-      "datasource": {"type": "postgres", "uid": "veloai"},
+      "gridPos": {
+        "h": 3,
+        "w": 3,
+        "x": 18,
+        "y": 0
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
       "targets": [
         {
           "rawSql": "SELECT ROUND(avg_speed_kmh::numeric, 1) AS \"Avg Speed\" FROM activities WHERE id = ${activity_id};",
@@ -179,7 +262,12 @@
         }
       ],
       "options": {
-        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "/Avg Speed/"},
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/Avg Speed/"
+        },
         "textMode": "value_and_name",
         "colorMode": "background",
         "graphMode": "none",
@@ -188,8 +276,19 @@
       "fieldConfig": {
         "defaults": {
           "unit": "velocitykmh",
-          "color": {"mode": "fixed", "fixedColor": "blue"},
-          "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]}
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
         },
         "overrides": []
       }
@@ -198,8 +297,16 @@
       "id": 7,
       "title": "",
       "type": "stat",
-      "gridPos": {"h": 3, "w": 3, "x": 21, "y": 0},
-      "datasource": {"type": "postgres", "uid": "veloai"},
+      "gridPos": {
+        "h": 3,
+        "w": 3,
+        "x": 21,
+        "y": 0
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
       "targets": [
         {
           "rawSql": "SELECT calories AS \"Calories\" FROM activities WHERE id = ${activity_id};",
@@ -208,7 +315,12 @@
         }
       ],
       "options": {
-        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "/Calories/"},
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/Calories/"
+        },
         "textMode": "value_and_name",
         "colorMode": "background",
         "graphMode": "none",
@@ -217,8 +329,19 @@
       "fieldConfig": {
         "defaults": {
           "unit": "kcal",
-          "color": {"mode": "fixed", "fixedColor": "dark-orange"},
-          "thresholds": {"mode": "absolute", "steps": [{"color": "dark-orange", "value": null}]}
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-orange"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-orange",
+                "value": null
+              }
+            ]
+          }
         },
         "overrides": []
       }
@@ -227,8 +350,16 @@
       "id": 8,
       "title": "",
       "type": "stat",
-      "gridPos": {"h": 3, "w": 4, "x": 0, "y": 3},
-      "datasource": {"type": "postgres", "uid": "veloai"},
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 0,
+        "y": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
       "targets": [
         {
           "rawSql": "SELECT avg_hr AS \"Avg HR\" FROM activities WHERE id = ${activity_id};",
@@ -237,7 +368,12 @@
         }
       ],
       "options": {
-        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "/Avg HR/"},
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/Avg HR/"
+        },
         "textMode": "value_and_name",
         "colorMode": "background",
         "graphMode": "none",
@@ -247,8 +383,19 @@
         "defaults": {
           "unit": "bpm",
           "noValue": "N/A",
-          "color": {"mode": "fixed", "fixedColor": "dark-red"},
-          "thresholds": {"mode": "absolute", "steps": [{"color": "dark-red", "value": null}]}
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-red"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-red",
+                "value": null
+              }
+            ]
+          }
         },
         "overrides": []
       }
@@ -257,8 +404,16 @@
       "id": 9,
       "title": "",
       "type": "stat",
-      "gridPos": {"h": 3, "w": 4, "x": 4, "y": 3},
-      "datasource": {"type": "postgres", "uid": "veloai"},
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 4,
+        "y": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
       "targets": [
         {
           "rawSql": "SELECT max_hr AS \"Max HR\" FROM activities WHERE id = ${activity_id};",
@@ -267,7 +422,12 @@
         }
       ],
       "options": {
-        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "/Max HR/"},
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/Max HR/"
+        },
         "textMode": "value_and_name",
         "colorMode": "background",
         "graphMode": "none",
@@ -277,8 +437,19 @@
         "defaults": {
           "unit": "bpm",
           "noValue": "N/A",
-          "color": {"mode": "fixed", "fixedColor": "dark-red"},
-          "thresholds": {"mode": "absolute", "steps": [{"color": "dark-red", "value": null}]}
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-red"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-red",
+                "value": null
+              }
+            ]
+          }
         },
         "overrides": []
       }
@@ -287,8 +458,16 @@
       "id": 10,
       "title": "",
       "type": "stat",
-      "gridPos": {"h": 3, "w": 4, "x": 8, "y": 3},
-      "datasource": {"type": "postgres", "uid": "veloai"},
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 8,
+        "y": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
       "targets": [
         {
           "rawSql": "SELECT avg_power AS \"Avg Power\" FROM activities WHERE id = ${activity_id};",
@@ -297,7 +476,12 @@
         }
       ],
       "options": {
-        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "/Avg Power/"},
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/Avg Power/"
+        },
         "textMode": "value_and_name",
         "colorMode": "background",
         "graphMode": "none",
@@ -307,8 +491,19 @@
         "defaults": {
           "unit": "watt",
           "noValue": "N/A",
-          "color": {"mode": "fixed", "fixedColor": "dark-yellow"},
-          "thresholds": {"mode": "absolute", "steps": [{"color": "dark-yellow", "value": null}]}
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-yellow"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-yellow",
+                "value": null
+              }
+            ]
+          }
         },
         "overrides": []
       }
@@ -317,17 +512,30 @@
       "id": 11,
       "title": "",
       "type": "stat",
-      "gridPos": {"h": 3, "w": 4, "x": 12, "y": 3},
-      "datasource": {"type": "postgres", "uid": "veloai"},
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 12,
+        "y": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
       "targets": [
         {
-          "rawSql": "SELECT sport_type AS \"Sport\" FROM activities WHERE id = ${activity_id};",
+          "rawSql": "SELECT CASE WHEN is_indoor THEN 'Indoor' ELSE 'Outdoor' END AS \"Sport\" FROM activities WHERE id = ${activity_id};",
           "format": "table",
           "refId": "A"
         }
       ],
       "options": {
-        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "/Sport/"},
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/Sport/"
+        },
         "textMode": "value_and_name",
         "colorMode": "background",
         "graphMode": "none",
@@ -336,8 +544,19 @@
       "fieldConfig": {
         "defaults": {
           "noValue": "N/A",
-          "color": {"mode": "fixed", "fixedColor": "dark-purple"},
-          "thresholds": {"mode": "absolute", "steps": [{"color": "dark-purple", "value": null}]}
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-purple"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-purple",
+                "value": null
+              }
+            ]
+          }
         },
         "overrides": []
       }
@@ -346,8 +565,16 @@
       "id": 12,
       "title": "",
       "type": "stat",
-      "gridPos": {"h": 3, "w": 4, "x": 16, "y": 3},
-      "datasource": {"type": "postgres", "uid": "veloai"},
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 16,
+        "y": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
       "targets": [
         {
           "rawSql": "SELECT device AS \"Device\" FROM activities WHERE id = ${activity_id};",
@@ -356,7 +583,12 @@
         }
       ],
       "options": {
-        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "/Device/"},
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/Device/"
+        },
         "textMode": "value_and_name",
         "colorMode": "background",
         "graphMode": "none",
@@ -365,8 +597,19 @@
       "fieldConfig": {
         "defaults": {
           "noValue": "N/A",
-          "color": {"mode": "fixed", "fixedColor": "text"},
-          "thresholds": {"mode": "absolute", "steps": [{"color": "text", "value": null}]}
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
         },
         "overrides": []
       }
@@ -375,8 +618,16 @@
       "id": 13,
       "title": "",
       "type": "stat",
-      "gridPos": {"h": 3, "w": 4, "x": 20, "y": 3},
-      "datasource": {"type": "postgres", "uid": "veloai"},
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 20,
+        "y": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
       "targets": [
         {
           "rawSql": "SELECT TO_CHAR(date, 'YYYY-MM-DD HH24:MI') AS \"Date\" FROM activities WHERE id = ${activity_id};",
@@ -385,7 +636,12 @@
         }
       ],
       "options": {
-        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "/Date/"},
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/Date/"
+        },
         "textMode": "value_and_name",
         "colorMode": "background",
         "graphMode": "none",
@@ -394,8 +650,19 @@
       "fieldConfig": {
         "defaults": {
           "noValue": "N/A",
-          "color": {"mode": "fixed", "fixedColor": "text"},
-          "thresholds": {"mode": "absolute", "steps": [{"color": "text", "value": null}]}
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
         },
         "overrides": []
       }
@@ -403,24 +670,42 @@
     {
       "id": 20,
       "title": "Speed & Elevation",
-      "type": "timeseries",
-      "gridPos": {"h": 12, "w": 24, "x": 0, "y": 6},
-      "datasource": {"type": "postgres", "uid": "veloai"},
+      "type": "xychart",
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
       "targets": [
         {
-          "rawSql": "SELECT\n  a.date + (s.time_offset * interval '1 second') AS time,\n  s.speed_kmh AS \"Speed (km/h)\"\nFROM activity_streams s\nJOIN activities a ON a.id = s.activity_id\nWHERE s.activity_id = ${activity_id}\n  AND a.date + (s.time_offset * interval '1 second') BETWEEN $__timeFrom() AND $__timeTo()\n  AND s.speed_kmh IS NOT NULL\nORDER BY time;",
-          "format": "time_series",
-          "refId": "A"
-        },
-        {
-          "rawSql": "SELECT\n  a.date + (s.time_offset * interval '1 second') AS time,\n  s.altitude_m AS \"Elevation (m)\"\nFROM activity_streams s\nJOIN activities a ON a.id = s.activity_id\nWHERE s.activity_id = ${activity_id}\n  AND a.date + (s.time_offset * interval '1 second') BETWEEN $__timeFrom() AND $__timeTo()\n  AND s.altitude_m IS NOT NULL\nORDER BY time;",
-          "format": "time_series",
-          "refId": "B"
+          "rawSql": "SELECT\n  ROUND(SUM(COALESCE(s.speed_kmh, 0) / 3600.0 * (s.time_offset - LAG(s.time_offset, 1, s.time_offset) OVER (ORDER BY s.time_offset))) OVER (ORDER BY s.time_offset)::numeric, 3) AS \"Distance (km)\",\n  s.speed_kmh AS \"Speed (km/h)\",\n  s.altitude_m AS \"Elevation (m)\"\nFROM activity_streams s\nWHERE s.activity_id = ${activity_id}\nORDER BY 1;",
+          "format": "table",
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "veloai"
+          }
         }
       ],
       "options": {
-        "tooltip": {"mode": "multi", "sort": "none"},
-        "legend": {"displayMode": "list", "placement": "bottom", "calcs": ["mean", "max"]}
+        "mapping": "auto",
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        }
       },
       "fieldConfig": {
         "defaults": {
@@ -429,31 +714,78 @@
             "fillOpacity": 0,
             "spanNulls": false,
             "pointSize": 3,
-            "showPoints": "never",
-            "lineInterpolation": "smooth"
+            "showPoints": "never"
           }
         },
         "overrides": [
           {
-            "matcher": {"id": "byName", "options": "Speed (km/h)"},
+            "matcher": {
+              "id": "byName",
+              "options": "Speed (km/h)"
+            },
             "properties": [
-              {"id": "unit", "value": "velocitykmh"},
-              {"id": "color", "value": {"mode": "fixed", "fixedColor": "#5794F2"}},
-              {"id": "custom.axisPlacement", "value": "left"},
-              {"id": "custom.axisLabel", "value": "Speed (km/h)"}
+              {
+                "id": "unit",
+                "value": "velocitykmh"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#5794F2"
+                }
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "left"
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "Speed (km/h)"
+              }
             ]
           },
           {
-            "matcher": {"id": "byName", "options": "Elevation (m)"},
+            "matcher": {
+              "id": "byName",
+              "options": "Elevation (m)"
+            },
             "properties": [
-              {"id": "unit", "value": "lengthm"},
-              {"id": "color", "value": {"mode": "fixed", "fixedColor": "#73BF69"}},
-              {"id": "custom.axisPlacement", "value": "right"},
-              {"id": "custom.axisLabel", "value": "Elevation (m)"},
-              {"id": "custom.fillOpacity", "value": 30},
-              {"id": "custom.lineWidth", "value": 1},
-              {"id": "custom.fillBelowTo", "value": "Elevation (m)"},
-              {"id": "custom.lineInterpolation", "value": "smooth"}
+              {
+                "id": "unit",
+                "value": "lengthm"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#73BF69"
+                }
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "Elevation (m)"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 30
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.fillBelowTo",
+                "value": "Elevation (m)"
+              },
+              {
+                "id": "custom.lineInterpolation",
+                "value": "smooth"
+              }
             ]
           }
         ]
@@ -462,24 +794,42 @@
     {
       "id": 21,
       "title": "Heart Rate & Power",
-      "type": "timeseries",
-      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 18},
-      "datasource": {"type": "postgres", "uid": "veloai"},
+      "type": "xychart",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 18
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
       "targets": [
         {
-          "rawSql": "SELECT\n  a.date + (s.time_offset * interval '1 second') AS time,\n  s.hr AS \"HR (bpm)\"\nFROM activity_streams s\nJOIN activities a ON a.id = s.activity_id\nWHERE s.activity_id = ${activity_id}\n  AND a.date + (s.time_offset * interval '1 second') BETWEEN $__timeFrom() AND $__timeTo()\n  AND s.hr IS NOT NULL\nORDER BY time;",
-          "format": "time_series",
-          "refId": "A"
-        },
-        {
-          "rawSql": "SELECT\n  a.date + (s.time_offset * interval '1 second') AS time,\n  s.power AS \"Power (W)\"\nFROM activity_streams s\nJOIN activities a ON a.id = s.activity_id\nWHERE s.activity_id = ${activity_id}\n  AND a.date + (s.time_offset * interval '1 second') BETWEEN $__timeFrom() AND $__timeTo()\n  AND s.power IS NOT NULL\nORDER BY time;",
-          "format": "time_series",
-          "refId": "B"
+          "rawSql": "SELECT\n  ROUND(SUM(COALESCE(s.speed_kmh, 0) / 3600.0 * (s.time_offset - LAG(s.time_offset, 1, s.time_offset) OVER (ORDER BY s.time_offset))) OVER (ORDER BY s.time_offset)::numeric, 3) AS \"Distance (km)\",\n  s.hr AS \"HR (bpm)\",\n  s.power AS \"Power (W)\"\nFROM activity_streams s\nWHERE s.activity_id = ${activity_id}\nORDER BY 1;",
+          "format": "table",
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "veloai"
+          }
         }
       ],
       "options": {
-        "tooltip": {"mode": "multi", "sort": "none"},
-        "legend": {"displayMode": "list", "placement": "bottom", "calcs": ["mean", "max"]}
+        "mapping": "auto",
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        }
       },
       "fieldConfig": {
         "defaults": {
@@ -488,28 +838,67 @@
             "fillOpacity": 0,
             "spanNulls": false,
             "showPoints": "never",
-            "lineInterpolation": "smooth"
+            "pointSize": 3
           },
           "noValue": "No data for this activity"
         },
         "overrides": [
           {
-            "matcher": {"id": "byName", "options": "HR (bpm)"},
+            "matcher": {
+              "id": "byName",
+              "options": "HR (bpm)"
+            },
             "properties": [
-              {"id": "unit", "value": "bpm"},
-              {"id": "color", "value": {"mode": "fixed", "fixedColor": "#F2495C"}},
-              {"id": "custom.axisPlacement", "value": "left"},
-              {"id": "custom.axisLabel", "value": "Heart Rate (bpm)"},
-              {"id": "custom.fillOpacity", "value": 10}
+              {
+                "id": "unit",
+                "value": "bpm"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#F2495C"
+                }
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "left"
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "Heart Rate (bpm)"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 10
+              }
             ]
           },
           {
-            "matcher": {"id": "byName", "options": "Power (W)"},
+            "matcher": {
+              "id": "byName",
+              "options": "Power (W)"
+            },
             "properties": [
-              {"id": "unit", "value": "watt"},
-              {"id": "color", "value": {"mode": "fixed", "fixedColor": "#FF9830"}},
-              {"id": "custom.axisPlacement", "value": "right"},
-              {"id": "custom.axisLabel", "value": "Power (W)"}
+              {
+                "id": "unit",
+                "value": "watt"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#FF9830"
+                }
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "Power (W)"
+              }
             ]
           }
         ]
@@ -518,19 +907,42 @@
     {
       "id": 22,
       "title": "Cadence",
-      "type": "timeseries",
-      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 28},
-      "datasource": {"type": "postgres", "uid": "veloai"},
+      "type": "xychart",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 28
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
       "targets": [
         {
-          "rawSql": "SELECT\n  a.date + (s.time_offset * interval '1 second') AS time,\n  s.cadence AS \"Cadence (rpm)\"\nFROM activity_streams s\nJOIN activities a ON a.id = s.activity_id\nWHERE s.activity_id = ${activity_id}\n  AND a.date + (s.time_offset * interval '1 second') BETWEEN $__timeFrom() AND $__timeTo()\n  AND s.cadence IS NOT NULL\nORDER BY time;",
-          "format": "time_series",
-          "refId": "A"
+          "rawSql": "SELECT\n  ROUND(SUM(COALESCE(s.speed_kmh, 0) / 3600.0 * (s.time_offset - LAG(s.time_offset, 1, s.time_offset) OVER (ORDER BY s.time_offset))) OVER (ORDER BY s.time_offset)::numeric, 3) AS \"Distance (km)\",\n  s.cadence AS \"Cadence (rpm)\"\nFROM activity_streams s\nWHERE s.activity_id = ${activity_id}\nORDER BY 1;",
+          "format": "table",
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "veloai"
+          }
         }
       ],
       "options": {
-        "tooltip": {"mode": "single", "sort": "none"},
-        "legend": {"displayMode": "list", "placement": "bottom", "calcs": ["mean", "max"]}
+        "mapping": "auto",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        }
       },
       "fieldConfig": {
         "defaults": {
@@ -539,11 +951,14 @@
             "fillOpacity": 15,
             "spanNulls": false,
             "showPoints": "never",
-            "lineInterpolation": "smooth"
+            "pointSize": 3
           },
           "unit": "rpm",
           "noValue": "No data for this activity",
-          "color": {"mode": "fixed", "fixedColor": "#B877D9"}
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#B877D9"
+          }
         },
         "overrides": []
       }
