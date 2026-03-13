@@ -13,6 +13,22 @@
     "to": "now"
   },
   "refresh": "",
+  "links": [
+    {
+      "title": "Overview",
+      "url": "/d/veloai-main/veloai-overview",
+      "type": "link",
+      "icon": "dashboard",
+      "keepTime": true
+    },
+    {
+      "title": "Fitness Trends",
+      "url": "/d/veloai-fitness/fitness-trends",
+      "type": "link",
+      "icon": "dashboard",
+      "keepTime": true
+    }
+  ],
   "templating": {
     "list": [
       {

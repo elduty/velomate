@@ -9,6 +9,21 @@
     "to": "now"
   },
   "refresh": "1h",
+  "links": [
+    {
+      "title": "Overview",
+      "url": "/d/veloai-main/veloai-overview",
+      "type": "link",
+      "icon": "dashboard",
+      "keepTime": true
+    },
+    {
+      "title": "Activity Detail",
+      "url": "/d/veloai-activity/activity-detail",
+      "type": "link",
+      "icon": "dashboard"
+    }
+  ],
   "panels": [
     {
       "id": 1,
