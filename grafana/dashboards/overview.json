@@ -593,7 +593,7 @@
           "datasource": { "type": "postgres", "uid": "veloai" },
           "targets": [
             {
-              "rawSql": "SELECT TO_CHAR(date, 'Mon') AS \"Month\", EXTRACT(YEAR FROM date)::int AS \"Year\", COUNT(*) AS \"Rides\", ROUND((SUM(distance_m) / 1000)::numeric, 0) AS \"Distance (km)\", ROUND(SUM(elevation_m)::numeric, 0) AS \"Elevation (m)\", ROUND((SUM(duration_s) / 3600.0)::numeric, 1) AS \"Hours\" FROM activities WHERE date >= date_trunc('year', CURRENT_DATE) - interval '1 year' GROUP BY TO_CHAR(date, 'Mon'), EXTRACT(YEAR FROM date), EXTRACT(MONTH FROM date) ORDER BY EXTRACT(MONTH FROM date), EXTRACT(YEAR FROM date);",
+              "rawSql": "SELECT TO_CHAR(date, 'Mon') AS \"Month\", EXTRACT(YEAR FROM date)::int AS \"Year\", COUNT(*) AS \"Rides\", ROUND((SUM(distance_m) / 1000)::numeric, 0) AS \"Distance (km)\", ROUND(SUM(elevation_m)::numeric, 0) AS \"Elevation (m)\", ROUND((SUM(duration_s) / 3600.0)::numeric, 1) AS \"Hours\" FROM activities WHERE date IS NOT NULL GROUP BY TO_CHAR(date, 'Mon'), EXTRACT(YEAR FROM date), EXTRACT(MONTH FROM date) ORDER BY EXTRACT(YEAR FROM date), EXTRACT(MONTH FROM date);",
               "format": "table",
               "refId": "A"
             }
