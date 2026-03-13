@@ -81,24 +81,107 @@ def create_schema(conn):
                 value           TEXT
             );
 
+            ALTER TABLE activities ADD COLUMN IF NOT EXISTS is_indoor BOOLEAN;
+            ALTER TABLE activities ADD COLUMN IF NOT EXISTS sport_type TEXT;
+
             CREATE INDEX IF NOT EXISTS idx_activities_date ON activities(date);
             CREATE INDEX IF NOT EXISTS idx_activity_streams_activity_id ON activity_streams(activity_id);
         """)
 
 
+def classify_activity(data: dict) -> dict:
+    """Add is_indoor and sport_type fields based on device/distance/name."""
+    device = data.get("device", "")
+    distance_m = data.get("distance_m") or 0
+    name = (data.get("name") or "").lower()
+
+    if device == "zwift":
+        is_indoor, sport_type = True, "zwift"
+    elif any(k in name for k in ("weight", "train", "gym", "strength", "yoga", "pilates")):
+        is_indoor, sport_type = True, "strength"
+    elif distance_m > 0:
+        is_indoor, sport_type = False, "cycling_outdoor"
+    else:
+        is_indoor, sport_type = True, "cycling_indoor"
+
+    return {**data, "is_indoor": is_indoor, "sport_type": sport_type}
+
+
+def find_duplicate(conn, date_str: str, duration_s: int, tolerance_seconds: int = 300) -> int:
+    """Find an existing activity that started within tolerance of date_str
+    and has a similar duration. Returns activity id or None.
+    Used to detect cross-device duplicates (Zwift + Watch recording same session).
+    """
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT id, strava_id, device, distance_m, avg_hr, avg_power
+            FROM activities
+            WHERE ABS(EXTRACT(EPOCH FROM (date - %s::timestamptz))) < %s
+              AND ABS(duration_s - %s) < 300
+        """, (date_str, tolerance_seconds, duration_s))
+        return cur.fetchone()
+
+
+def merge_activity_data(existing: tuple, new_data: dict) -> dict:
+    """Merge two activity records, preferring richer data.
+    existing = (id, strava_id, device, distance_m, avg_hr, avg_power)
+    Priority: zwift > gps/outdoor > watch
+    """
+    ex_id, ex_strava_id, ex_device, ex_distance, ex_hr, ex_power = existing
+    device_priority = {"karoo": 4, "unknown": 3, "zwift": 3, "watch": 1}
+    new_priority = device_priority.get(new_data.get("device", ""), 1)
+    ex_priority = device_priority.get(ex_device or "", 1)
+
+    # Keep richer record as base, fill gaps from the other
+    if new_priority >= ex_priority:
+        merged = dict(new_data)
+        if not merged.get("avg_hr") and ex_hr:
+            merged["avg_hr"] = ex_hr
+        if not merged.get("avg_power") and ex_power:
+            merged["avg_power"] = ex_power
+    else:
+        # Existing is richer — just fill gaps, don't replace base
+        merged = dict(new_data)
+        merged["_skip_insert"] = True  # signal caller to skip this activity
+
+    return merged
+
+
 def upsert_activity(conn, data: dict) -> int:
-    """Insert or update an activity. Returns the activity id."""
+    """Insert or update an activity. Returns the activity id.
+    Detects cross-device duplicates and merges data instead of creating duplicates.
+    """
     now = datetime.now(timezone.utc)
+    data = classify_activity(data)
+
+    # Duplicate detection: check if another activity started within 5 min with similar duration
+    if data.get("date") and data.get("duration_s"):
+        duplicate = find_duplicate(conn, data["date"], data["duration_s"])
+        if duplicate and duplicate[1] != data.get("strava_id"):
+            ex_id = duplicate[0]
+            merged = merge_activity_data(duplicate, data)
+            if merged.get("_skip_insert"):
+                print(f"  [dedup] Skipping {data['name']} — weaker duplicate of existing activity {ex_id}")
+                return ex_id
+            else:
+                # Delete weaker duplicate, insert richer merged record
+                print(f"  [dedup] Merging {data['name']} with existing activity {ex_id} (device priority)")
+                with conn.cursor() as cur:
+                    cur.execute("DELETE FROM activities WHERE id = %s", (ex_id,))
+                data = merged
+
     with conn.cursor() as cur:
         cur.execute("""
             INSERT INTO activities (
                 strava_id, name, date, distance_m, duration_s, elevation_m,
                 avg_hr, max_hr, avg_power, max_power, avg_cadence,
-                avg_speed_kmh, calories, suffer_score, device, synced_at
+                avg_speed_kmh, calories, suffer_score, device,
+                is_indoor, sport_type, synced_at
             ) VALUES (
                 %(strava_id)s, %(name)s, %(date)s, %(distance_m)s, %(duration_s)s, %(elevation_m)s,
                 %(avg_hr)s, %(max_hr)s, %(avg_power)s, %(max_power)s, %(avg_cadence)s,
-                %(avg_speed_kmh)s, %(calories)s, %(suffer_score)s, %(device)s, %(synced_at)s
+                %(avg_speed_kmh)s, %(calories)s, %(suffer_score)s, %(device)s,
+                %(is_indoor)s, %(sport_type)s, %(synced_at)s
             )
             ON CONFLICT (strava_id) DO UPDATE SET
                 name = EXCLUDED.name,
@@ -114,6 +197,8 @@ def upsert_activity(conn, data: dict) -> int:
                 calories = EXCLUDED.calories,
                 suffer_score = EXCLUDED.suffer_score,
                 device = EXCLUDED.device,
+                is_indoor = EXCLUDED.is_indoor,
+                sport_type = EXCLUDED.sport_type,
                 synced_at = EXCLUDED.synced_at
             RETURNING id
         """, {**data, "synced_at": now})
