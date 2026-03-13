@@ -1,0 +1,44 @@
+version: "3.9"
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: veloai
+      POSTGRES_USER: veloai
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  ingestor:
+    build: ./ingestor
+    environment:
+      DATABASE_URL: postgresql://veloai:${POSTGRES_PASSWORD}@postgres:5432/veloai
+      STRAVA_CLIENT_ID: ${STRAVA_CLIENT_ID}
+      STRAVA_CLIENT_SECRET: ${STRAVA_CLIENT_SECRET}
+      STRAVA_REFRESH_TOKEN: ${STRAVA_REFRESH_TOKEN}
+      KOMOOT_EMAIL: ${KOMOOT_EMAIL}
+      KOMOOT_PASSWORD: ${KOMOOT_PASSWORD}
+      POLL_INTERVAL_MINUTES: 10
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
+  grafana_data:
