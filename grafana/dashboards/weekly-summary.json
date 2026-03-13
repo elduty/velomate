@@ -1,7 +1,9 @@
 {
   "uid": "veloai-weekly",
   "title": "Weekly Summary",
-  "tags": ["veloai"],
+  "tags": [
+    "veloai"
+  ],
   "timezone": "browser",
   "editable": true,
   "time": {
@@ -14,19 +16,30 @@
       "id": 1,
       "title": "Weekly Distance (km)",
       "type": "barchart",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
-      "datasource": { "type": "postgres", "uid": "veloai" },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
       "targets": [
         {
-          "rawSql": "SELECT date_trunc('week', date)::date AS time, ROUND((SUM(distance_m) / 1000.0)::numeric, 1) AS \"Distance (km)\" FROM activities WHERE $__timeFilter(date) GROUP BY 1 ORDER BY 1;",
-          "format": "time_series",
+          "rawSql": "SELECT date_trunc('week', date)::date AS time, ROUND((SUM(distance_m) / 1000.0)::numeric, 1) AS \"Distance (km)\" FROM activities WHERE $__timeFilter(date) AND distance_m > 0 GROUP BY 1 ORDER BY 1;",
+          "format": "table",
           "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "km",
-          "color": { "fixedColor": "blue", "mode": "fixed" },
+          "color": {
+            "fixedColor": "blue",
+            "mode": "fixed"
+          },
           "custom": {
             "fillOpacity": 80,
             "gradientMode": "scheme"
@@ -36,27 +49,42 @@
       "options": {
         "barWidth": 0.7,
         "groupWidth": 0.7,
-        "tooltip": { "mode": "single" },
-        "legend": { "displayMode": "hidden" }
+        "tooltip": {
+          "mode": "single"
+        },
+        "legend": {
+          "displayMode": "hidden"
+        }
       }
     },
     {
       "id": 2,
       "title": "Weekly Elevation (m)",
       "type": "barchart",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
-      "datasource": { "type": "postgres", "uid": "veloai" },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 8
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
       "targets": [
         {
-          "rawSql": "SELECT date_trunc('week', date)::date AS time, ROUND(SUM(elevation_m)::numeric, 0) AS \"Elevation (m)\" FROM activities WHERE $__timeFilter(date) GROUP BY 1 ORDER BY 1;",
-          "format": "time_series",
+          "rawSql": "SELECT date_trunc('week', date)::date AS time, ROUND(SUM(elevation_m)::numeric, 0) AS \"Elevation (m)\" FROM activities WHERE $__timeFilter(date) AND distance_m > 0 GROUP BY 1 ORDER BY 1;",
+          "format": "table",
           "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "m",
-          "color": { "fixedColor": "orange", "mode": "fixed" },
+          "color": {
+            "fixedColor": "orange",
+            "mode": "fixed"
+          },
           "custom": {
             "fillOpacity": 80,
             "gradientMode": "scheme"
@@ -66,27 +94,42 @@
       "options": {
         "barWidth": 0.7,
         "groupWidth": 0.7,
-        "tooltip": { "mode": "single" },
-        "legend": { "displayMode": "hidden" }
+        "tooltip": {
+          "mode": "single"
+        },
+        "legend": {
+          "displayMode": "hidden"
+        }
       }
     },
     {
       "id": 3,
       "title": "Weekly Calories",
       "type": "barchart",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
-      "datasource": { "type": "postgres", "uid": "veloai" },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 16
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
       "targets": [
         {
           "rawSql": "SELECT date_trunc('week', date)::date AS time, SUM(calories) AS \"Calories\" FROM activities WHERE $__timeFilter(date) AND calories IS NOT NULL GROUP BY 1 ORDER BY 1;",
-          "format": "time_series",
+          "format": "table",
           "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "kcal",
-          "color": { "fixedColor": "green", "mode": "fixed" },
+          "color": {
+            "fixedColor": "green",
+            "mode": "fixed"
+          },
           "custom": {
             "fillOpacity": 80,
             "gradientMode": "scheme"
@@ -96,8 +139,12 @@
       "options": {
         "barWidth": 0.7,
         "groupWidth": 0.7,
-        "tooltip": { "mode": "single" },
-        "legend": { "displayMode": "hidden" }
+        "tooltip": {
+          "mode": "single"
+        },
+        "legend": {
+          "displayMode": "hidden"
+        }
       }
     }
   ],

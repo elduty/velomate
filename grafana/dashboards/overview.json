@@ -82,7 +82,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND((SUM(distance_m) / 1000.0)::numeric, 1) AS \"km\" FROM activities WHERE $__timeFilter(date);",
+          "rawSql": "SELECT ROUND((SUM(distance_m) / 1000.0)::numeric, 1) AS \"km\" FROM activities WHERE $__timeFilter(date) AND distance_m > 0;",
           "format": "table",
           "refId": "A"
         }
@@ -136,7 +136,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND(SUM(elevation_m)::numeric, 0) AS \"meters\" FROM activities WHERE $__timeFilter(date);",
+          "rawSql": "SELECT ROUND(SUM(elevation_m)::numeric, 0) AS \"meters\" FROM activities WHERE $__timeFilter(date) AND distance_m > 0;",
           "format": "table",
           "refId": "A"
         }
