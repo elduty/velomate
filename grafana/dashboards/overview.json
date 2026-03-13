@@ -461,17 +461,68 @@
       }
     },
     {
+      "id": 105,
+      "type": "row",
+      "title": "Ride Map",
+      "collapsed": true,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 25 },
+      "panels": [
+        {
+          "id": 30,
+          "title": "Lifetime Rides",
+          "type": "geomap",
+          "gridPos": { "h": 14, "w": 24, "x": 0, "y": 26 },
+          "datasource": { "type": "postgres", "uid": "veloai" },
+          "targets": [
+            {
+              "rawSql": "SELECT s.lat AS \"latitude\", s.lng AS \"longitude\" FROM activity_streams s JOIN activities a ON a.id = s.activity_id WHERE s.lat IS NOT NULL AND s.lng IS NOT NULL AND s.time_offset % 5 = 0 ORDER BY a.date, s.time_offset LIMIT 500000;",
+              "format": "table",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "view": {
+              "id": "coords",
+              "lat": 38.69,
+              "lon": -9.32,
+              "zoom": 11
+            },
+            "layers": [
+              {
+                "type": "heatmap",
+                "name": "Rides",
+                "config": {
+                  "weight": { "fixed": 1 },
+                  "radius": { "fixed": 5 },
+                  "blur": { "fixed": 12 }
+                },
+                "location": {
+                  "mode": "coords",
+                  "latitude": "latitude",
+                  "longitude": "longitude"
+                }
+              }
+            ]
+          },
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          }
+        }
+      ]
+    },
+    {
       "id": 102,
       "type": "row",
       "title": "Personal Records",
       "collapsed": true,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 25 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 26 },
       "panels": [
         {
           "id": 15,
           "title": "Longest Ride (Period)",
           "type": "stat",
-          "gridPos": { "h": 4, "w": 6, "x": 0, "y": 26 },
+          "gridPos": { "h": 4, "w": 6, "x": 0, "y": 27 },
           "datasource": { "type": "postgres", "uid": "veloai" },
           "targets": [{ "rawSql": "SELECT ROUND((distance_m / 1000.0)::numeric, 1) AS \"Longest\" FROM activities WHERE $__timeFilter(date) AND distance_m > 0 ORDER BY distance_m DESC LIMIT 1;", "format": "table", "refId": "A" }],
           "options": { "colorMode": "value", "graphMode": "none", "textMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"] } },
@@ -481,7 +532,7 @@
           "id": 16,
           "title": "Most Elevation (Period)",
           "type": "stat",
-          "gridPos": { "h": 4, "w": 6, "x": 6, "y": 26 },
+          "gridPos": { "h": 4, "w": 6, "x": 6, "y": 27 },
           "datasource": { "type": "postgres", "uid": "veloai" },
           "targets": [{ "rawSql": "SELECT ROUND(MAX(elevation_m)::numeric, 0) AS \"Most Elev\" FROM activities WHERE $__timeFilter(date) AND elevation_m > 0;", "format": "table", "refId": "A" }],
           "options": { "colorMode": "value", "graphMode": "none", "textMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"] } },
@@ -491,7 +542,7 @@
           "id": 17,
           "title": "Fastest Speed (Period)",
           "type": "stat",
-          "gridPos": { "h": 4, "w": 6, "x": 12, "y": 26 },
+          "gridPos": { "h": 4, "w": 6, "x": 12, "y": 27 },
           "datasource": { "type": "postgres", "uid": "veloai" },
           "targets": [{ "rawSql": "SELECT ROUND(MAX(avg_speed_kmh)::numeric, 1) AS \"Fastest\" FROM activities WHERE $__timeFilter(date) AND distance_m > 5000;", "format": "table", "refId": "A" }],
           "options": { "colorMode": "value", "graphMode": "none", "textMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"] } },
@@ -501,7 +552,7 @@
           "id": 18,
           "title": "Best Power (Period)",
           "type": "stat",
-          "gridPos": { "h": 4, "w": 6, "x": 18, "y": 26 },
+          "gridPos": { "h": 4, "w": 6, "x": 18, "y": 27 },
           "datasource": { "type": "postgres", "uid": "veloai" },
           "targets": [{ "rawSql": "SELECT MAX(avg_power) AS \"Best Power\" FROM activities WHERE $__timeFilter(date) AND duration_s > 1200 AND avg_power IS NOT NULL;", "format": "table", "refId": "A" }],
           "options": { "colorMode": "value", "graphMode": "none", "textMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"] } },
@@ -511,7 +562,7 @@
           "id": 25,
           "title": "Longest Ride (All Time)",
           "type": "stat",
-          "gridPos": { "h": 4, "w": 6, "x": 0, "y": 30 },
+          "gridPos": { "h": 4, "w": 6, "x": 0, "y": 31 },
           "datasource": { "type": "postgres", "uid": "veloai" },
           "targets": [{ "rawSql": "SELECT ROUND((distance_m / 1000.0)::numeric, 1) AS \"Longest\" FROM activities WHERE distance_m > 0 ORDER BY distance_m DESC LIMIT 1;", "format": "table", "refId": "A" }],
           "options": { "colorMode": "value", "graphMode": "none", "textMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"] } },
@@ -521,7 +572,7 @@
           "id": 26,
           "title": "Most Elevation (All Time)",
           "type": "stat",
-          "gridPos": { "h": 4, "w": 6, "x": 6, "y": 30 },
+          "gridPos": { "h": 4, "w": 6, "x": 6, "y": 31 },
           "datasource": { "type": "postgres", "uid": "veloai" },
           "targets": [{ "rawSql": "SELECT ROUND(MAX(elevation_m)::numeric, 0) AS \"Most Elev\" FROM activities WHERE elevation_m > 0;", "format": "table", "refId": "A" }],
           "options": { "colorMode": "value", "graphMode": "none", "textMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"] } },
@@ -531,7 +582,7 @@
           "id": 27,
           "title": "Fastest Speed (All Time)",
           "type": "stat",
-          "gridPos": { "h": 4, "w": 6, "x": 12, "y": 30 },
+          "gridPos": { "h": 4, "w": 6, "x": 12, "y": 31 },
           "datasource": { "type": "postgres", "uid": "veloai" },
           "targets": [{ "rawSql": "SELECT ROUND(MAX(avg_speed_kmh)::numeric, 1) AS \"Fastest\" FROM activities WHERE distance_m > 5000;", "format": "table", "refId": "A" }],
           "options": { "colorMode": "value", "graphMode": "none", "textMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"] } },
@@ -541,7 +592,7 @@
           "id": 28,
           "title": "Best Power (All Time)",
           "type": "stat",
-          "gridPos": { "h": 4, "w": 6, "x": 18, "y": 30 },
+          "gridPos": { "h": 4, "w": 6, "x": 18, "y": 31 },
           "datasource": { "type": "postgres", "uid": "veloai" },
           "targets": [{ "rawSql": "SELECT MAX(avg_power) AS \"Best Power\" FROM activities WHERE duration_s > 1200 AND avg_power IS NOT NULL;", "format": "table", "refId": "A" }],
           "options": { "colorMode": "value", "graphMode": "none", "textMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"] } },
@@ -554,13 +605,13 @@
       "type": "row",
       "title": "Monthly Comparison",
       "collapsed": true,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 30 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 31 },
       "panels": [
         {
           "id": 19,
           "title": "Year-over-Year",
           "type": "table",
-          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 31 },
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 32 },
           "datasource": { "type": "postgres", "uid": "veloai" },
           "targets": [
             {
@@ -584,14 +635,14 @@
       "type": "row",
       "title": "Recent Activities",
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 39 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 40 },
       "panels": []
     },
     {
       "id": 20,
       "title": "Activities",
       "type": "table",
-      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 40 },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 41 },
       "datasource": { "type": "postgres", "uid": "veloai" },
       "targets": [
         {
