@@ -468,9 +468,9 @@
       "type": "table",
       "gridPos": {
         "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 12
+        "w": 24,
+        "x": 0,
+        "y": 20
       },
       "datasource": {
         "type": "postgres",
@@ -485,6 +485,61 @@
       ],
       "options": {
         "showHeader": true
+      }
+    },
+    {
+      "id": 10,
+      "title": "Avg Heart Rate (bpm)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 12
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "veloai"
+          },
+          "rawSql": "SELECT date_trunc('day', date) AS time, ROUND(AVG(avg_hr)::numeric, 1) AS \"Outdoor bpm\" FROM activities WHERE $__timeFilter(date) AND avg_hr IS NOT NULL AND is_indoor = false GROUP BY 1 ORDER BY 1;",
+          "format": "time_series",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "veloai"
+          },
+          "rawSql": "SELECT date_trunc('day', date) AS time, ROUND(AVG(avg_hr)::numeric, 1) AS \"Indoor bpm\" FROM activities WHERE $__timeFilter(date) AND avg_hr IS NOT NULL AND is_indoor = true GROUP BY 1 ORDER BY 1;",
+          "format": "time_series",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bpm",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
       }
     }
   ],
