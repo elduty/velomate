@@ -1,12 +1,13 @@
 apiVersion: 1
 datasources:
   - name: VeloAI
+    uid: veloai
     type: postgres
     url: veloai-postgres:5432
     database: veloai
     user: veloai
     secureJsonData:
-      password: $POSTGRES_PASSWORD
+      password: veloai_secret_2026
     jsonData:
       sslmode: disable
       timescaledb: false
