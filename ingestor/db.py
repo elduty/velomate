@@ -86,6 +86,8 @@ def create_schema(conn):
 
             CREATE INDEX IF NOT EXISTS idx_activities_date ON activities(date);
             CREATE INDEX IF NOT EXISTS idx_activity_streams_activity_id ON activity_streams(activity_id);
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_activities_komoot_tour_id
+                ON activities(komoot_tour_id) WHERE komoot_tour_id IS NOT NULL;
         """)
 
 
@@ -220,6 +222,40 @@ def upsert_streams(conn, activity_id: int, streams: list):
               s.get("cadence"), s.get("speed_kmh"), s.get("altitude_m"),
               s.get("lat"), s.get("lng")) for s in streams]
         )
+
+
+def upsert_komoot_activity(conn, data: dict) -> int:
+    """Insert or update a Komoot-only activity (no strava_id).
+    Uses komoot_tour_id as the conflict key.
+    """
+    now = datetime.now(timezone.utc)
+    data = classify_activity(data)
+    with conn.cursor() as cur:
+        cur.execute("""
+            INSERT INTO activities (
+                komoot_tour_id, name, date, distance_m, duration_s, elevation_m,
+                avg_hr, max_hr, avg_power, max_power, avg_cadence,
+                avg_speed_kmh, calories, suffer_score, device,
+                is_indoor, sport_type, synced_at
+            ) VALUES (
+                %(komoot_tour_id)s, %(name)s, %(date)s, %(distance_m)s, %(duration_s)s, %(elevation_m)s,
+                %(avg_hr)s, %(max_hr)s, %(avg_power)s, %(max_power)s, %(avg_cadence)s,
+                %(avg_speed_kmh)s, %(calories)s, %(suffer_score)s, %(device)s,
+                %(is_indoor)s, %(sport_type)s, %(synced_at)s
+            )
+            ON CONFLICT (komoot_tour_id) WHERE komoot_tour_id IS NOT NULL DO UPDATE SET
+                name = EXCLUDED.name,
+                distance_m = EXCLUDED.distance_m,
+                duration_s = EXCLUDED.duration_s,
+                elevation_m = EXCLUDED.elevation_m,
+                avg_speed_kmh = EXCLUDED.avg_speed_kmh,
+                device = EXCLUDED.device,
+                is_indoor = EXCLUDED.is_indoor,
+                sport_type = EXCLUDED.sport_type,
+                synced_at = EXCLUDED.synced_at
+            RETURNING id
+        """, {**data, "synced_at": now})
+        return cur.fetchone()[0]
 
 
 def upsert_route(conn, data: dict):

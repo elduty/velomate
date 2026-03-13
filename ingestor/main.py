@@ -8,7 +8,7 @@ import schedule
 
 from db import get_connection, create_schema, get_sync_state
 from strava import sync_activities, backfill
-from komoot import sync_routes
+from komoot import sync_activities as sync_komoot
 from fitness import recalculate_fitness
 
 
@@ -52,8 +52,10 @@ def poll_komoot():
         if not conn:
             print("[poll] Komoot: skipped — no DB connection")
             return
-        count = sync_routes(conn)
-        print(f"[poll] Komoot: {count} routes synced")
+        count = sync_komoot(conn)
+        if count > 0:
+            recalculate_fitness(conn)
+        print(f"[poll] Komoot: {count} new activities")
     except Exception as e:
         print(f"[poll] Komoot error: {e}")
         traceback.print_exc()
@@ -65,8 +67,8 @@ def run_backfill():
     create_schema(conn)
     count = backfill(conn, months=12)
     recalculate_fitness(conn)
-    sync_routes(conn)
-    print(f"[backfill] Complete — {count} activities ingested")
+    sync_komoot(conn)
+    print(f"[backfill] Complete — {count} Strava + Komoot activities ingested")
     return count
 
 
