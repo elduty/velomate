@@ -107,6 +107,20 @@ def fetch_recent_activities(access_token: str, after_epoch: int) -> list:
     return all_activities
 
 
+def fetch_activity_detail(access_token: str, activity_id: int) -> dict:
+    """GET /activities/{id} — returns full detail including calories, HR, suffer_score."""
+    headers = {"Authorization": f"Bearer {access_token}"}
+    resp = requests.get(
+        f"{API_BASE}/activities/{activity_id}",
+        headers=headers,
+        timeout=15,
+    )
+    if resp.status_code == 404:
+        return {}
+    resp.raise_for_status()
+    return resp.json()
+
+
 def fetch_activity_streams(access_token: str, activity_id: int) -> dict:
     """GET /activities/{id}/streams for HR, power, cadence, speed, altitude, latlng."""
     headers = {"Authorization": f"Bearer {access_token}"}
@@ -129,19 +143,21 @@ def fetch_activity_streams(access_token: str, activity_id: int) -> dict:
     return streams
 
 
-def _parse_activity(raw: dict) -> dict:
-    """Convert Strava API activity to our DB format."""
-    # Detect device from device_name or type
+def _detect_device(raw: dict) -> str:
+    """Detect recording device from Strava activity metadata."""
     device_name = raw.get("device_name", "").lower()
     if "karoo" in device_name:
-        device = "karoo"
+        return "karoo"
     elif "watch" in device_name or "apple" in device_name:
-        device = "watch"
+        return "watch"
     elif raw.get("trainer", False) or "zwift" in raw.get("name", "").lower():
-        device = "zwift"
-    else:
-        device = "unknown"
+        return "zwift"
+    return "unknown"
 
+
+def _parse_activity(raw: dict) -> dict:
+    """Convert Strava API activity (summary or detail) to our DB format."""
+    device = _detect_device(raw)
     return {
         "strava_id": raw["id"],
         "name": raw.get("name", ""),
@@ -159,6 +175,36 @@ def _parse_activity(raw: dict) -> dict:
         "suffer_score": raw.get("suffer_score"),
         "device": device,
     }
+
+
+def _merge_detail(summary: dict, detail: dict) -> dict:
+    """Enrich summary data with detail fields.
+    Karoo calories always win. For other devices, fill gaps only.
+    """
+    if not detail:
+        return summary
+    merged = dict(summary)
+    device = summary.get("device", "unknown")
+
+    # Calories: Karoo data is from FIT file (accurate) — always prefer it.
+    # For other devices, use detail calories only if summary had none.
+    detail_calories = detail.get("calories")
+    if detail_calories:
+        if device == "karoo" or not merged.get("calories"):
+            merged["calories"] = detail_calories
+
+    # Fill other gaps from detail
+    for field in ("average_heartrate", "max_heartrate", "suffer_score"):
+        detail_val = detail.get(field)
+        db_field = {
+            "average_heartrate": "avg_hr",
+            "max_heartrate": "max_hr",
+            "suffer_score": "suffer_score",
+        }[field]
+        if detail_val and not merged.get(db_field):
+            merged[db_field] = detail_val
+
+    return merged
 
 
 def _parse_streams(raw_streams: dict) -> list:
@@ -201,6 +247,12 @@ def sync_activities(conn, after_epoch: int = None):
     latest_epoch = after_epoch
     for raw in activities:
         data = _parse_activity(raw)
+
+        # Fetch detailed activity for calories, HR, suffer_score
+        time.sleep(1.0)
+        detail = fetch_activity_detail(token, raw["id"])
+        data = _merge_detail(data, detail)
+
         activity_id = upsert_activity(conn, data)
 
         # Fetch streams with rate limiting
