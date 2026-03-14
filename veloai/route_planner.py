@@ -146,8 +146,9 @@ def _get_strava_token() -> str | None:
 
 
 def _upload_to_komoot(gpx_path: str, surface: str, name: str) -> str | None:
-    """Upload GPX to Komoot via komPYoot. Returns tour URL or None."""
+    """Upload GPX to Komoot as a planned route (not recorded). Returns tour URL or None."""
     try:
+        import requests as _requests
         from komPYoot.api import API, Sport
         from veloai.config import load as load_config
 
@@ -160,22 +161,32 @@ def _upload_to_komoot(gpx_path: str, surface: str, name: str) -> str | None:
         api.login(komoot_cfg["email"], komoot_cfg["password"])
 
         sport_map = {
-            "road":   Sport.ROAD_CYCLING,
-            "gravel": Sport.GRAVEL_BIKING,
-            "mtb":    Sport.MT_BIKING,
+            "road":   "racebike",
+            "gravel": "touringbicycle",
+            "mtb":    "mtb",
         }
-        sport = sport_map.get(surface, Sport.GRAVEL_BIKING)
+        sport_flag = sport_map.get(surface, "touringbicycle")
 
-        ok = api.upload_tour_gpx(sport, gpx_path)
+        # Upload as planned route (type=tour_planned) instead of recorded activity
+        with open(gpx_path, "rb") as f:
+            gpx_data = f.read()
+        resp = _requests.post(
+            "https://api.komoot.de/v007/tours/",
+            params={"data_type": "gpx", "sport": sport_flag, "type": "tour_planned"},
+            headers={"User-Agent": "VeloAI"},
+            data=gpx_data,
+            auth=(api.user_details["user_id"], api.user_details["token"]),
+            timeout=30,
+        )
+        ok = resp.status_code in (200, 201, 202)
         if ok:
-            # Get the most recently uploaded tour
-            tours = api.get_user_tours_list()
-            if tours:
-                latest = tours[0]
-                tour_id = latest.get("id") if isinstance(latest, dict) else getattr(latest, "id", None)
-                if tour_id:
-                    return f"https://www.komoot.com/tour/{tour_id}"
+            tour_id = resp.json().get("id")
+            print(f"  Planned route created (ID: {tour_id})", file=sys.stderr)
+            if tour_id:
+                return f"https://www.komoot.com/tour/{tour_id}"
             return "https://www.komoot.com/user/tours"
+        else:
+            print(f"  Komoot upload failed: HTTP {resp.status_code}", file=sys.stderr)
     except Exception as e:
         print(f"  Komoot upload failed: {e}", file=sys.stderr)
     return None
@@ -274,8 +285,17 @@ def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
     actual_km = result["actual_km"]
     print(f"  GPX generated: {actual_km:.1f}km, {len(result['coords'])} points", file=sys.stderr)
 
-    # Upload to Komoot
-    print(f"  Uploading to Komoot...", file=sys.stderr)
+    # Show route preview in browser
+    try:
+        from veloai.map_preview import preview
+        wp_for_preview = [{"lat": w["lat"], "lng": w.get("lng", w.get("lon")), "name": w.get("name", ""), "reason": w.get("reason", "")} for w in (valhalla_waypoints if valhalla_waypoints else [])] if waypoint_names else None
+        preview(result["coords"], route_name, wp_for_preview)
+        print(f"  Route preview opened in browser", file=sys.stderr)
+    except Exception as e:
+        print(f"  [preview] Skipped: {e}", file=sys.stderr)
+
+    # Upload to Komoot as planned route
+    print(f"  Uploading to Komoot as planned route...", file=sys.stderr)
     komoot_url = _upload_to_komoot(gpx_path, surface, route_name)
 
     # Build output
