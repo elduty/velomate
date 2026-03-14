@@ -1,6 +1,6 @@
 from typing import Dict, List
 
-from veloai import keychain
+from veloai.config import load as load_config
 
 CYCLING_SPORTS = {
     "touringbicycle", "mtb", "racebike", "roadcycling",
@@ -10,11 +10,15 @@ CYCLING_SPORTS = {
 
 def fetch_tours() -> List[Dict]:
     """Return deduplicated list of cycling tours: {name, distance_km, elevation_m, url}"""
-    creds = keychain.get("openclaw/komoot")
+    cfg = load_config()
+    komoot_cfg = cfg["komoot"]
+    if not komoot_cfg.get("email") or not komoot_cfg.get("password"):
+        print("Komoot credentials not configured")
+        return []
 
     from komPYoot import API
     api = API()
-    if not api.login(creds["email"], creds["password"]):
+    if not api.login(komoot_cfg["email"], komoot_cfg["password"]):
         print("\u26a0\ufe0f  Komoot login failed")
         return []
 

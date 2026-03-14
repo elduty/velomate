@@ -3,14 +3,16 @@ import sys
 import warnings
 
 from veloai import komoot, weather, planner
+from veloai.config import load as load_config
 
 warnings.filterwarnings("ignore")
-
-LOCATION = {"lat": 38.69, "lon": -9.32, "name": "São Domingos de Rana"}
 
 
 def cmd_recommend(args):
     """Weekly ride recommendation (existing behavior)."""
+    cfg = load_config()
+    home = cfg["home"]
+
     fitness = {}
     tours = None
 
@@ -42,7 +44,7 @@ def cmd_recommend(args):
         print(f"  → {len(tours)} cycling tours", file=sys.stderr)
 
     print("Fetching weather forecast...", file=sys.stderr)
-    days = weather.fetch_forecast(LOCATION["lat"], LOCATION["lon"])
+    days = weather.fetch_forecast(home["lat"], home["lng"])
 
     if not days:
         print("Weather unavailable — skipping recommendation", file=sys.stderr)
@@ -55,6 +57,15 @@ def cmd_plan(args):
     """Plan a route and open in Komoot."""
     from veloai.route_planner import plan
 
+    cfg = load_config()
+    home = cfg["home"]
+
+    if args.start:
+        parts = args.start.split(",")
+        home_lat, home_lng = float(parts[0]), float(parts[1])
+    else:
+        home_lat, home_lng = home["lat"], home["lng"]
+
     result = plan(
         duration_str=args.duration,
         surface=args.surface,
@@ -62,8 +73,8 @@ def cmd_plan(args):
         waypoints_str=args.waypoints,
         date_str=args.date,
         time_str=args.time,
-        home_lat=LOCATION["lat"],
-        home_lng=LOCATION["lon"],
+        home_lat=home_lat,
+        home_lng=home_lng,
     )
     print(result)
 
@@ -84,6 +95,7 @@ def main():
     plan_parser.add_argument("--waypoints", "-w", default=None, help="Comma-separated place names to route through")
     plan_parser.add_argument("--date", default="tomorrow", help="When to ride (default: tomorrow)")
     plan_parser.add_argument("--time", "-t", default=None, help="Start time (e.g. 14:00, 2pm, 9am)")
+    plan_parser.add_argument("--start", default=None, help="Start location as 'lat,lng' (default: from config)")
 
     args = parser.parse_args()
 

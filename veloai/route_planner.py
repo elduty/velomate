@@ -124,11 +124,15 @@ def _upload_to_komoot(gpx_path: str, surface: str, name: str) -> object:
     """Upload GPX to Komoot via komPYoot. Returns tour URL or None."""
     try:
         from komPYoot.api import API, Sport
-        from veloai.keychain import get as keychain_get
+        from veloai.config import load as load_config
 
-        creds = keychain_get("openclaw/komoot")
+        cfg = load_config()
+        komoot_cfg = cfg["komoot"]
+        if not komoot_cfg.get("email") or not komoot_cfg.get("password"):
+            print("  Komoot credentials not configured — skipping upload", file=sys.stderr)
+            return None
         api = API()
-        api.login(creds["email"], creds["password"])
+        api.login(komoot_cfg["email"], komoot_cfg["password"])
 
         sport_map = {
             "road":   Sport.ROAD_CYCLING,
@@ -155,7 +159,7 @@ def _upload_to_komoot(gpx_path: str, surface: str, name: str) -> object:
 def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
          waypoints_str: str = None, date_str: str = "tomorrow",
          time_str: str = None,
-         home_lat: float = 38.69, home_lng: float = -9.32) -> str:
+         home_lat: float = None, home_lng: float = None) -> str:
     """Generate a real cycling route, upload to Komoot, return summary."""
 
     # Parse duration

@@ -1,33 +1,17 @@
 """DB reader for VeloAI CLI (connects to homelab PostgreSQL)."""
 
-import os
-
-DB_HOST = os.environ.get("VELOAI_DB_HOST", "10.7.40.15")
-DB_PORT = os.environ.get("VELOAI_DB_PORT", "5423")
-DB_NAME = os.environ.get("VELOAI_DB_NAME", "veloai")
-DB_USER = os.environ.get("VELOAI_DB_USER", "veloai")
-DB_PASS = os.environ.get("VELOAI_DB_PASS", "")
-
-
-def _get_password():
-    """Get DB password from env or keychain."""
-    if DB_PASS:
-        return DB_PASS
-    try:
-        from veloai.keychain import get
-        creds = get("openclaw/veloai-db")
-        return creds.get("password", "")
-    except Exception:
-        return ""
+from veloai.config import load as load_config
 
 
 def get_connection():
-    """Connect to PostgreSQL on homelab. Returns None if unavailable."""
+    """Connect to PostgreSQL. Returns None if unavailable."""
     try:
         import psycopg2
+        cfg = load_config()
+        db = cfg["db"]
         conn = psycopg2.connect(
-            host=DB_HOST, port=DB_PORT,
-            dbname=DB_NAME, user=DB_USER, password=_get_password(),
+            host=db["host"], port=db["port"],
+            dbname=db["name"], user=db["user"], password=db["password"],
             connect_timeout=5,
         )
         conn.autocommit = True
