@@ -6,10 +6,10 @@ import webbrowser
 from datetime import datetime, timedelta
 
 
-# Surface type → Komoot sport mapping
+# Surface type → Komoot sport mapping (new planner URL format, verified 2026-03)
 KOMOOT_SPORTS = {
     "road": "racebike",
-    "gravel": "touringbicycle",
+    "gravel": "mtb_easy",
     "mtb": "mtb",
 }
 
@@ -103,11 +103,11 @@ def adjust_for_fitness(distance_km: float, tsb: object) -> object:
 
 
 def build_komoot_url(lat: float, lng: float, sport: str, waypoints: list = None) -> str:
-    """Build Komoot planner URL with start point, sport type, and optional waypoints."""
-    base = f"https://www.komoot.com/plan/@{lat},{lng},12/{sport}"
-    if waypoints:
-        wp_params = "&".join(f"wp={w['lat']},{w['lng']}" for w in waypoints)
-        return f"{base}?{wp_params}"
+    """Build Komoot planner URL with start point and sport type.
+    New format (2026): /@lat,lng,zoomz?sport=code
+    Waypoints are no longer supported via URL — set them manually in Komoot.
+    """
+    base = f"https://www.komoot.com/plan/@{lat},{lng},13z?sport={sport}"
     return base
 
 
