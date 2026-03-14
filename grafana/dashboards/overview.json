@@ -857,7 +857,7 @@
           },
           "targets": [
             {
-              "rawSql": "SELECT s.lat AS \"latitude\", s.lng AS \"longitude\" FROM activity_streams s JOIN activities a ON a.id = s.activity_id WHERE s.lat IS NOT NULL AND s.lng IS NOT NULL AND s.time_offset % 5 = 0 ORDER BY a.date, s.time_offset LIMIT 500000;",
+              "rawSql": "SELECT s.lat AS \"latitude\", s.lng AS \"longitude\", a.date AS \"time\" FROM activity_streams s JOIN activities a ON a.id = s.activity_id WHERE s.lat IS NOT NULL AND s.lng IS NOT NULL AND s.time_offset % 10 = 0 ORDER BY a.date, s.time_offset LIMIT 500000;",
               "format": "table",
               "refId": "A"
             }
