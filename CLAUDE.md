@@ -19,7 +19,7 @@ VeloAI is a self-hosted cycling data platform (inspired by TeslaMate). Any devic
 Three Docker Compose services on a server:
 
 - **veloai-postgres** (PostgreSQL 15, port 5423) — five tables: `activities`, `activity_streams`, `athlete_stats`, `routes`, `sync_state`
-- **veloai-ingestor** (Python 3.11) — polls Strava every 10min; auto-backfills 12 months on first run; handles cross-device deduplication when multiple devices record the same ride by matching same-day activities within ±10% distance
+- **veloai-ingestor** (Python 3.11) — polls Strava every 10min; auto-backfills 12 months on first run; handles cross-device deduplication when multiple devices record the same ride (keeps the record with the richest data — power > HR > distance) by matching same-day activities within ±10% distance
 - **veloai-grafana** (Grafana 12.0, port 3021) — dashboards provisioned from JSON files in `grafana/dashboards/`
 
 Separate from Docker:

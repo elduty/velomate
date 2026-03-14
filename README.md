@@ -8,7 +8,7 @@ Inspired by TeslaMate. Built for cyclists using Strava.
 
 ## What it does
 
-- **Ingestor** — polls Strava every 10 min, pulls every ride with full per-second streams (HR, power, cadence, speed, altitude, GPS), calculates CTL/ATL/TSB fitness metrics, stores everything in PostgreSQL. Strava is the single source of truth — any device that syncs to Strava works. Automatically deduplicates when multiple devices record the same ride by keeping the richer data source.
+- **Ingestor** — polls Strava every 10 min, pulls every ride with full per-second streams (HR, power, cadence, speed, altitude, GPS), calculates CTL/ATL/TSB fitness metrics, stores everything in PostgreSQL. Strava is the single source of truth — any device that syncs to Strava works. Automatically deduplicates when multiple devices record the same ride by scoring data richness (power > HR > distance > cadence) and keeping the record with the most useful fields.
 - **Grafana** — 5 dashboards: overview hub, activity detail (with GPS map, zones, splits), fitness trends, weekly report, training log
 - **VeloAI CLI** — ride recommendations based on fitness + weather, and route planning via Valhalla GPX generation → Komoot upload
 
