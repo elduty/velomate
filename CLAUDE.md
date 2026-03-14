@@ -12,7 +12,7 @@ Obsidian vault: `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/Persona
 
 ## What This Is
 
-VeloAI is a self-hosted cycling data platform (inspired by TeslaMate) for Marcin, based in São Domingos de Rana, Portugal. Data flows: Karoo 3 → Strava (ride data), Apple Watch → Health → Strava (recovery metrics), Komoot (route library). The ingestor polls Strava/Komoot, stores activities + per-second telemetry in PostgreSQL, calculates fitness metrics (CTL/ATL/TSB via EMA) locally (no Strava Premium needed), and serves Grafana dashboards. A CLI generates WhatsApp-formatted ride recommendations using fitness + weather data.
+VeloAI is a self-hosted cycling data platform (inspired by TeslaMate). Data flows: Karoo 3 → Strava (ride data), Apple Watch → Health → Strava (recovery metrics), Komoot (route library). The ingestor polls Strava/Komoot, stores activities + per-second telemetry in PostgreSQL, calculates fitness metrics (CTL/ATL/TSB via EMA) locally (no Strava Premium needed), and serves Grafana dashboards. A CLI generates ride recommendations and creates Valhalla GPX routes that upload to Komoot → sync to Karoo.
 
 ## Architecture
 

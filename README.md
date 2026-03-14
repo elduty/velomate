@@ -2,7 +2,7 @@
 
 A self-hosted cycling data platform — automatic ride ingestion, Grafana dashboards, and fitness-aware ride planning.
 
-Inspired by TeslaMate. Built for Marcin's Karoo 3 + Strava setup.
+Inspired by TeslaMate. Built for cyclists using Strava + Karoo/Komoot.
 
 ---
 
@@ -65,8 +65,8 @@ STRAVA_REFRESH_TOKEN=    # obtained via OAuth (see below)
 KOMOOT_EMAIL=            # Komoot account email
 KOMOOT_PASSWORD=         # Komoot account password
 GRAFANA_PASSWORD=        # Grafana admin password
-VELOAI_DB_HOST=10.7.40.15  # homelab IP (CLI only)
-VELOAI_DB_PORT=5423        # host-mapped port (CLI only)
+VELOAI_DB_HOST=your-db-host  # PostgreSQL host (for CLI — ingestor uses Docker DNS)
+VELOAI_DB_PORT=5432          # PostgreSQL port (for CLI — ingestor uses Docker DNS)
 ```
 
 #### Getting a Strava refresh token
@@ -113,7 +113,7 @@ Supports env var overrides and `password_cmd` for secret managers (Keychain, 1Pa
 
 ## Database
 
-**Host:** `10.7.40.15:5423`  
+**Host:** configured in `.env` or `config.yaml`
 **DB:** `veloai` | **User:** `veloai`
 
 ### Tables
@@ -189,16 +189,19 @@ veloai/
 │       ├── overview.json
 │       ├── activity.json     # Activity Detail
 │       └── fitness-trends.json
-├── veloai/                   # CLI package (Mac mini)
+├── veloai/                   # CLI package
 │   ├── __main__.py
-│   ├── cli.py                # entry point
-│   ├── planner.py            # fitness-aware recommendations
+│   ├── cli.py                # entry point (argparse subcommands)
+│   ├── config.py             # YAML + env var config loader
+│   ├── route_planner.py      # route planning pipeline
+│   ├── route_generator.py    # Valhalla GPX loop generation
+│   ├── geocode.py            # Nominatim geocoder
+│   ├── planner.py            # weekly ride recommendations
 │   ├── db.py                 # DB reader
 │   ├── komoot.py             # Komoot integration
-│   ├── weather.py            # Open-Meteo forecast
-│   └── config.py             # YAML + env var config loader
-├── scripts/
-│   └── ride-planner-v0.py    # archived v0 script
+│   └── weather.py            # Open-Meteo forecast
+├── config.example.yaml       # CLI config template
+├── tests/                    # pytest (70 pure function tests)
 └── docs/
     ├── specs/
     │   ├── 2026-03-13-veloai-architecture.md      # v1 spec
@@ -248,10 +251,10 @@ docker compose restart grafana
 
 - Activity Detail charts use `trend` panel type for distance x-axis — requires Grafana 9+
 - Grafana dashboard provisioning reloads on container restart (not hot-reload)
-- No map panel yet (GPS data is in `activity_streams.lat/lng` but not visualised)
-- No route stats dashboard yet (routes table populated but no dedicated dashboard)
 - Strava rate limits: 100 req/15min — stream backfill throttles automatically
+- Valhalla route generator creates loops mathematically — doesn't consider preferred roads or scenic preferences yet
+- Requires Python 3.10+ (uses `X | None` union type syntax)
 
 ---
 
-*Last updated: 2026-03-13 — VeloAI v2*
+*Last updated: 2026-03-15*
