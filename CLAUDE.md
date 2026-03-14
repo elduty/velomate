@@ -19,7 +19,7 @@ VeloAI is a self-hosted cycling data platform (inspired by TeslaMate). Data flow
 Three Docker Compose services on a server:
 
 - **veloai-postgres** (PostgreSQL 15, port 5423) — five tables: `activities`, `activity_streams`, `athlete_stats`, `routes`, `sync_state`
-- **veloai-ingestor** (Python 3.11) — polls Strava every 10min, Komoot every 1h; auto-backfills 12 months on first run; handles cross-device deduplication (Karoo > unknown/Zwift > Watch) by matching same-day activities within ±10% distance
+- **veloai-ingestor** (Python 3.11) — polls Strava every 10min; auto-backfills 12 months on first run; handles cross-device deduplication (Karoo > Zwift > unknown > Watch) by matching same-day activities within ±10% distance
 - **veloai-grafana** (Grafana 12.0, port 3021) — dashboards provisioned from JSON files in `grafana/dashboards/`
 
 Separate from Docker:
@@ -53,7 +53,7 @@ python3 -m veloai.cli
 
 ## Code Layout
 
-- `ingestor/` — Dockerized polling service. `main.py` is the scheduler; `strava.py` and `komoot.py` handle API calls; `db.py` owns schema DDL + all upserts; `fitness.py` does EMA-based CTL/ATL/TSB calculation
+- `ingestor/` — Dockerized polling service. `main.py` is the scheduler; `strava.py` handles Strava API calls; `db.py` owns schema DDL + all upserts; `fitness.py` does EMA-based CTL/ATL/TSB calculation
 - `veloai/` — CLI package. `cli.py` is the entry point; `planner.py` formats WhatsApp output; `weather.py` calls Open-Meteo; `db.py` is a read-only DB client; `config.py` loads YAML config + env vars; `route_planner.py` + `route_generator.py` handle Valhalla route creation
 - `grafana/dashboards/` — Three dashboard JSON files (overview, fitness-trends, activity). Provisioned automatically on container start
 - `grafana/provisioning/` — Grafana datasource + dashboard provider YAML configs
@@ -61,14 +61,14 @@ python3 -m veloai.cli
 ## Important Patterns
 
 - **Schema lives in code**: `ingestor/db.py:create_schema()` is the source of truth for DDL. No migration tool — schema changes go there with `IF NOT EXISTS` / `ADD COLUMN IF NOT EXISTS`
-- **Dedup logic**: Two strategies in `ingestor/db.py` — `find_duplicate()` (time-window + duration) for cross-device like Zwift+Watch, `find_duplicate_by_distance()` (same-day ±10% distance) for Strava-Komoot matching
+- **Dedup logic**: Two strategies in `ingestor/db.py` — `find_duplicate()` (time-window + duration) for cross-device like Zwift+Watch, `find_duplicate_by_distance()` (same-day ±10% distance) for matching duplicate Strava uploads
 - **Activity classification**: `classify_activity()` in `ingestor/db.py` infers `is_indoor` and `sport_type` from device, distance, and activity name
 - **Fitness TSS**: Power-based TSS preferred over HR-based; thresholds auto-estimated from 95th percentile of historical data
 - **Grafana dashboards**: Hand-edited JSON. The activity detail dashboard uses `__data.fields.id` variable to link from overview. Charts use `trend` panel type with distance-based x-axis
 
 ## Environment
 
-**Ingestor (Docker):** Secrets in `.env` (see `.env.example`): `POSTGRES_PASSWORD`, `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET`, `STRAVA_REFRESH_TOKEN`, `KOMOOT_EMAIL`, `KOMOOT_PASSWORD`, `GRAFANA_PASSWORD`, `VELOAI_MAX_HR`, `VELOAI_FTP`.
+**Ingestor (Docker):** Secrets in `.env` (see `.env.example`): `POSTGRES_PASSWORD`, `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET`, `STRAVA_REFRESH_TOKEN`, `GRAFANA_PASSWORD`, `VELOAI_MAX_HR`, `VELOAI_FTP`.
 
 **CLI (local):** Configuration in `~/.config/veloai/config.yaml` (see `config.example.yaml`). Supports env var overrides and `password_cmd` for secret managers (Keychain, 1Password, Vault, etc.). No hardcoded credentials or personal data in codebase.
 

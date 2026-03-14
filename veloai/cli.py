@@ -2,21 +2,20 @@ import argparse
 import sys
 import warnings
 
-from veloai import komoot, weather, planner
+from veloai import weather, planner
 from veloai.config import load as load_config
 
 warnings.filterwarnings("ignore")
 
 
 def cmd_recommend(args):
-    """Weekly ride recommendation (existing behavior)."""
+    """Weekly ride recommendation based on fitness + weather + past routes."""
     cfg = load_config()
     home = cfg["home"]
 
     fitness = {}
-    tours = None
+    tours = []
 
-    # Try DB first
     try:
         from veloai.db import get_connection, get_latest_fitness, get_routes
         conn = get_connection()
@@ -24,24 +23,20 @@ def cmd_recommend(args):
             try:
                 print("Connected to VeloAI DB", file=sys.stderr)
                 fitness = get_latest_fitness(conn)
-                db_routes = get_routes(conn)
-                if db_routes:
-                    tours = db_routes
-                    print(f"  → {len(tours)} routes from DB", file=sys.stderr)
+                tours = get_routes(conn) or []
+                print(f"  → {len(tours)} routes from DB", file=sys.stderr)
                 if fitness:
                     print(f"  → Fitness: CTL={fitness.get('ctl', '?')}, ATL={fitness.get('atl', '?')}, TSB={fitness.get('tsb', '?')}", file=sys.stderr)
             finally:
                 conn.close()
         else:
-            print("DB unavailable, falling back to Komoot API", file=sys.stderr)
+            print("DB unavailable", file=sys.stderr)
     except Exception as e:
-        print(f"DB error ({e}), falling back to Komoot API", file=sys.stderr)
+        print(f"DB error: {e}", file=sys.stderr)
 
-    # Fall back to Komoot API if no DB routes
-    if tours is None:
-        print("Fetching Komoot tours...", file=sys.stderr)
-        tours = komoot.fetch_tours()
-        print(f"  → {len(tours)} cycling tours", file=sys.stderr)
+    if not tours:
+        print("No routes found in database — run the ingestor first", file=sys.stderr)
+        return
 
     print("Fetching weather forecast...", file=sys.stderr)
     days = weather.fetch_forecast(home["lat"], home["lng"])
@@ -54,7 +49,7 @@ def cmd_recommend(args):
 
 
 def cmd_plan(args):
-    """Plan a route and open in Komoot."""
+    """Plan a route and upload to Komoot."""
     from veloai.route_planner import plan
 
     cfg = load_config()
@@ -106,7 +101,6 @@ def main():
     if args.command == "plan":
         cmd_plan(args)
     elif args.command is None:
-        # No subcommand → run existing recommendation (backward compatible)
         cmd_recommend(args)
     else:
         parser.error(f"Unknown command: {args.command}")

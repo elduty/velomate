@@ -1,4 +1,4 @@
-"""Polling scheduler for Strava + Komoot ingestion."""
+"""Polling scheduler for Strava ingestion."""
 
 import os
 import time
@@ -8,7 +8,6 @@ import schedule
 
 from db import get_connection, create_schema, get_sync_state
 from strava import sync_activities, backfill
-from komoot import sync_activities as sync_komoot
 from fitness import recalculate_fitness
 
 
@@ -49,26 +48,6 @@ def poll_strava():
             conn.close()
 
 
-def poll_komoot():
-    """Sync routes to DB."""
-    conn = None
-    try:
-        conn = _get_healthy_conn()
-        if not conn:
-            print("[poll] Komoot: skipped — no DB connection")
-            return
-        count = sync_komoot(conn)
-        if count > 0:
-            recalculate_fitness(conn)
-        print(f"[poll] Komoot: {count} new activities")
-    except Exception as e:
-        print(f"[poll] Komoot error: {e}")
-        traceback.print_exc()
-    finally:
-        if conn:
-            conn.close()
-
-
 def run_backfill():
     """One-time backfill — call manually or on first run."""
     conn = get_connection()
@@ -76,8 +55,7 @@ def run_backfill():
         create_schema(conn)
         count = backfill(conn, months=12)
         recalculate_fitness(conn)
-        sync_komoot(conn)
-        print(f"[backfill] Complete — {count} Strava + Komoot activities ingested")
+        print(f"[backfill] Complete — {count} Strava activities ingested")
         return count
     finally:
         conn.close()
@@ -100,13 +78,11 @@ def run():
 
     interval = int(os.environ.get("POLL_INTERVAL_MINUTES", 10))
     schedule.every(interval).minutes.do(poll_strava)
-    schedule.every(1).hours.do(poll_komoot)
 
-    print(f"[main] Polling Strava every {interval}min, Komoot every 1h")
+    print(f"[main] Polling Strava every {interval}min")
 
     # Run once immediately
     poll_strava()
-    poll_komoot()
 
     while True:
         schedule.run_pending()

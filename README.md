@@ -8,7 +8,7 @@ Inspired by TeslaMate. Built for cyclists using Strava + Karoo/Komoot.
 
 ## What it does
 
-- **Ingestor** — polls Strava every 10 min, pulls every ride with full per-second streams (HR, power, cadence, speed, altitude, GPS), calculates CTL/ATL/TSB fitness metrics, stores everything in PostgreSQL. Automatically deduplicates when multiple devices record the same ride (e.g., Karoo + Apple Watch both syncing to Strava) by keeping the richer data source and merging any missing fields.
+- **Ingestor** — polls Strava every 10 min, pulls every ride with full per-second streams (HR, power, cadence, speed, altitude, GPS), calculates CTL/ATL/TSB fitness metrics, stores everything in PostgreSQL. Strava is the single source of truth — all devices (Karoo, Watch, Zwift) sync through it. Automatically deduplicates when multiple devices record the same ride by keeping the richer data source.
 - **Grafana** — 5 dashboards: overview hub, activity detail (with GPS map, zones, splits), fitness trends, weekly report, training log
 - **VeloAI CLI** — ride recommendations based on fitness + weather, and route planning via Valhalla GPX generation → Komoot upload → Karoo sync
 
@@ -18,7 +18,7 @@ Inspired by TeslaMate. Built for cyclists using Strava + Karoo/Komoot.
 
 ```
 Karoo 3 → Strava API ←── polling (10 min)
-Komoot API          ←── polling (1 hr)
+Komoot              ←── route upload (CLI)
                               │
                               ▼
                       [ ingestor (Docker) ]
@@ -62,8 +62,6 @@ POSTGRES_PASSWORD=       # DB password
 STRAVA_CLIENT_ID=        # from https://www.strava.com/settings/api
 STRAVA_CLIENT_SECRET=    # from Strava API settings
 STRAVA_REFRESH_TOKEN=    # obtained via OAuth (see below)
-KOMOOT_EMAIL=            # Komoot account email
-KOMOOT_PASSWORD=         # Komoot account password
 GRAFANA_PASSWORD=        # Grafana admin password
 VELOAI_DB_HOST=your-db-host  # PostgreSQL host (for CLI — ingestor uses Docker DNS)
 VELOAI_DB_PORT=5432          # PostgreSQL port (for CLI — ingestor uses Docker DNS)
@@ -104,7 +102,7 @@ Requires a config file with credentials:
 
 ```bash
 cp config.example.yaml ~/.config/veloai/config.yaml
-# Edit with your home coordinates, DB host, Komoot/Strava credentials
+# Edit with your home coordinates, DB host, Strava/Komoot credentials
 ```
 
 Supports env var overrides and `password_cmd` for secret managers (Keychain, 1Password, etc.).
@@ -123,7 +121,7 @@ Supports env var overrides and `password_cmd` for secret managers (Keychain, 1Pa
 | `activities` | Every ride — distance, duration, HR, power, cadence, elevation, calories, `is_indoor`, `sport_type`, `device` |
 | `activity_streams` | Per-second stream data — HR, power, cadence, speed, altitude, GPS |
 | `athlete_stats` | Daily CTL/ATL/TSB fitness metrics |
-| `routes` | Komoot route library with ride counts |
+| `routes` | Route library (historical rides used for recommendations) |
 | `sync_state` | Ingestor bookmarks (last synced timestamps) |
 
 ### Fitness metrics
@@ -176,9 +174,8 @@ veloai/
 ├── ingestor/
 │   ├── Dockerfile
 │   ├── requirements.txt
-│   ├── main.py               # scheduler: Strava + Komoot polling
+│   ├── main.py               # scheduler: Strava polling
 │   ├── strava.py             # OAuth refresh, activity + stream fetch
-│   ├── komoot.py             # Komoot route sync
 │   ├── fitness.py            # CTL/ATL/TSB calculator
 │   └── db.py                 # PostgreSQL connection + upserts + schema
 ├── grafana/
@@ -198,7 +195,9 @@ veloai/
 │   ├── geocode.py            # Nominatim geocoder
 │   ├── planner.py            # weekly ride recommendations
 │   ├── db.py                 # DB reader
-│   ├── komoot.py             # Komoot integration
+│   ├── route_planner.py      # route planning pipeline
+│   ├── route_generator.py    # Valhalla GPX generation
+│   ├── route_intelligence.py # smart waypoint selection (OSM + Strava + Komoot highlights)
 │   └── weather.py            # Open-Meteo forecast
 ├── config.example.yaml       # CLI config template
 ├── tests/                    # pytest (70 pure function tests)
