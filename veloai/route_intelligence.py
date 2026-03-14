@@ -4,6 +4,10 @@ import requests
 
 
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
+KOMOOT_TILE_URL = "https://api.main.komoot.net/v007/tiles/discover/highlights/{sport}/{z}/{x}/{y}.vector.pbf"
+
+# Komoot sport mapping for tile API
+KOMOOT_TILE_SPORTS = {"road": "racebike", "gravel": "touringbicycle", "mtb": "mtb"}
 
 
 def get_pois(lat: float, lng: float, radius_km: float, poi_types: list | None = None) -> list[dict]:
@@ -97,6 +101,67 @@ def get_strava_segments(lat: float, lng: float, radius_km: float, access_token: 
     return results
 
 
+def get_komoot_highlights(lat: float, lng: float, radius_km: float, surface: str = "gravel") -> list[dict]:
+    """Fetch Komoot community highlights via vector tiles (no auth needed).
+    Returns list of {lat, lng, name, category}.
+    """
+    import math
+
+    try:
+        import mapbox_vector_tile
+    except ImportError:
+        print("  [intelligence] mapbox-vector-tile not installed — skipping Komoot highlights")
+        return []
+
+    sport = KOMOOT_TILE_SPORTS.get(surface, "touringbicycle")
+    zoom = 11  # good balance of coverage and detail
+
+    # Convert center lat/lng to tile coordinates
+    n = 2 ** zoom
+    cx = int((lng + 180) / 360 * n)
+    cy = int((1 - math.log(math.tan(math.radians(lat)) + 1 / math.cos(math.radians(lat))) / math.pi) / 2 * n)
+
+    # Fetch tiles in a grid around center (3x3 for ~30km coverage at z11)
+    tiles_range = max(1, int(radius_km / 15))  # ~15km per tile at z11
+    highlights = []
+
+    for dx in range(-tiles_range, tiles_range + 1):
+        for dy in range(-tiles_range, tiles_range + 1):
+            x, y = cx + dx, cy + dy
+            url = KOMOOT_TILE_URL.format(sport=sport, z=zoom, x=x, y=y)
+            try:
+                resp = requests.get(url, timeout=10)
+                if resp.status_code == 200 and resp.content:
+                    tile = mapbox_vector_tile.decode(resp.content)
+                    for layer in tile.values():
+                        for f in layer.get("features", []):
+                            props = f.get("properties", {})
+                            name = props.get("name", "")
+                            if name:
+                                # Extract lat/lng from properties if available
+                                hlat = props.get("lat")
+                                hlng = props.get("lng")
+                                if hlat and hlng:
+                                    highlights.append({
+                                        "lat": float(hlat),
+                                        "lng": float(hlng),
+                                        "name": name,
+                                        "category": props.get("category", "unknown"),
+                                    })
+            except Exception:
+                continue
+
+    # Deduplicate by name
+    seen = set()
+    unique = []
+    for h in highlights:
+        if h["name"] not in seen:
+            seen.add(h["name"])
+            unique.append(h)
+
+    return unique
+
+
 def get_ride_density(lat: float, lng: float, radius_km: float, days: int = 30, conn=None) -> dict:
     """Build a grid-based density map of recently ridden roads from GPS history.
 
@@ -174,6 +239,10 @@ def smart_waypoints(
         segments = get_strava_segments(lat, lng, radius_km, strava_token)
         print(f"  [intelligence] Found {len(segments)} Strava segments")
 
+    # Get Komoot community highlights
+    komoot_highlights = get_komoot_highlights(lat, lng, radius_km, surface)
+    print(f"  [intelligence] Found {len(komoot_highlights)} Komoot highlights")
+
     # Get ride history density
     density = get_ride_density(lat, lng, radius_km)
 
@@ -237,6 +306,36 @@ def smart_waypoints(
             "reason": f"Popular segment ({seg['athlete_count']} cyclists)",
             "score": final_score,
             "angle": math.atan2(seg["lat"] - lat, seg["lng"] - lng),
+        })
+
+    # Komoot highlights — high quality community POIs
+    komoot_type_scores = {
+        "viewpoint": 1.0, "trail": 0.9, "cycle_way": 0.9, "bridge": 0.8,
+        "historical_site": 0.8, "man_made_monument": 0.7, "beach": 0.7,
+        "settlement": 0.5, "other_man_made": 0.4,
+    }
+    for kh in komoot_highlights:
+        dist = math.sqrt((kh["lat"] - lat) ** 2 + (kh["lng"] - lng) ** 2) * 111
+        ideal_dist = radius_km * 0.7
+        dist_score = max(0, 1 - abs(dist - ideal_dist) / radius_km)
+        type_score = komoot_type_scores.get(kh["category"], 0.5)
+
+        hist_density = _density_at(density, kh["lat"], kh["lng"])
+        if preference == "variety":
+            hist_score = 1.0 - hist_density
+        else:
+            hist_score = hist_density
+
+        base_score = dist_score * 0.3 + type_score * 0.4
+        final_score = base_score + hist_score * 0.3 if density else dist_score * 0.5 + type_score * 0.5
+
+        candidates.append({
+            "lat": kh["lat"],
+            "lng": kh["lng"],
+            "name": kh["name"],
+            "reason": f"Komoot: {kh['category'].replace('_', ' ')}",
+            "score": final_score,
+            "angle": math.atan2(kh["lat"] - lat, kh["lng"] - lng),
         })
 
     if not candidates:
