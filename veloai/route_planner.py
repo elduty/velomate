@@ -346,6 +346,7 @@ def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
     print(f"  GPX generated: {actual_km:.1f}km, {len(result['coords'])} points", file=sys.stderr)
 
     # Verify surface matches requested type
+    surface_check = {}
     try:
         from veloai.route_intelligence import verify_surface
         surface_check = verify_surface(result["coords"], surface)
@@ -356,7 +357,6 @@ def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
             print(f"  ⚠️ {surface_check['warning']}", file=sys.stderr)
     except Exception as e:
         print(f"  [surface] Skipped: {e}", file=sys.stderr)
-    surface_check = locals().get("surface_check", {})
 
     # Show route preview in browser
     try:

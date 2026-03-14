@@ -31,6 +31,7 @@ def _get_healthy_conn():
 
 def poll_strava():
     """Fetch activities since last sync, store streams, recalculate fitness."""
+    conn = None
     try:
         conn = _get_healthy_conn()
         if not conn:
@@ -43,10 +44,14 @@ def poll_strava():
     except Exception as e:
         print(f"[poll] Strava error: {e}")
         traceback.print_exc()
+    finally:
+        if conn:
+            conn.close()
 
 
 def poll_komoot():
     """Sync routes to DB."""
+    conn = None
     try:
         conn = _get_healthy_conn()
         if not conn:
@@ -59,6 +64,9 @@ def poll_komoot():
     except Exception as e:
         print(f"[poll] Komoot error: {e}")
         traceback.print_exc()
+    finally:
+        if conn:
+            conn.close()
 
 
 def run_backfill():

@@ -118,6 +118,9 @@ def find_duplicate_by_distance(conn, date_str: str, distance_m: float, tolerance
     """
     if not distance_m or distance_m <= 0:
         return None
+    # Skip dedup for very short rides (<5km) — too easy to false-match commutes
+    if distance_m < 5000:
+        return None
     with conn.cursor() as cur:
         cur.execute("""
             SELECT id, strava_id, device, distance_m, avg_hr, avg_power
@@ -129,7 +132,7 @@ def find_duplicate_by_distance(conn, date_str: str, distance_m: float, tolerance
         return cur.fetchone()
 
 
-def find_duplicate(conn, date_str: str, duration_s: int, tolerance_seconds: int = 300) -> int:
+def find_duplicate(conn, date_str: str, duration_s: int, tolerance_seconds: int = 300) -> tuple | None:
     """Find an existing activity that started within tolerance of date_str
     and has a similar duration. Returns activity id or None.
     Used to detect cross-device duplicates (Zwift + Watch recording same session).
@@ -147,7 +150,7 @@ def find_duplicate(conn, date_str: str, duration_s: int, tolerance_seconds: int 
 def merge_activity_data(existing: tuple, new_data: dict) -> dict:
     """Merge two activity records, preferring richer data.
     existing = (id, strava_id, device, distance_m, avg_hr, avg_power)
-    Priority: zwift > gps/outdoor > watch
+    Priority: karoo (4) > zwift (3) > unknown (2) > watch (1)
     """
     ex_id, ex_strava_id, ex_device, ex_distance, ex_hr, ex_power = existing
     device_priority = {"karoo": 4, "zwift": 3, "unknown": 2, "watch": 1}
@@ -231,9 +234,19 @@ def upsert_activity(conn, data: dict) -> int:
                 conn.autocommit = False
                 try:
                     with conn.cursor() as cur:
+                        # Reassign streams to survive the DELETE CASCADE
+                        cur.execute("UPDATE activity_streams SET activity_id = -1 WHERE activity_id = %s", (ex_id,))
                         cur.execute("DELETE FROM activities WHERE id = %s", (ex_id,))
                     data = merged
                     activity_id = _do_insert(conn, data, now)
+                    # Reattach preserved streams to the new activity (if it has none)
+                    with conn.cursor() as cur:
+                        cur.execute("SELECT COUNT(*) FROM activity_streams WHERE activity_id = %s", (activity_id,))
+                        new_has_streams = cur.fetchone()[0] > 0
+                        if not new_has_streams:
+                            cur.execute("UPDATE activity_streams SET activity_id = %s WHERE activity_id = -1", (activity_id,))
+                        else:
+                            cur.execute("DELETE FROM activity_streams WHERE activity_id = -1")
                     conn.commit()
                     return activity_id
                 except Exception:

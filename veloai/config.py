@@ -76,7 +76,17 @@ def load(config_path: str = None) -> dict:
             if env_val:
                 # Cast to correct type
                 if isinstance(default, (int, float)) and default is not None:
-                    result[section][key] = type(default)(env_val)
+                    try:
+                        result[section][key] = type(default)(env_val)
+                    except (ValueError, TypeError):
+                        print(f"[config] Warning: invalid value for {section}.{key}: {env_val}")
+                        result[section][key] = default
+                elif default is None:
+                    # For None defaults (like home.lat/lng), try float
+                    try:
+                        result[section][key] = float(env_val)
+                    except (ValueError, TypeError):
+                        result[section][key] = env_val
                 else:
                     result[section][key] = env_val
             elif key in file_section:
