@@ -6,9 +6,9 @@ import requests
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
 
 
-def geocode(place: str, near_lat: float = 38.69, near_lng: float = -9.32) -> dict | None:
+def geocode(place: str, near_lat: float = 0, near_lng: float = 0) -> dict | None:
     """Geocode a place name to lat/lng coordinates.
-    Biases results toward near_lat/near_lng (default: São Domingos de Rana, Portugal).
+    Biases results toward near_lat/near_lng if provided.
     Returns {"lat": float, "lng": float, "display_name": str} or None if not found.
     """
     try:
@@ -38,7 +38,7 @@ def geocode(place: str, near_lat: float = 38.69, near_lng: float = -9.32) -> dic
     return None
 
 
-def geocode_many(places: list, near_lat: float = 38.69, near_lng: float = -9.32) -> list:
+def geocode_many(places: list, near_lat: float = 0, near_lng: float = 0) -> list:
     """Geocode a list of place names. Returns list of successfully geocoded results."""
     results = []
     for place in places:
