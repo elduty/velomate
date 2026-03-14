@@ -36,3 +36,12 @@ defaults:
 fitness:
   max_hr: 0           # Your max heart rate (0 = auto-estimate from data)
   ftp: 0              # Functional Threshold Power in watts (0 = auto-estimate)
+
+# Roads/areas to avoid when planning routes
+# Each entry is a lat,lng point with a radius in meters
+# The route planner will avoid placing waypoints near these areas
+avoid:
+  # - lat: 38.75
+  #   lng: -9.33
+  #   radius: 500
+  #   reason: "busy intersection"

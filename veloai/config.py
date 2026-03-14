@@ -108,6 +108,9 @@ def load(config_path: str = None) -> dict:
         if not result["strava"].get(key):
             result["strava"][key] = _resolve_secret(strava_file, key)
 
+    # Load avoid zones (list, not key-value)
+    result["avoid"] = cfg.get("avoid", []) or []
+
     _config = result
     return result
 

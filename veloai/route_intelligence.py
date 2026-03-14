@@ -505,7 +505,17 @@ def smart_waypoints(
     if not candidates:
         return []
 
-    # Select waypoints spread around the circle (avoid clustering)
+    # Load avoid zones from config
+    avoid_zones = []
+    try:
+        from veloai.config import load as load_config
+        avoid_zones = load_config().get("avoid", [])
+        if avoid_zones:
+            print(f"  [intelligence] Avoiding {len(avoid_zones)} configured zones")
+    except Exception:
+        pass
+
+    # Select waypoints spread around the circle (avoid clustering + avoid zones)
     candidates.sort(key=lambda c: c["score"], reverse=True)
     selected = []
     used_angles = []
@@ -517,6 +527,15 @@ def smart_waypoints(
         angle = c["angle"]
         too_close = any(abs(angle - ua) < math.radians(45) for ua in used_angles)
         if too_close:
+            continue
+        # Check avoid zones
+        in_avoid_zone = False
+        for zone in avoid_zones:
+            zdist = math.sqrt((c["lat"] - zone["lat"]) ** 2 + (c["lng"] - zone["lng"]) ** 2) * 111000  # meters
+            if zdist < zone.get("radius", 500):
+                in_avoid_zone = True
+                break
+        if in_avoid_zone:
             continue
         selected.append({
             "lat": c["lat"],
