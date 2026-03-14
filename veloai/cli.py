@@ -101,9 +101,11 @@ def main():
 
     if args.command == "plan":
         cmd_plan(args)
-    else:
+    elif args.command is None:
         # No subcommand → run existing recommendation (backward compatible)
         cmd_recommend(args)
+    else:
+        parser.error(f"Unknown command: {args.command}")
 
 
 if __name__ == "__main__":

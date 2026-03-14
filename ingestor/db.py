@@ -150,7 +150,7 @@ def merge_activity_data(existing: tuple, new_data: dict) -> dict:
     Priority: zwift > gps/outdoor > watch
     """
     ex_id, ex_strava_id, ex_device, ex_distance, ex_hr, ex_power = existing
-    device_priority = {"karoo": 4, "unknown": 3, "zwift": 3, "watch": 1}
+    device_priority = {"karoo": 4, "zwift": 3, "unknown": 2, "watch": 1}
     new_priority = device_priority.get(new_data.get("device", ""), 1)
     ex_priority = device_priority.get(ex_device or "", 1)
 

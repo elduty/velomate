@@ -54,7 +54,7 @@ python3 -m veloai.cli
 ## Code Layout
 
 - `ingestor/` — Dockerized polling service. `main.py` is the scheduler; `strava.py` and `komoot.py` handle API calls; `db.py` owns schema DDL + all upserts; `fitness.py` does EMA-based CTL/ATL/TSB calculation
-- `veloai/` — CLI package. `cli.py` is the entry point; `planner.py` formats WhatsApp output; `weather.py` calls Open-Meteo; `db.py` is a read-only DB client; `keychain.py` wraps macOS Keychain
+- `veloai/` — CLI package. `cli.py` is the entry point; `planner.py` formats WhatsApp output; `weather.py` calls Open-Meteo; `db.py` is a read-only DB client; `config.py` loads YAML config + env vars; `route_planner.py` + `route_generator.py` handle Valhalla route creation
 - `grafana/dashboards/` — Three dashboard JSON files (overview, fitness-trends, activity). Provisioned automatically on container start
 - `grafana/provisioning/` — Grafana datasource + dashboard provider YAML configs
 
@@ -68,21 +68,19 @@ python3 -m veloai.cli
 
 ## Environment
 
-Secrets in `.env` (see `.env.example`): `POSTGRES_PASSWORD`, `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET`, `STRAVA_REFRESH_TOKEN`, `KOMOOT_EMAIL`, `KOMOOT_PASSWORD`, `GRAFANA_PASSWORD`.
+**Ingestor (Docker):** Secrets in `.env` (see `.env.example`): `POSTGRES_PASSWORD`, `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET`, `STRAVA_REFRESH_TOKEN`, `KOMOOT_EMAIL`, `KOMOOT_PASSWORD`, `GRAFANA_PASSWORD`, `VELOAI_MAX_HR`, `VELOAI_FTP`.
 
-Credentials in macOS Keychain: `openclaw/strava` (Strava OAuth), `openclaw/komoot` (Komoot login), `openclaw/veloai-db` (CLI DB password).
+**CLI (local):** Configuration in `~/.config/veloai/config.yaml` (see `config.example.yaml`). Supports env var overrides and `password_cmd` for secret managers (Keychain, 1Password, Vault, etc.). No hardcoded credentials or personal data in codebase.
 
-CLI connects to the homelab DB using `VELOAI_DB_*` env vars (defaults: host `10.7.40.15`, port `5423`, db/user `veloai`).
-
-No test suite, no CI/CD, no linter config. Deployment is manual git pull + `docker compose up -d`.
+70 pytest tests covering pure functions. No CI/CD. Deployment is manual git pull + `docker compose up -d`.
 
 ## Known Limitations
 
 - Komoot only exposes recorded rides, not saved/planned routes — route suggestions are limited to past activities
 - All Komoot rides default to name "Ride" — dedup uses distance/elevation buckets (fragile)
 - komPYoot is an unofficial Komoot API wrapper — may break if Komoot changes their internal API
-- Strava API credentials stored in macOS Keychain (`openclaw/strava`), Komoot in (`openclaw/komoot`)
+- Valhalla route generator creates loops mathematically — doesn't consider preferred roads or scenic preferences yet
 
 ## Roadmap
 
-See `TODO.md` in Obsidian vault. Key next items: calendar integration (skip days with events), weekly cron via OpenClaw (Friday morning WhatsApp), natural language ride requests, heat/UV awareness for Portuguese summers.
+See `TODO.md` in Obsidian vault. Key next items: additional dashboards (Weekly Summary, Records/PRs), route intelligence v2 (OSM POIs, Strava segments), heat/UV awareness for Portuguese summers.

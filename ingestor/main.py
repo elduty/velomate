@@ -78,7 +78,11 @@ def run_backfill():
 def run():
     """Main loop: schema init, optional backfill, then poll forever."""
     conn = get_connection()
-    create_schema(conn)
+    try:
+        create_schema(conn)
+    except Exception as e:
+        conn.close()
+        raise RuntimeError(f"Schema creation failed: {e}")
     print("[main] Schema ready")
 
     # Backfill on first run if no activities yet

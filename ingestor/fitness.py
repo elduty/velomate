@@ -132,10 +132,10 @@ def recalculate_fitness(conn):
         with conn.cursor() as cur:
             cur.execute("UPDATE activities SET tss = %s WHERE id = %s", (round(tss, 1), act_id))
 
-    # Get all activities ordered by date (include power data)
+    # Read back stored TSS + distance/elevation (reuse values just written above)
     with conn.cursor() as cur:
         cur.execute("""
-            SELECT date::date, duration_s, avg_hr, avg_power, distance_m, elevation_m
+            SELECT date::date, COALESCE(tss, 0), distance_m, elevation_m
             FROM activities
             WHERE date IS NOT NULL
             ORDER BY date
@@ -146,17 +146,11 @@ def recalculate_fitness(conn):
         print("[fitness] No activities found, skipping")
         return
 
-    # Build daily TSS map — prefer power-based TSS, fall back to HR-based
+    # Build daily aggregates from stored TSS
     daily_tss = {}
     daily_distance = {}
     daily_elevation = {}
-    for date, duration_s, avg_hr, avg_power, distance_m, elevation_m in rows:
-        if avg_power and avg_power > 0:
-            tss = calculate_tss_power(duration_s, avg_power, ftp)
-        elif avg_hr and avg_hr > 0:
-            tss = calculate_tss(duration_s, avg_hr, threshold_hr)
-        else:
-            tss = 0
+    for date, tss, distance_m, elevation_m in rows:
         daily_tss[date] = daily_tss.get(date, 0) + tss
         daily_distance[date] = daily_distance.get(date, 0) + (distance_m or 0)
         daily_elevation[date] = daily_elevation.get(date, 0) + (elevation_m or 0)

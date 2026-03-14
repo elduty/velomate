@@ -100,14 +100,14 @@ pip install -r requirements.txt
 python3 -m veloai.cli
 ```
 
-Requires Mac Keychain entries (Komoot credentials for route library):
+Requires a config file with credentials:
 
 ```bash
-security add-generic-password -a openclaw -s openclaw/komoot \
-  -w '{"email":"...","password":"..."}'
+cp config.example.yaml ~/.config/veloai/config.yaml
+# Edit with your home coordinates, DB host, Komoot/Strava credentials
 ```
 
-DB credentials are read from `.env` or env vars (`VELOAI_DB_HOST`, `VELOAI_DB_PORT`, etc.).
+Supports env var overrides and `password_cmd` for secret managers (Keychain, 1Password, etc.).
 
 ---
 
@@ -196,7 +196,7 @@ veloai/
 │   ├── db.py                 # DB reader
 │   ├── komoot.py             # Komoot integration
 │   ├── weather.py            # Open-Meteo forecast
-│   └── keychain.py           # macOS Keychain helper
+│   └── config.py             # YAML + env var config loader
 ├── scripts/
 │   └── ride-planner-v0.py    # archived v0 script
 └── docs/
