@@ -75,7 +75,7 @@
         "name": "sport_type",
         "type": "custom",
         "label": "Sport",
-        "query": "All,cycling_outdoor,cycling_indoor,zwift,strength",
+        "query": "All,cycling_outdoor,cycling_indoor,zwift",
         "current": {
           "text": "All",
           "value": "All"
@@ -99,11 +99,6 @@
           {
             "text": "Zwift",
             "value": "zwift",
-            "selected": false
-          },
-          {
-            "text": "Strength",
-            "value": "strength",
             "selected": false
           }
         ]
@@ -1756,7 +1751,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT id, name AS \"Name\", TO_CHAR(date, 'YYYY-MM-DD') AS \"Date\", ROUND((distance_m / 1000.0)::numeric, 1) AS \"Distance (km)\", ROUND(elevation_m::numeric, 0) AS \"Elevation (m)\", TO_CHAR(duration_s * interval '1 second', 'HH24:MI') AS \"Duration\", COALESCE(avg_hr::text, '—') AS \"Avg HR\", COALESCE(avg_power::text, '—') AS \"Avg Power\", CASE sport_type WHEN 'cycling_outdoor' THEN 'Outdoor' WHEN 'cycling_indoor' THEN 'Indoor' WHEN 'zwift' THEN 'Zwift' WHEN 'strength' THEN 'Strength' ELSE COALESCE(sport_type, '—') END AS \"Type\", COALESCE(device, '—') AS \"Device\", EXTRACT(EPOCH FROM date - interval '1 hour')::bigint * 1000 AS from_ts, EXTRACT(EPOCH FROM date + duration_s * interval '1 second' + interval '1 hour')::bigint * 1000 AS to_ts FROM activities WHERE $__timeFilter(date) ORDER BY date DESC LIMIT 50;",
+          "rawSql": "SELECT id, name AS \"Name\", TO_CHAR(date, 'YYYY-MM-DD') AS \"Date\", ROUND((distance_m / 1000.0)::numeric, 1) AS \"Distance (km)\", ROUND(elevation_m::numeric, 0) AS \"Elevation (m)\", TO_CHAR(duration_s * interval '1 second', 'HH24:MI') AS \"Duration\", COALESCE(avg_hr::text, '—') AS \"Avg HR\", COALESCE(avg_power::text, '—') AS \"Avg Power\", COALESCE(ROUND(tss::numeric, 0)::text, '—') AS \"TSS\", CASE sport_type WHEN 'cycling_outdoor' THEN 'Outdoor' WHEN 'cycling_indoor' THEN 'Indoor' WHEN 'zwift' THEN 'Zwift' WHEN 'strength' THEN 'Strength' ELSE COALESCE(sport_type, '—') END AS \"Type\", COALESCE(device, '—') AS \"Device\", EXTRACT(EPOCH FROM date - interval '1 hour')::bigint * 1000 AS from_ts, EXTRACT(EPOCH FROM date + duration_s * interval '1 second' + interval '1 hour')::bigint * 1000 AS to_ts FROM activities WHERE $__timeFilter(date) ORDER BY date DESC LIMIT 50;",
           "format": "table",
           "refId": "A"
         }

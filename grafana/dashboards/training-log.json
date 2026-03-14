@@ -473,7 +473,7 @@
         "name": "sport_type",
         "type": "custom",
         "label": "Sport",
-        "query": "All,cycling_outdoor,cycling_indoor,zwift,strength",
+        "query": "All,cycling_outdoor,cycling_indoor,zwift",
         "current": {
           "text": "All",
           "value": "All"
@@ -497,11 +497,6 @@
           {
             "text": "Zwift",
             "value": "zwift",
-            "selected": false
-          },
-          {
-            "text": "Strength",
-            "value": "strength",
             "selected": false
           }
         ]
