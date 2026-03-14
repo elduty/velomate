@@ -6,9 +6,9 @@ import pytest
 
 from veloai.route_planner import (
     adjust_for_fitness,
-    build_komoot_url,
     estimate_distance,
     parse_duration,
+    parse_time,
     resolve_date,
 )
 
@@ -118,23 +118,33 @@ class TestAdjustForFitness:
         assert note is None
 
 
-# --- build_komoot_url ---
+# --- parse_time ---
 
 
-class TestBuildKomootUrl:
-    def test_no_waypoints(self):
-        url = build_komoot_url(38.69, -9.32, "touringbicycle")
-        assert "38.69" in url
-        assert "-9.32" in url
-        assert "touringbicycle" in url
-        assert "komoot.com/plan" in url
+class TestParseTime:
+    def test_24h_format(self):
+        assert parse_time("14:00") == "14:00"
 
-    def test_with_waypoints(self):
-        waypoints = [
-            {"lat": 38.70, "lng": -9.30},
-            {"lat": 38.71, "lng": -9.28},
-        ]
-        url = build_komoot_url(38.69, -9.32, "racebike", waypoints=waypoints)
-        assert "wp=" in url
-        assert "38.7" in url
-        assert "-9.3" in url
+    def test_24h_single_digit(self):
+        assert parse_time("9:30") == "09:30"
+
+    def test_pm(self):
+        assert parse_time("2pm") == "14:00"
+
+    def test_am(self):
+        assert parse_time("9am") == "09:00"
+
+    def test_h_suffix(self):
+        assert parse_time("14h") == "14:00"
+
+    def test_12pm(self):
+        assert parse_time("12pm") == "12:00"
+
+    def test_12am(self):
+        assert parse_time("12am") == "00:00"
+
+    def test_none(self):
+        assert parse_time(None) is None
+
+    def test_empty(self):
+        assert parse_time("") is None
