@@ -202,7 +202,7 @@ def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
         except Exception:
             pass
 
-    # Geocode waypoints (if provided)
+    # Geocode explicit waypoints, or use smart waypoints from route intelligence
     waypoint_names = []
     valhalla_waypoints = []
     if waypoints_str:
@@ -211,6 +211,18 @@ def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
         geocoded = geocode_many(places, home_lat, home_lng)
         waypoint_names = [g["display_name"].split(",")[0] for g in geocoded]
         valhalla_waypoints = [{"lat": g["lat"], "lon": g["lng"]} for g in geocoded]
+    else:
+        # No explicit waypoints — use route intelligence for smart placement
+        try:
+            from veloai.route_intelligence import smart_waypoints
+            smart = smart_waypoints(home_lat, home_lng, distance_km, surface, max_waypoints=3)
+            if smart:
+                waypoint_names = [w["name"] for w in smart]
+                valhalla_waypoints = [{"lat": w["lat"], "lon": w["lng"]} for w in smart]
+                desc = ', '.join(w["name"] + ' (' + w["reason"] + ')' for w in smart)
+                print(f"  Smart waypoints: {desc}", file=sys.stderr)
+        except Exception as e:
+            print(f"  [intelligence] Skipped: {e}", file=sys.stderr)
 
     # Generate real GPX route via Valhalla
     route_name = f"VeloAI {duration_min // 60}h{duration_min % 60:02d}m {surface.title()}"
