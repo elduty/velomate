@@ -147,18 +147,39 @@ def find_duplicate(conn, date_str: str, duration_s: int, tolerance_seconds: int 
         return cur.fetchone()
 
 
+def _data_richness(data: dict) -> int:
+    """Score an activity record by data richness. Higher = more useful data."""
+    score = 0
+    if data.get("avg_power"):
+        score += 3  # power is the most valuable metric
+    if data.get("avg_hr"):
+        score += 2
+    if data.get("distance_m") and data["distance_m"] > 0:
+        score += 1
+    if data.get("avg_cadence"):
+        score += 1
+    if data.get("calories"):
+        score += 1
+    if data.get("elevation_m") and data["elevation_m"] > 0:
+        score += 1
+    return score
+
+
 def merge_activity_data(existing: tuple, new_data: dict) -> dict:
-    """Merge two activity records, preferring richer data.
+    """Merge two activity records, preferring the one with richer data.
     existing = (id, strava_id, device, distance_m, avg_hr, avg_power)
-    Priority: karoo (4) > zwift (3) > unknown (2) > watch (1)
+    Uses data richness scoring — whichever record has more useful fields wins.
     """
     ex_id, ex_strava_id, ex_device, ex_distance, ex_hr, ex_power = existing
-    device_priority = {"karoo": 4, "zwift": 3, "unknown": 2, "watch": 1}
-    new_priority = device_priority.get(new_data.get("device", ""), 1)
-    ex_priority = device_priority.get(ex_device or "", 1)
+    ex_richness = sum([
+        3 if ex_power else 0,
+        2 if ex_hr else 0,
+        1 if ex_distance and ex_distance > 0 else 0,
+    ])
+    new_richness = _data_richness(new_data)
 
     # Keep richer record as base, fill gaps from the other
-    if new_priority >= ex_priority:
+    if new_richness >= ex_richness:
         merged = dict(new_data)
         # Fill any missing fields from existing record
         if not merged.get("avg_hr") and ex_hr:
@@ -230,7 +251,7 @@ def upsert_activity(conn, data: dict) -> int:
                 return ex_id
             else:
                 # Atomic merge: disable autocommit so DELETE + INSERT are one transaction
-                print(f"  [dedup] Merging {data['name']} with existing activity {ex_id} (device priority)")
+                print(f"  [dedup] Merging {data['name']} with existing activity {ex_id} (richness {new_richness} vs {ex_richness})")
                 conn.autocommit = False
                 try:
                     with conn.cursor() as cur:

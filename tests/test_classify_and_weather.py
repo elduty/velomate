@@ -70,28 +70,35 @@ class TestClassifyActivity:
 
 
 class TestMergeActivityData:
-    def test_higher_priority_device_wins(self):
-        # existing is from watch (priority 1), new is karoo (priority 4)
+    def test_richer_data_wins(self):
+        # existing has HR only (richness 2), new has power (richness 3) — new wins
         existing = (1, 100, "watch", 50000, 140, None)
         new_data = {
             "device": "karoo",
             "avg_hr": None,
             "avg_power": 200,
+            "distance_m": 50000,
         }
         merged = merge_activity_data(existing, new_data)
         assert merged.get("_skip_insert") is None
-        assert merged["device"] == "karoo"
-        # HR filled from existing watch record
+        # HR filled from existing record
         assert merged["avg_hr"] == 140
-        # Power kept from new karoo record
+        # Power kept from new record
         assert merged["avg_power"] == 200
 
-    def test_lower_priority_device_skipped(self):
-        # existing is karoo (priority 4), new is watch (priority 1) — skip
+    def test_poorer_data_skipped(self):
+        # existing has HR + power (richness 5), new has nothing — skip
         existing = (1, 100, "karoo", 50000, 140, 200)
         new_data = {"device": "watch"}
         merged = merge_activity_data(existing, new_data)
         assert merged["_skip_insert"] is True
+
+    def test_equal_richness_new_wins(self):
+        # both have HR only — new wins (tie goes to new)
+        existing = (1, 100, "watch", 50000, 130, None)
+        new_data = {"device": "garmin", "avg_hr": 135, "distance_m": 50000}
+        merged = merge_activity_data(existing, new_data)
+        assert merged.get("_skip_insert") is None
 
 
 # ---------------------------------------------------------------------------
