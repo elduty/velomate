@@ -195,7 +195,8 @@ def _upload_to_komoot(gpx_path: str, surface: str, name: str) -> str | None:
 def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
          waypoints_str: str = None, date_str: str = "tomorrow",
          time_str: str = None,
-         home_lat: float = None, home_lng: float = None) -> str:
+         home_lat: float = None, home_lng: float = None,
+         upload: bool = True) -> str:
     """Generate a real cycling route, upload to Komoot, return summary."""
 
     # Parse duration
@@ -294,9 +295,13 @@ def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
     except Exception as e:
         print(f"  [preview] Skipped: {e}", file=sys.stderr)
 
-    # Upload to Komoot as planned route
-    print(f"  Uploading to Komoot as planned route...", file=sys.stderr)
-    komoot_url = _upload_to_komoot(gpx_path, surface, route_name)
+    # Upload to Komoot (optional)
+    komoot_url = None
+    if upload:
+        print(f"  Uploading to Komoot...", file=sys.stderr)
+        komoot_url = _upload_to_komoot(gpx_path, surface, route_name)
+    else:
+        print(f"  Skipping Komoot upload (--no-upload)", file=sys.stderr)
 
     # Build output
     lines = []
@@ -325,9 +330,12 @@ def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
 
     if komoot_url:
         lines.append(f"  🔗 {komoot_url}")
-        lines.append(f"  Route is in Komoot — syncing to Karoo now")
+        lines.append(f"  Uploaded to Komoot — change to 'Planned' in the app if needed")
     else:
         lines.append(f"  💾 GPX saved: {gpx_path}")
-        lines.append(f"  Import manually: Komoot → + → Import GPX")
+        if not upload:
+            lines.append(f"  Preview only — use --no-upload to skip, or remove flag to upload")
+        else:
+            lines.append(f"  Import manually: Komoot → + → Import GPX")
 
     return "\n".join(lines)
