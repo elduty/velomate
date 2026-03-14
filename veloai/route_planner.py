@@ -12,7 +12,7 @@ DEFAULT_SPEEDS = {"road": 27, "gravel": 22, "mtb": 17}
 SURFACE_MULTIPLIERS = {"road": 1.1, "gravel": 0.85, "mtb": 0.7}
 
 
-def parse_duration(duration_str: str) -> object:
+def parse_duration(duration_str: str) -> int | None:
     """Parse duration string to minutes. Supports '2h', '1h30m', '90min', '1:30'."""
     if not duration_str:
         return None
@@ -35,7 +35,7 @@ def parse_duration(duration_str: str) -> object:
     return None
 
 
-def resolve_date(date_str: str) -> object:
+def resolve_date(date_str: str) -> str | None:
     """Resolve date string to YYYY-MM-DD."""
     if not date_str:
         return None
@@ -64,7 +64,7 @@ def resolve_date(date_str: str) -> object:
     return None
 
 
-def parse_time(time_str: str) -> object:
+def parse_time(time_str: str) -> str | None:
     """Parse time string to HH:MM. Supports '14:00', '2pm', '9am', '14h'."""
     if not time_str:
         return None
@@ -96,7 +96,7 @@ def estimate_distance(duration_min: int, surface: str, avg_speed: object) -> flo
     return round(duration_min / 60 * speed, 1)
 
 
-def adjust_for_fitness(distance_km: float, tsb: object) -> object:
+def adjust_for_fitness(distance_km: float, tsb: float | None) -> tuple[float, str | None]:
     """Adjust distance based on TSB. Returns (adjusted_distance, note)."""
     if tsb is None:
         return distance_km, None
@@ -120,7 +120,7 @@ def format_weather(day: dict) -> str:
     return ", ".join(parts)
 
 
-def _upload_to_komoot(gpx_path: str, surface: str, name: str) -> object:
+def _upload_to_komoot(gpx_path: str, surface: str, name: str) -> str | None:
     """Upload GPX to Komoot via komPYoot. Returns tour URL or None."""
     try:
         from komPYoot.api import API, Sport
