@@ -92,6 +92,12 @@ def load(config_path: str = None) -> dict:
         if section == "komoot" and not result[section].get("email"):
             result[section]["email"] = _resolve_secret(file_section, "email")
 
+    # Resolve strava secrets via _cmd/_env patterns
+    strava_file = cfg.get("strava", {}) or {}
+    for key in ("client_id", "client_secret", "refresh_token"):
+        if not result["strava"].get(key):
+            result["strava"][key] = _resolve_secret(strava_file, key)
+
     _config = result
     return result
 
