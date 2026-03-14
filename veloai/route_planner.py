@@ -115,6 +115,8 @@ def format_weather(day: dict) -> str:
     parts = [day["weather"]]
     parts.append(f"{day['temp_min']:.0f}-{day['temp_max']:.0f}°C")
     parts.append(f"wind {day['wind']:.0f} km/h")
+    if day.get("uv_max", 0) >= 6:
+        parts.append(f"UV {day['uv_max']:.0f}")
     if day["precip"] > 0:
         parts.append(f"rain {day['precip']:.1f}mm")
     return ", ".join(parts)
@@ -338,11 +340,29 @@ def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
     if weather_day:
         lines.append(f"  🌤 {format_weather(weather_day)}")
         if weather_day["wind"] > 30:
-            lines.append(f"  ⚠️ High wind — route goes inland where possible")
+            lines.append(f"  ⚠️ High wind — consider a sheltered route")
         if weather_day["precip"] > 5:
             lines.append(f"  ⚠️ Rain expected — check conditions")
+        if weather_day.get("uv_max", 0) >= 8:
+            lines.append(f"  ⚠️ Very high UV ({weather_day['uv_max']:.0f}) — wear sunscreen, ride early or late")
+        elif weather_day.get("uv_max", 0) >= 6:
+            lines.append(f"  ☀️ High UV ({weather_day['uv_max']:.0f}) — sunscreen recommended")
         if weather_day["temp_max"] > 35:
-            lines.append(f"  ⚠️ Heat warning — ride early")
+            lines.append(f"  ⚠️ Extreme heat — ride before 9am or after 6pm")
+        elif weather_day["temp_max"] > 30:
+            lines.append(f"  ☀️ Hot day — consider an early morning ride")
+
+        # Suggest best ride time
+        if ride_date and weather_day.get("hourly"):
+            try:
+                from veloai.weather import best_ride_hours
+                best = best_ride_hours(weather_day["hourly"], ride_date)
+                if best:
+                    top = best[0]
+                    hour = top["time"][11:16]
+                    lines.append(f"  🕐 Best time: {hour} ({top['temp']:.0f}°C, wind {top['wind']:.0f} km/h, UV {top['uv']:.0f})")
+            except Exception:
+                pass
 
     if fitness_note:
         lines.append(f"  💪 {fitness_note}")
