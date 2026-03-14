@@ -41,7 +41,37 @@ def estimate_threshold_hr(conn) -> int:
 
 
 def estimate_ftp(conn) -> int:
-    """Return estimated FTP from 95th percentile of avg_power, or default."""
+    """Estimate FTP from best 20-minute rolling average power in last 90 days.
+    FTP ≈ best 20-min power × 0.95 (standard protocol).
+    Falls back to 95th percentile of avg_power if no stream data available.
+    """
+    # Try rolling 20-min best from stream data (last 90 days)
+    with conn.cursor() as cur:
+        cur.execute("""
+            WITH recent_activities AS (
+                SELECT id FROM activities
+                WHERE date >= CURRENT_DATE - interval '90 days'
+                  AND avg_power IS NOT NULL AND avg_power > 0
+            ),
+            rolling AS (
+                SELECT
+                    s.activity_id,
+                    AVG(s.power) OVER (
+                        PARTITION BY s.activity_id
+                        ORDER BY s.time_offset
+                        ROWS BETWEEN 1199 PRECEDING AND CURRENT ROW
+                    ) AS avg_20min
+                FROM activity_streams s
+                JOIN recent_activities a ON a.id = s.activity_id
+                WHERE s.power IS NOT NULL AND s.power > 0
+            )
+            SELECT ROUND(MAX(avg_20min) * 0.95) FROM rolling
+        """)
+        row = cur.fetchone()
+        if row and row[0] and row[0] > 0:
+            return int(row[0])
+
+    # Fallback: 95th percentile of avg_power from activities
     with conn.cursor() as cur:
         cur.execute("""
             SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY avg_power)
@@ -69,19 +99,19 @@ def recalculate_fitness(conn):
     env_max_hr = os.environ.get("VELOAI_MAX_HR", "")
     env_ftp = os.environ.get("VELOAI_FTP", "")
 
-    if env_max_hr:
+    if env_max_hr and int(env_max_hr) > 0:
         threshold_hr = int(env_max_hr)
         print(f"[fitness] Using configured max HR: {threshold_hr}")
     else:
         threshold_hr = estimate_threshold_hr(conn)
         print(f"[fitness] Auto-estimated threshold HR: {threshold_hr}")
 
-    if env_ftp:
+    if env_ftp and int(env_ftp) > 0:
         ftp = int(env_ftp)
         print(f"[fitness] Using configured FTP: {ftp}W")
     else:
         ftp = estimate_ftp(conn)
-        print(f"[fitness] Auto-estimated FTP: {ftp}W")
+        print(f"[fitness] Auto-estimated FTP: {ftp}W (rolling 90-day best 20min × 0.95)")
 
     # Store per-activity TSS
     with conn.cursor() as cur:
