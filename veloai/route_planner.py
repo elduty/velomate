@@ -120,6 +120,31 @@ def format_weather(day: dict) -> str:
     return ", ".join(parts)
 
 
+def _get_strava_token() -> str | None:
+    """Get a Strava access token using refresh token from config. Returns None if not configured."""
+    try:
+        from veloai.config import load as load_config
+        import requests
+        cfg = load_config()
+        strava = cfg.get("strava", {})
+        client_id = strava.get("client_id", "")
+        client_secret = strava.get("client_secret", "")
+        refresh_token = strava.get("refresh_token", "")
+        if not all([client_id, client_secret, refresh_token]):
+            return None
+        resp = requests.post("https://www.strava.com/oauth/token", data={
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "refresh_token": refresh_token,
+            "grant_type": "refresh_token",
+        }, timeout=10)
+        resp.raise_for_status()
+        return resp.json().get("access_token")
+    except Exception as e:
+        print(f"  [strava] Token refresh failed: {e}", file=sys.stderr)
+        return None
+
+
 def _upload_to_komoot(gpx_path: str, surface: str, name: str) -> str | None:
     """Upload GPX to Komoot via komPYoot. Returns tour URL or None."""
     try:
@@ -215,7 +240,8 @@ def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
         # No explicit waypoints — use route intelligence for smart placement
         try:
             from veloai.route_intelligence import smart_waypoints
-            smart = smart_waypoints(home_lat, home_lng, distance_km, surface, max_waypoints=3)
+            strava_token = _get_strava_token()
+            smart = smart_waypoints(home_lat, home_lng, distance_km, surface, max_waypoints=3, strava_token=strava_token)
             if smart:
                 waypoint_names = [w["name"] for w in smart]
                 valhalla_waypoints = [{"lat": w["lat"], "lon": w["lng"]} for w in smart]
