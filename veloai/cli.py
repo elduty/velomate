@@ -1,3 +1,4 @@
+import argparse
 import sys
 import warnings
 
@@ -8,7 +9,8 @@ warnings.filterwarnings("ignore")
 LOCATION = {"lat": 38.69, "lon": -9.32, "name": "São Domingos de Rana"}
 
 
-def main():
+def cmd_recommend(args):
+    """Weekly ride recommendation (existing behavior)."""
     fitness = {}
     tours = None
 
@@ -47,6 +49,47 @@ def main():
         return
 
     print(planner.recommend(days, tours, fitness=fitness))
+
+
+def cmd_plan(args):
+    """Plan a route and open in Komoot."""
+    from veloai.route_planner import plan
+
+    result = plan(
+        duration_str=args.duration,
+        surface=args.surface,
+        loop=args.loop,
+        waypoints_str=args.waypoints,
+        date_str=args.date,
+        home_lat=LOCATION["lat"],
+        home_lng=LOCATION["lon"],
+    )
+    print(result)
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog="veloai",
+        description="VeloAI — cycling data platform CLI",
+    )
+    subparsers = parser.add_subparsers(dest="command")
+
+    # Plan subcommand
+    plan_parser = subparsers.add_parser("plan", help="Plan a route on Komoot")
+    plan_parser.add_argument("--duration", "-d", required=True, help="Ride duration (e.g. 2h, 1h30m, 90min)")
+    plan_parser.add_argument("--surface", "-s", default="gravel", choices=["road", "gravel", "mtb"], help="Surface type (default: gravel)")
+    plan_parser.add_argument("--loop", "-l", action="store_true", default=True, help="Round-trip (default: true)")
+    plan_parser.add_argument("--no-loop", action="store_false", dest="loop", help="One-way route")
+    plan_parser.add_argument("--waypoints", "-w", default=None, help="Comma-separated place names to route through")
+    plan_parser.add_argument("--date", default="tomorrow", help="When to ride (default: tomorrow)")
+
+    args = parser.parse_args()
+
+    if args.command == "plan":
+        cmd_plan(args)
+    else:
+        # No subcommand → run existing recommendation (backward compatible)
+        cmd_recommend(args)
 
 
 if __name__ == "__main__":
