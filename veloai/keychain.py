@@ -12,8 +12,8 @@ def get(service: str) -> dict:
             stderr=subprocess.DEVNULL,
         ).decode().strip()
     except subprocess.CalledProcessError:
-        raise RuntimeError(f"Keychain entry not found: openclaw/{service}")
+        raise RuntimeError(f"Keychain entry not found: account=openclaw service={service}")
     try:
         return json.loads(raw)
     except json.JSONDecodeError:
-        raise RuntimeError(f"Keychain entry openclaw/{service} is not valid JSON")
+        raise RuntimeError(f"Keychain entry {service} is not valid JSON")

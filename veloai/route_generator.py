@@ -57,11 +57,12 @@ def _decode_polyline6(encoded: str) -> list:
     index = 0
     lat = 0
     lng = 0
-    while index < len(encoded):
+    length = len(encoded)
+    while index < length:
         for is_lng in (False, True):
             result = 0
             shift = 0
-            while True:
+            while index < length:
                 b = ord(encoded[index]) - 63
                 index += 1
                 result |= (b & 0x1F) << shift

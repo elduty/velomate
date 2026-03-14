@@ -157,10 +157,13 @@ def merge_activity_data(existing: tuple, new_data: dict) -> dict:
     # Keep richer record as base, fill gaps from the other
     if new_priority >= ex_priority:
         merged = dict(new_data)
+        # Fill any missing fields from existing record
         if not merged.get("avg_hr") and ex_hr:
             merged["avg_hr"] = ex_hr
         if not merged.get("avg_power") and ex_power:
             merged["avg_power"] = ex_power
+        if not merged.get("distance_m") and ex_distance:
+            merged["distance_m"] = ex_distance
     else:
         # Existing is richer — just fill gaps, don't replace base
         merged = dict(new_data)

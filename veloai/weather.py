@@ -75,7 +75,11 @@ def fetch_forecast(lat: float, lon: float) -> List[Dict]:
     except requests.RequestException as e:
         print(f"[weather] Open-Meteo API error: {e}", file=sys.stderr)
         return []
-    data = r.json()["daily"]
+    try:
+        data = r.json()["daily"]
+    except (ValueError, KeyError) as e:
+        print(f"[weather] Invalid API response: {e}", file=sys.stderr)
+        return []
 
     forecast = []
     for i, date_str in enumerate(data["time"]):

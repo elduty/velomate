@@ -52,14 +52,15 @@ def refresh_access_token(client_id: str, client_secret: str, refresh_token: str)
     # Strava rotates refresh tokens — persist the new one
     new_refresh = data.get("refresh_token")
     if new_refresh and new_refresh != refresh_token:
-        _current_refresh_token = new_refresh
         try:
             from db import get_connection, set_sync_state
             conn = get_connection()
             set_sync_state(conn, "strava_refresh_token", new_refresh)
+            _current_refresh_token = new_refresh  # set AFTER successful DB write
             print(f"[strava] Refresh token rotated and persisted")
         except Exception as e:
             print(f"[strava] WARNING: Could not persist new refresh token: {e}")
+            # Don't update _current_refresh_token — keep old one that's still in DB
 
     return _access_token
 
@@ -229,17 +230,24 @@ def _parse_streams(raw_streams: dict) -> list:
         return []
 
     points = []
-    length = len(raw_streams["time"])
+    time_arr = raw_streams["time"]
+    length = len(time_arr)
+    hr_arr = raw_streams.get("heartrate", [])
+    power_arr = raw_streams.get("watts", [])
+    cadence_arr = raw_streams.get("cadence", [])
+    speed_arr = raw_streams.get("velocity_smooth", [])
+    alt_arr = raw_streams.get("altitude", [])
     latlngs = raw_streams.get("latlng", [])
 
     for i in range(length):
+        speed_val = speed_arr[i] if i < len(speed_arr) else None
         point = {
-            "time_offset": raw_streams["time"][i],
-            "hr": raw_streams.get("heartrate", [None] * length)[i] if i < len(raw_streams.get("heartrate", [])) else None,
-            "power": raw_streams.get("watts", [None] * length)[i] if i < len(raw_streams.get("watts", [])) else None,
-            "cadence": raw_streams.get("cadence", [None] * length)[i] if i < len(raw_streams.get("cadence", [])) else None,
-            "speed_kmh": round(raw_streams.get("velocity_smooth", [0] * length)[i] * 3.6, 2) if i < len(raw_streams.get("velocity_smooth", [])) else None,
-            "altitude_m": raw_streams.get("altitude", [None] * length)[i] if i < len(raw_streams.get("altitude", [])) else None,
+            "time_offset": time_arr[i],
+            "hr": hr_arr[i] if i < len(hr_arr) else None,
+            "power": power_arr[i] if i < len(power_arr) else None,
+            "cadence": cadence_arr[i] if i < len(cadence_arr) else None,
+            "speed_kmh": round(speed_val * 3.6, 2) if speed_val is not None else None,
+            "altitude_m": alt_arr[i] if i < len(alt_arr) else None,
             "lat": latlngs[i][0] if i < len(latlngs) and latlngs[i] else None,
             "lng": latlngs[i][1] if i < len(latlngs) and latlngs[i] else None,
         }
