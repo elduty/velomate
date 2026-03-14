@@ -196,7 +196,7 @@ def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
          waypoints_str: str = None, date_str: str = "tomorrow",
          time_str: str = None,
          home_lat: float = None, home_lng: float = None,
-         upload: bool = True) -> str:
+         upload: bool = True, preference: str = "variety") -> str:
     """Generate a real cycling route, upload to Komoot, return summary."""
 
     # Parse duration
@@ -253,7 +253,7 @@ def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
         try:
             from veloai.route_intelligence import smart_waypoints
             strava_token = _get_strava_token()
-            smart = smart_waypoints(home_lat, home_lng, distance_km, surface, max_waypoints=3, strava_token=strava_token)
+            smart = smart_waypoints(home_lat, home_lng, distance_km, surface, max_waypoints=3, strava_token=strava_token, preference=preference)
             if smart:
                 waypoint_names = [w["name"] for w in smart]
                 valhalla_waypoints = [{"lat": w["lat"], "lon": w["lng"]} for w in smart]

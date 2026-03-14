@@ -76,6 +76,7 @@ def cmd_plan(args):
         home_lat=home_lat,
         home_lng=home_lng,
         upload=not args.no_upload,
+        preference=args.preference,
     )
     print(result)
 
@@ -97,6 +98,7 @@ def main():
     plan_parser.add_argument("--date", default="tomorrow", help="When to ride (default: tomorrow)")
     plan_parser.add_argument("--time", "-t", default=None, help="Start time (e.g. 14:00, 2pm, 9am)")
     plan_parser.add_argument("--start", default=None, help="Start location as 'lat,lng' (default: from config)")
+    plan_parser.add_argument("--preference", "-p", default="variety", choices=["variety", "comfort"], help="Route preference: variety (new roads) or comfort (familiar roads)")
     plan_parser.add_argument("--no-upload", action="store_true", default=False, help="Skip Komoot upload, just generate GPX + preview")
 
     args = parser.parse_args()
