@@ -162,6 +162,81 @@ def get_komoot_highlights(lat: float, lng: float, radius_km: float, surface: str
     return unique
 
 
+def verify_surface(coords: list, expected_surface: str) -> dict:
+    """Check if a route's actual road surfaces match the requested surface type.
+
+    Samples points along the route, queries Overpass for road surface tags.
+    Returns {match_pct, surfaces: {surface: pct}, warning: str|None}.
+    """
+    if not coords or len(coords) < 10:
+        return {"match_pct": 100, "surfaces": {}, "warning": None}
+
+    # Sample every ~500m (roughly every 50th point at 1/sec, ~10m spacing)
+    step = max(1, len(coords) // 30)
+    samples = coords[::step][:30]  # max 30 samples
+
+    # Build Overpass query: find nearest road to each sample point
+    around_radius = 30  # meters
+    union_parts = []
+    for lat, lng in samples:
+        union_parts.append(f'way["highway"](around:{around_radius},{lat},{lng});')
+
+    query = f"""
+    [out:json][timeout:15];
+    (
+      {chr(10).join(union_parts)}
+    );
+    out tags;
+    """
+
+    try:
+        resp = requests.post(OVERPASS_URL, data={"data": query}, timeout=20)
+        resp.raise_for_status()
+        data = resp.json()
+    except (requests.RequestException, ValueError) as e:
+        print(f"  [intelligence] Surface verification failed: {e}")
+        return {"match_pct": 100, "surfaces": {}, "warning": None}
+
+    # Count surface types
+    surface_counts: dict[str, int] = {}
+    for el in data.get("elements", []):
+        tags = el.get("tags", {})
+        surface = tags.get("surface", "unknown")
+        surface_counts[surface] = surface_counts.get(surface, 0) + 1
+
+    total = sum(surface_counts.values())
+    if total == 0:
+        return {"match_pct": 100, "surfaces": {}, "warning": None}
+
+    # Calculate percentages
+    surfaces = {s: round(c / total * 100) for s, c in sorted(surface_counts.items(), key=lambda x: -x[1])}
+
+    # Determine match percentage based on expected surface
+    paved = {"asphalt", "concrete", "paving_stones", "sett", "paved"}
+    unpaved = {"gravel", "compacted", "fine_gravel", "dirt", "earth", "ground", "grass", "sand", "unpaved"}
+
+    if expected_surface == "road":
+        match_pct = sum(c for s, c in surface_counts.items() if s in paved) / total * 100
+    elif expected_surface == "gravel":
+        match_pct = sum(c for s, c in surface_counts.items() if s in unpaved) / total * 100
+    elif expected_surface == "mtb":
+        match_pct = sum(c for s, c in surface_counts.items() if s in unpaved or s in {"rock", "mud"}) / total * 100
+    else:
+        match_pct = 100
+
+    match_pct = round(match_pct)
+
+    # Generate warning if mismatch
+    warning = None
+    if match_pct < 50:
+        top_surface = max(surface_counts, key=surface_counts.get)
+        warning = f"Route is mostly {top_surface} ({surfaces.get(top_surface, 0)}%) — requested {expected_surface}"
+    elif match_pct < 75:
+        warning = f"Mixed surface: {', '.join(f'{s} {p}%' for s, p in list(surfaces.items())[:3])}"
+
+    return {"match_pct": match_pct, "surfaces": surfaces, "warning": warning}
+
+
 def get_ride_density(lat: float, lng: float, radius_km: float, days: int = 30, conn=None) -> dict:
     """Build a grid-based density map of recently ridden roads from GPS history.
 

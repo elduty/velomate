@@ -286,6 +286,19 @@ def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
     actual_km = result["actual_km"]
     print(f"  GPX generated: {actual_km:.1f}km, {len(result['coords'])} points", file=sys.stderr)
 
+    # Verify surface matches requested type
+    try:
+        from veloai.route_intelligence import verify_surface
+        surface_check = verify_surface(result["coords"], surface)
+        if surface_check["surfaces"]:
+            breakdown = ', '.join(f'{s} {p}%' for s, p in list(surface_check["surfaces"].items())[:4])
+            print(f"  Surface: {breakdown} (match: {surface_check['match_pct']}%)", file=sys.stderr)
+        if surface_check["warning"]:
+            print(f"  ⚠️ {surface_check['warning']}", file=sys.stderr)
+    except Exception as e:
+        print(f"  [surface] Skipped: {e}", file=sys.stderr)
+    surface_check = locals().get("surface_check", {})
+
     # Show route preview in browser
     try:
         from veloai.map_preview import preview
@@ -315,6 +328,12 @@ def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
         if ride_time:
             when_parts.append(ride_time)
         lines.append(f"  📅 {' at '.join(when_parts)}")
+
+    if surface_check.get("surfaces"):
+        breakdown = ', '.join(f'{s} {p}%' for s, p in list(surface_check["surfaces"].items())[:4])
+        lines.append(f"  🛤 Surface: {breakdown}")
+    if surface_check.get("warning"):
+        lines.append(f"  ⚠️ {surface_check['warning']}")
 
     if weather_day:
         lines.append(f"  🌤 {format_weather(weather_day)}")
