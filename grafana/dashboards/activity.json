@@ -804,6 +804,82 @@
       }
     },
     {
+      "id": 31,
+      "title": "HR Zones",
+      "type": "barchart",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 18 },
+      "datasource": { "type": "postgres", "uid": "veloai" },
+      "targets": [
+        {
+          "rawSql": "WITH max_hr AS (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY max_hr) AS mhr FROM activities WHERE max_hr IS NOT NULL AND max_hr > 0) SELECT CASE WHEN s.hr < max_hr.mhr * 0.6 THEN 'Z1 Recovery' WHEN s.hr < max_hr.mhr * 0.7 THEN 'Z2 Endurance' WHEN s.hr < max_hr.mhr * 0.8 THEN 'Z3 Tempo' WHEN s.hr < max_hr.mhr * 0.9 THEN 'Z4 Threshold' ELSE 'Z5 VO2max' END AS \"Zone\", ROUND(COUNT(*)::numeric / 60, 1) AS \"Minutes\" FROM activity_streams s, max_hr WHERE s.activity_id = ${activity_id} AND s.hr IS NOT NULL AND s.hr > 0 GROUP BY \"Zone\" ORDER BY \"Zone\";",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "xField": "Zone",
+        "showValue": "always"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Minutes" },
+            "properties": [
+              { "id": "color", "value": { "mode": "continuous-GrYlRd" } }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 32,
+      "title": "Power Zones",
+      "type": "barchart",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 18 },
+      "datasource": { "type": "postgres", "uid": "veloai" },
+      "targets": [
+        {
+          "rawSql": "WITH ftp AS (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY avg_power) AS ftp_val FROM activities WHERE avg_power IS NOT NULL AND avg_power > 0) SELECT CASE WHEN s.power < ftp.ftp_val * 0.55 THEN 'Z1 Recovery' WHEN s.power < ftp.ftp_val * 0.75 THEN 'Z2 Endurance' WHEN s.power < ftp.ftp_val * 0.90 THEN 'Z3 Tempo' WHEN s.power < ftp.ftp_val * 1.05 THEN 'Z4 Threshold' WHEN s.power < ftp.ftp_val * 1.20 THEN 'Z5 VO2max' ELSE 'Z6 Anaerobic' END AS \"Zone\", ROUND(COUNT(*)::numeric / 60, 1) AS \"Minutes\" FROM activity_streams s, ftp WHERE s.activity_id = ${activity_id} AND s.power IS NOT NULL AND s.power > 0 GROUP BY \"Zone\" ORDER BY \"Zone\";",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "xField": "Zone",
+        "showValue": "always"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Minutes" },
+            "properties": [
+              { "id": "color", "value": { "mode": "continuous-GrYlRd" } }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 33,
+      "title": "Per-km Splits",
+      "type": "table",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 26 },
+      "datasource": { "type": "postgres", "uid": "veloai" },
+      "targets": [
+        {
+          "rawSql": "WITH deltas AS (SELECT time_offset, hr, power, speed_kmh, altitude_m, COALESCE(speed_kmh, 0) / 3600.0 * (time_offset - LAG(time_offset, 1, time_offset) OVER (ORDER BY time_offset)) AS dist_delta FROM activity_streams WHERE activity_id = ${activity_id}), cumulative AS (SELECT time_offset, hr, power, speed_kmh, altitude_m, SUM(dist_delta) OVER (ORDER BY time_offset ROWS UNBOUNDED PRECEDING) AS dist_km FROM deltas), splits AS (SELECT FLOOR(dist_km)::int + 1 AS \"KM\", ROUND(AVG(speed_kmh)::numeric, 1) AS \"Avg Speed\", ROUND(AVG(hr)::numeric, 0) AS \"Avg HR\", ROUND(AVG(NULLIF(power, 0))::numeric, 0) AS \"Avg Power\", ROUND((MAX(altitude_m) - MIN(altitude_m))::numeric, 0) AS \"Elev Range (m)\", COUNT(*) AS seconds FROM cumulative WHERE dist_km >= 0 GROUP BY FLOOR(dist_km)::int) SELECT \"KM\", \"Avg Speed\", \"Avg HR\", COALESCE(\"Avg Power\"::text, '\u2014') AS \"Avg Power\", \"Elev Range (m)\", TO_CHAR(seconds * interval '1 second', 'MI:SS') AS \"Time\" FROM splits ORDER BY \"KM\";",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": { "showHeader": true },
+      "fieldConfig": { "defaults": {}, "overrides": [] }
+    },
+    {
       "id": 20,
       "title": "Speed & Elevation",
       "type": "trend",
@@ -811,7 +887,7 @@
         "h": 12,
         "w": 24,
         "x": 0,
-        "y": 18
+        "y": 36
       },
       "datasource": {
         "type": "postgres",
@@ -936,7 +1012,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 30
+        "y": 48
       },
       "datasource": {
         "type": "postgres",
@@ -1050,7 +1126,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 40
+        "y": 58
       },
       "datasource": {
         "type": "postgres",
@@ -1101,6 +1177,133 @@
         },
         "overrides": []
       }
+    },
+    {
+      "id": 106,
+      "type": "row",
+      "title": "Advanced Metrics",
+      "collapsed": true,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 66 },
+      "panels": [
+        {
+          "id": 34,
+          "title": "Normalized Power",
+          "type": "stat",
+          "gridPos": { "h": 4, "w": 6, "x": 0, "y": 67 },
+          "datasource": { "type": "postgres", "uid": "veloai" },
+          "targets": [
+            {
+              "rawSql": "WITH rolling AS (SELECT time_offset, AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 29 PRECEDING AND CURRENT ROW) AS rolling_30s FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) SELECT ROUND(POWER(AVG(POWER(rolling_30s, 4)), 0.25)::numeric, 0) AS \"NP (W)\" FROM rolling WHERE rolling_30s IS NOT NULL;",
+              "format": "table",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "auto",
+            "reduceOptions": { "calcs": ["lastNotNull"] }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "watt"
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 35,
+          "title": "Intensity Factor",
+          "type": "stat",
+          "gridPos": { "h": 4, "w": 6, "x": 6, "y": 67 },
+          "datasource": { "type": "postgres", "uid": "veloai" },
+          "targets": [
+            {
+              "rawSql": "WITH ftp AS (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY avg_power) AS ftp_val FROM activities WHERE avg_power IS NOT NULL AND avg_power > 0), rolling AS (SELECT AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 29 PRECEDING AND CURRENT ROW) AS rolling_30s FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) SELECT ROUND((POWER(AVG(POWER(rolling_30s, 4)), 0.25) / ftp.ftp_val)::numeric, 2) AS \"IF\" FROM rolling, ftp WHERE rolling_30s IS NOT NULL GROUP BY ftp.ftp_val;",
+              "format": "table",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "auto",
+            "reduceOptions": { "calcs": ["lastNotNull"] }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 0.75 },
+                  { "color": "red", "value": 0.90 }
+                ]
+              }
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 36,
+          "title": "Variability Index",
+          "type": "stat",
+          "gridPos": { "h": 4, "w": 6, "x": 12, "y": 67 },
+          "datasource": { "type": "postgres", "uid": "veloai" },
+          "targets": [
+            {
+              "rawSql": "WITH rolling AS (SELECT AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 29 PRECEDING AND CURRENT ROW) AS rolling_30s FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0), np AS (SELECT POWER(AVG(POWER(rolling_30s, 4)), 0.25) AS np_val FROM rolling WHERE rolling_30s IS NOT NULL) SELECT ROUND((np.np_val / a.avg_power)::numeric, 2) AS \"VI\" FROM np, activities a WHERE a.id = ${activity_id} AND a.avg_power > 0;",
+              "format": "table",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "auto",
+            "reduceOptions": { "calcs": ["lastNotNull"] }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 1.05 },
+                  { "color": "red", "value": 1.15 }
+                ]
+              }
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 37,
+          "title": "Best Efforts",
+          "type": "stat",
+          "gridPos": { "h": 4, "w": 6, "x": 18, "y": 67 },
+          "datasource": { "type": "postgres", "uid": "veloai" },
+          "targets": [
+            {
+              "rawSql": "WITH rolling AS (SELECT AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 299 PRECEDING AND CURRENT ROW) AS avg_5min, AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 1199 PRECEDING AND CURRENT ROW) AS avg_20min FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) SELECT ROUND(MAX(avg_5min)::numeric, 0) AS \"Best 5min (W)\", ROUND(MAX(avg_20min)::numeric, 0) AS \"Best 20min (W)\" FROM rolling;",
+              "format": "table",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "auto",
+            "reduceOptions": { "calcs": ["lastNotNull"] }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "watt"
+            },
+            "overrides": []
+          }
+        }
+      ]
     }
   ]
 }
