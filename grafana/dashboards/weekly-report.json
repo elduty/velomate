@@ -296,7 +296,7 @@
       "targets": [
         {
           "rawSql": "SELECT date AS \"time\", tsb AS \"TSB\" FROM athlete_stats ORDER BY date DESC LIMIT 7;",
-          "format": "time_series",
+          "format": "table",
           "refId": "A"
         }
       ],
@@ -307,7 +307,8 @@
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
-          ]
+          ],
+          "fields": "/TSB/"
         }
       },
       "fieldConfig": {

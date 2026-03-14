@@ -473,7 +473,7 @@
         "name": "sport_type",
         "type": "custom",
         "label": "Sport",
-        "query": "All,cycling_outdoor,cycling_indoor,zwift",
+        "query": "All : All, Outdoor : cycling_outdoor, Indoor : cycling_indoor, Zwift : zwift",
         "current": {
           "text": "All",
           "value": "All"
