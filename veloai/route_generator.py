@@ -37,7 +37,7 @@ def _loop_waypoints(lat: float, lng: float, target_km: float, num_points: int = 
     Adds a small random bias to avoid out-and-back on the same road.
     """
     # Circumference ≈ target_km, so radius = target_km / (2π)
-    # Add 20% to account for roads not being straight-line circles
+    # Reduce by 20% because road routing adds distance vs straight-line circles
     radius_km = (target_km / (2 * math.pi)) * 0.8
     radius_lat = radius_km / 111.0          # degrees latitude per km
     radius_lng = radius_km / (111.0 * math.cos(math.radians(lat)))

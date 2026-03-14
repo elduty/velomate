@@ -5,13 +5,6 @@ import sys
 from datetime import datetime, timedelta
 
 
-# Surface type → Komoot sport mapping (new planner URL format, verified 2026-03)
-KOMOOT_SPORTS = {
-    "road":   "racebike",
-    "gravel": "mtb_easy",
-    "mtb":    "mtb",
-}
-
 # Default avg speeds (km/h) when no ride history available
 DEFAULT_SPEEDS = {"road": 27, "gravel": 22, "mtb": 17}
 
@@ -71,7 +64,7 @@ def resolve_date(date_str: str) -> object:
     return None
 
 
-def parse_time(time_str: str) -> str | None:
+def parse_time(time_str: str) -> object:
     """Parse time string to HH:MM. Supports '14:00', '2pm', '9am', '14h'."""
     if not time_str:
         return None
@@ -161,6 +154,7 @@ def _upload_to_komoot(gpx_path: str, surface: str, name: str) -> object:
 
 def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
          waypoints_str: str = None, date_str: str = "tomorrow",
+         time_str: str = None,
          home_lat: float = 38.69, home_lng: float = -9.32) -> str:
     """Generate a real cycling route, upload to Komoot, return summary."""
 
@@ -170,6 +164,7 @@ def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
         return f"Error: could not parse duration '{duration_str}'. Use format like '2h', '1h30m', '90min'"
 
     ride_date = resolve_date(date_str)
+    ride_time = parse_time(time_str)
 
     # Get fitness + avg speed from DB
     avg_speed = None
@@ -245,6 +240,14 @@ def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
     lines = []
     lines.append(f"🗺 *{route_name}*")
     lines.append(f"  📏 {actual_km:.0f} km")
+
+    if ride_date or ride_time:
+        when_parts = []
+        if ride_date:
+            when_parts.append(ride_date)
+        if ride_time:
+            when_parts.append(ride_time)
+        lines.append(f"  📅 {' at '.join(when_parts)}")
 
     if weather_day:
         lines.append(f"  🌤 {format_weather(weather_day)}")

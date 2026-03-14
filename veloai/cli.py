@@ -61,6 +61,7 @@ def cmd_plan(args):
         loop=args.loop,
         waypoints_str=args.waypoints,
         date_str=args.date,
+        time_str=args.time,
         home_lat=LOCATION["lat"],
         home_lng=LOCATION["lon"],
     )
@@ -82,6 +83,7 @@ def main():
     plan_parser.add_argument("--no-loop", action="store_false", dest="loop", help="One-way route")
     plan_parser.add_argument("--waypoints", "-w", default=None, help="Comma-separated place names to route through")
     plan_parser.add_argument("--date", default="tomorrow", help="When to ride (default: tomorrow)")
+    plan_parser.add_argument("--time", "-t", default=None, help="Start time (e.g. 14:00, 2pm, 9am)")
 
     args = parser.parse_args()
 
