@@ -99,15 +99,23 @@ def recalculate_fitness(conn):
     env_max_hr = os.environ.get("VELOAI_MAX_HR", "")
     env_ftp = os.environ.get("VELOAI_FTP", "")
 
-    if env_max_hr and int(env_max_hr) > 0:
-        threshold_hr = int(env_max_hr)
+    try:
+        hr_val = int(env_max_hr) if env_max_hr else 0
+    except ValueError:
+        hr_val = 0
+    if hr_val > 0:
+        threshold_hr = hr_val
         print(f"[fitness] Using configured max HR: {threshold_hr}")
     else:
         threshold_hr = estimate_threshold_hr(conn)
         print(f"[fitness] Auto-estimated threshold HR: {threshold_hr}")
 
-    if env_ftp and int(env_ftp) > 0:
-        ftp = int(env_ftp)
+    try:
+        ftp_val = int(env_ftp) if env_ftp else 0
+    except ValueError:
+        ftp_val = 0
+    if ftp_val > 0:
+        ftp = ftp_val
         print(f"[fitness] Using configured FTP: {ftp}W")
     else:
         ftp = estimate_ftp(conn)

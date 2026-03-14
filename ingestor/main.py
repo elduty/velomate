@@ -88,13 +88,12 @@ def run():
     conn = get_connection()
     try:
         create_schema(conn)
-    except Exception as e:
+        print("[main] Schema ready")
+        has_data = get_sync_state(conn, "strava_last_activity_epoch")
+    finally:
         conn.close()
-        raise RuntimeError(f"Schema creation failed: {e}")
-    print("[main] Schema ready")
 
     # Backfill on first run if no activities yet
-    has_data = get_sync_state(conn, "strava_last_activity_epoch")
     if not has_data:
         print("[main] No previous sync — running backfill")
         run_backfill()

@@ -243,10 +243,12 @@ def get_ride_density(lat: float, lng: float, radius_km: float, days: int = 30, c
     Returns dict mapping (grid_lat, grid_lng) → ride_count.
     Grid resolution: ~500m cells.
     """
+    own_conn = False
     if conn is None:
         try:
             from veloai.db import get_connection
             conn = get_connection()
+            own_conn = True
         except Exception:
             return {}
 
@@ -273,6 +275,9 @@ def get_ride_density(lat: float, lng: float, radius_km: float, days: int = 30, c
         print(f"  [intelligence] Ride density: {len(density)} grid cells from last {days} days")
     except Exception as e:
         print(f"  [intelligence] Ride density failed: {e}")
+    finally:
+        if own_conn and conn:
+            conn.close()
 
     return density
 

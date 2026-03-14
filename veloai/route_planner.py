@@ -295,8 +295,9 @@ def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
                 if day["date"] == ride_date:
                     weather_day = day
                     break
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"  [route] {e}", file=__import__("sys").stderr)
+
 
     # Geocode explicit waypoints, or use smart waypoints from route intelligence
     waypoint_names = []
@@ -408,8 +409,9 @@ def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
                     wind_warning = _analyze_wind(result["coords"], best_hours[0]["wind_dir"], best_hours[0]["wind"])
                     if wind_warning:
                         lines.append(f"  💨 {wind_warning}")
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"  [route] {e}", file=__import__("sys").stderr)
+
         if weather_day["precip"] > 5:
             lines.append(f"  ⚠️ Rain expected — check conditions")
         if weather_day.get("uv_max", 0) >= 8:
@@ -430,8 +432,9 @@ def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
                     top = best[0]
                     hour = top["time"][11:16]
                     lines.append(f"  🕐 Best time: {hour} ({top['temp']:.0f}°C, wind {top['wind']:.0f} km/h, UV {top['uv']:.0f})")
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"  [route] {e}", file=__import__("sys").stderr)
+
 
     if fitness_note:
         lines.append(f"  💪 {fitness_note}")
