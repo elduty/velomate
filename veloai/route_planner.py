@@ -110,6 +110,63 @@ def adjust_for_fitness(distance_km: float, tsb: float | None) -> tuple[float, st
         return adjusted, "fatigued (TSB {:.0f}) — reduced to {}km".format(tsb, adjusted)
 
 
+def _analyze_wind(coords: list, wind_dir: float, wind_speed: float) -> str | None:
+    """Analyze route exposure to wind. Returns a warning string or None.
+
+    wind_dir: degrees (0=N, 90=E, 180=S, 270=W) — direction wind comes FROM.
+    """
+    import math
+    if not coords or len(coords) < 10 or wind_speed < 15:
+        return None
+
+    # Calculate bearing of each segment
+    headwind_count = 0
+    crosswind_count = 0
+    total = 0
+    step = max(1, len(coords) // 50)
+
+    for i in range(0, len(coords) - step, step):
+        lat1, lng1 = coords[i]
+        lat2, lng2 = coords[i + step]
+        # Route bearing (direction of travel)
+        dlng = lng2 - lng1
+        dlat = lat2 - lat1
+        if abs(dlng) < 1e-7 and abs(dlat) < 1e-7:
+            continue
+        bearing = math.degrees(math.atan2(dlng, dlat)) % 360
+
+        # Angle between wind direction and route bearing
+        # Wind comes FROM wind_dir, so headwind = riding INTO the wind
+        angle_diff = abs((bearing - wind_dir + 180) % 360 - 180)
+
+        total += 1
+        if angle_diff < 45:
+            headwind_count += 1
+        elif angle_diff > 135:
+            pass  # tailwind, good
+        else:
+            crosswind_count += 1
+
+    if total == 0:
+        return None
+
+    headwind_pct = headwind_count / total * 100
+    crosswind_pct = crosswind_count / total * 100
+
+    parts = []
+    if headwind_pct > 40 and wind_speed > 25:
+        parts.append(f"strong headwind on {headwind_pct:.0f}% of route")
+    elif headwind_pct > 30 and wind_speed > 20:
+        parts.append(f"headwind on {headwind_pct:.0f}% of route")
+    if crosswind_pct > 50 and wind_speed > 25:
+        parts.append(f"exposed crosswind on {crosswind_pct:.0f}%")
+
+    if parts:
+        wind_from = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][int((wind_dir + 22.5) % 360 / 45)]
+        return f"Wind from {wind_from} at {wind_speed:.0f} km/h — {', '.join(parts)}"
+    return None
+
+
 def format_weather(day: dict) -> str:
     """Format weather for a single day."""
     parts = [day["weather"]]
@@ -341,6 +398,18 @@ def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
         lines.append(f"  🌤 {format_weather(weather_day)}")
         if weather_day["wind"] > 30:
             lines.append(f"  ⚠️ High wind — consider a sheltered route")
+
+        # Wind direction analysis against route
+        if ride_date and weather_day.get("hourly") and result.get("coords"):
+            try:
+                from veloai.weather import best_ride_hours
+                best_hours = best_ride_hours(weather_day["hourly"], ride_date)
+                if best_hours:
+                    wind_warning = _analyze_wind(result["coords"], best_hours[0]["wind_dir"], best_hours[0]["wind"])
+                    if wind_warning:
+                        lines.append(f"  💨 {wind_warning}")
+            except Exception:
+                pass
         if weather_day["precip"] > 5:
             lines.append(f"  ⚠️ Rain expected — check conditions")
         if weather_day.get("uv_max", 0) >= 8:
