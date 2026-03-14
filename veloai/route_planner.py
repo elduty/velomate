@@ -71,6 +71,29 @@ def resolve_date(date_str: str) -> object:
     return None
 
 
+def parse_time(time_str: str) -> str | None:
+    """Parse time string to HH:MM. Supports '14:00', '2pm', '9am', '14h'."""
+    if not time_str:
+        return None
+    s = time_str.lower().strip()
+
+    match = re.match(r'^(\d{1,2}):(\d{2})$', s)
+    if match:
+        return f"{int(match.group(1)):02d}:{match.group(2)}"
+
+    match = re.match(r'^(\d{1,2})\s*(am|pm|h)$', s)
+    if match:
+        hour = int(match.group(1))
+        suffix = match.group(2)
+        if suffix == "pm" and hour < 12:
+            hour += 12
+        elif suffix == "am" and hour == 12:
+            hour = 0
+        return f"{hour:02d}:00"
+
+    return None
+
+
 def estimate_distance(duration_min: int, surface: str, avg_speed: object) -> float:
     """Estimate route distance (km) from duration and speed."""
     if avg_speed:
