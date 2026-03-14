@@ -1,0 +1,88 @@
+# VeloAI Alert Rules
+# These are provisioned automatically on Grafana start.
+
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: VeloAI Fitness
+    folder: VeloAI
+    interval: 1h
+    rules:
+      - uid: veloai-overtraining
+        title: Overtraining Warning
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 172800  # 2 days
+              to: 0
+            datasourceUid: veloai
+            model:
+              rawSql: "SELECT date AS time, tsb FROM athlete_stats ORDER BY date DESC LIMIT 2;"
+              format: time_series
+          - refId: B
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              expression: A
+              reducer: min
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator:
+                    type: lt
+                    params: [-25]
+        for: 0s
+        annotations:
+          summary: "TSB is below -25 for 2+ days — you may be overtraining"
+        labels:
+          severity: warning
+
+      - uid: veloai-detraining
+        title: Detraining Warning
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 604800  # 7 days
+              to: 0
+            datasourceUid: veloai
+            model:
+              rawSql: "SELECT NOW() AS time, CURRENT_DATE - MAX(date::date) AS days_off FROM activities;"
+              format: time_series
+          - refId: B
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              expression: A
+              reducer: last
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [5]
+        for: 0s
+        annotations:
+          summary: "No rides in 5+ days — fitness may be declining"
+        labels:
+          severity: info

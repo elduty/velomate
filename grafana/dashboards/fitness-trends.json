@@ -1,7 +1,9 @@
 {
   "uid": "veloai-fitness",
   "title": "Fitness Trends",
-  "tags": ["veloai"],
+  "tags": [
+    "veloai"
+  ],
   "timezone": "browser",
   "editable": true,
   "time": {
@@ -29,8 +31,16 @@
       "id": 1,
       "title": "Current CTL (Fitness)",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
-      "datasource": { "type": "postgres", "uid": "veloai" },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
       "targets": [
         {
           "rawSql": "SELECT ctl FROM athlete_stats ORDER BY date DESC LIMIT 1;",
@@ -44,9 +54,18 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "red", "value": null },
-              { "color": "yellow", "value": 20 },
-              { "color": "green", "value": 40 }
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 20
+              },
+              {
+                "color": "green",
+                "value": 40
+              }
             ]
           }
         }
@@ -54,15 +73,27 @@
       "options": {
         "colorMode": "value",
         "graphMode": "none",
-        "reduceOptions": { "calcs": ["lastNotNull"] }
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
       }
     },
     {
       "id": 2,
       "title": "Current ATL (Fatigue)",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
-      "datasource": { "type": "postgres", "uid": "veloai" },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
       "targets": [
         {
           "rawSql": "SELECT atl FROM athlete_stats ORDER BY date DESC LIMIT 1;",
@@ -76,9 +107,18 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 40 },
-              { "color": "red", "value": 70 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 40
+              },
+              {
+                "color": "red",
+                "value": 70
+              }
             ]
           }
         }
@@ -86,15 +126,27 @@
       "options": {
         "colorMode": "value",
         "graphMode": "none",
-        "reduceOptions": { "calcs": ["lastNotNull"] }
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
       }
     },
     {
       "id": 3,
       "title": "Current TSB (Form)",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
-      "datasource": { "type": "postgres", "uid": "veloai" },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
       "targets": [
         {
           "rawSql": "SELECT tsb FROM athlete_stats ORDER BY date DESC LIMIT 1;",
@@ -108,26 +160,96 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "red", "value": null },
-              { "color": "orange", "value": -10 },
-              { "color": "green", "value": 0 },
-              { "color": "blue", "value": 15 }
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": -10
+              },
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "blue",
+                "value": 15
+              }
             ]
-          }
+          },
+          "mappings": [
+            {
+              "type": "range",
+              "options": {
+                "from": 15,
+                "to": 999,
+                "result": {
+                  "text": "Fresh",
+                  "index": 0
+                }
+              }
+            },
+            {
+              "type": "range",
+              "options": {
+                "from": 0,
+                "to": 15,
+                "result": {
+                  "text": "Optimal",
+                  "index": 1
+                }
+              }
+            },
+            {
+              "type": "range",
+              "options": {
+                "from": -10,
+                "to": 0,
+                "result": {
+                  "text": "Tired",
+                  "index": 2
+                }
+              }
+            },
+            {
+              "type": "range",
+              "options": {
+                "from": -999,
+                "to": -10,
+                "result": {
+                  "text": "Overreached",
+                  "index": 3
+                }
+              }
+            }
+          ]
         }
       },
       "options": {
         "colorMode": "value",
         "graphMode": "none",
-        "reduceOptions": { "calcs": ["lastNotNull"] }
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
       }
     },
     {
       "id": 4,
       "title": "CTL / ATL / TSB (90 days)",
       "type": "timeseries",
-      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 4 },
-      "datasource": { "type": "postgres", "uid": "veloai" },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 4
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
       "targets": [
         {
           "rawSql": "SELECT date AS time, ctl AS \"Fitness (CTL)\", atl AS \"Fatigue (ATL)\", tsb AS \"Form (TSB)\" FROM athlete_stats WHERE $__timeFilter(date) ORDER BY date;",
@@ -146,30 +268,76 @@
         },
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "Fitness (CTL)" },
-            "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }]
+            "matcher": {
+              "id": "byName",
+              "options": "Fitness (CTL)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
+              }
+            ]
           },
           {
-            "matcher": { "id": "byName", "options": "Fatigue (ATL)" },
-            "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }]
+            "matcher": {
+              "id": "byName",
+              "options": "Fatigue (ATL)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              }
+            ]
           },
           {
-            "matcher": { "id": "byName", "options": "Form (TSB)" },
-            "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+            "matcher": {
+              "id": "byName",
+              "options": "Form (TSB)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
           }
         ]
       },
       "options": {
-        "tooltip": { "mode": "multi" },
-        "legend": { "displayMode": "list", "placement": "bottom" }
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
       }
     },
     {
       "id": 5,
       "title": "Resting Heart Rate",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 14 },
-      "datasource": { "type": "postgres", "uid": "veloai" },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
       "targets": [
         {
           "rawSql": "SELECT date AS time, resting_hr AS \"Resting HR\" FROM athlete_stats WHERE $__timeFilter(date) AND resting_hr IS NOT NULL ORDER BY date;",
@@ -185,15 +353,37 @@
             "fillOpacity": 15,
             "showPoints": "auto"
           },
-          "color": { "fixedColor": "red", "mode": "fixed" }
+          "color": {
+            "fixedColor": "red",
+            "mode": "fixed"
+          }
         }
       },
       "options": {
-        "tooltip": { "mode": "single" },
-        "legend": { "displayMode": "list", "placement": "bottom" }
+        "tooltip": {
+          "mode": "single"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
       }
     }
   ],
   "schemaVersion": 39,
-  "version": 1
+  "version": 1,
+  "annotations": {
+    "list": [
+      {
+        "name": "Personal Records",
+        "enable": true,
+        "datasource": {
+          "type": "postgres",
+          "uid": "veloai"
+        },
+        "rawQuery": "SELECT date AS time, 'PR: ' || name AS text, 'pr' AS tags FROM activities WHERE distance_m = (SELECT MAX(distance_m) FROM activities) OR (avg_power IS NOT NULL AND avg_power = (SELECT MAX(avg_power) FROM activities WHERE duration_s > 1200 AND avg_power IS NOT NULL));",
+        "iconColor": "#ff9830"
+      }
+    ]
+  }
 }
