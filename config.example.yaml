@@ -34,5 +34,5 @@ defaults:
   loop: true          # Round-trip routes by default
 
 fitness:
-  threshold_hr: 170   # Max HR threshold (0 = auto-estimate from data)
-  ftp: 150            # Functional threshold power in watts (0 = auto-estimate)
+  max_hr: 0           # Your max heart rate (0 = auto-estimate from data)
+  ftp: 0              # Functional Threshold Power in watts (0 = auto-estimate)

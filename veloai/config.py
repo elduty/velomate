@@ -12,7 +12,7 @@ DEFAULTS = {
     "komoot": {"email": "", "password": ""},
     "strava": {"client_id": "", "client_secret": "", "refresh_token": ""},
     "defaults": {"surface": "gravel", "loop": True},
-    "fitness": {"threshold_hr": 170, "ftp": 150},
+    "fitness": {"max_hr": 0, "ftp": 0},
 }
 
 ENV_MAP = {

@@ -1,10 +1,11 @@
 """CTL/ATL/TSB fitness calculator."""
 
+import os
 from datetime import timedelta
 
 
 DEFAULT_THRESHOLD_HR = 170
-DEFAULT_FTP = 150  # Estimated FTP (watts) for recreational cyclist
+DEFAULT_FTP = 150  # Estimated FTP (watts) — fallback only
 
 
 def calculate_tss(duration_s: int, avg_hr: int, threshold_hr: int) -> float:
@@ -64,9 +65,23 @@ def recalculate_fitness(conn):
     """
     from db import upsert_athlete_stats
 
-    threshold_hr = estimate_threshold_hr(conn)
-    ftp = estimate_ftp(conn)
-    print(f"[fitness] Threshold HR: {threshold_hr}, Estimated FTP: {ftp}W")
+    # Use configured values if set, otherwise auto-estimate from data
+    env_max_hr = os.environ.get("VELOAI_MAX_HR", "")
+    env_ftp = os.environ.get("VELOAI_FTP", "")
+
+    if env_max_hr:
+        threshold_hr = int(env_max_hr)
+        print(f"[fitness] Using configured max HR: {threshold_hr}")
+    else:
+        threshold_hr = estimate_threshold_hr(conn)
+        print(f"[fitness] Auto-estimated threshold HR: {threshold_hr}")
+
+    if env_ftp:
+        ftp = int(env_ftp)
+        print(f"[fitness] Using configured FTP: {ftp}W")
+    else:
+        ftp = estimate_ftp(conn)
+        print(f"[fitness] Auto-estimated FTP: {ftp}W")
 
     # Store per-activity TSS
     with conn.cursor() as cur:
