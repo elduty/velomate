@@ -255,7 +255,8 @@ def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
          waypoints_str: str = None, date_str: str = "tomorrow",
          time_str: str = None,
          home_lat: float = None, home_lng: float = None,
-         upload: bool = True, preference: str = "variety") -> str:
+         upload: bool = True, preference: str = "variety",
+         safety: float = 0.5) -> str:
     """Generate a real cycling route, upload to Komoot, return summary."""
 
     # Parse duration
@@ -337,6 +338,7 @@ def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
         surface=surface,
         name=route_name,
         waypoints=valhalla_waypoints if valhalla_waypoints else None,
+        safety=safety,
     )
 
     if "error" in result:
@@ -358,6 +360,16 @@ def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
             print(f"  ⚠️ {surface_check['warning']}", file=sys.stderr)
     except Exception as e:
         print(f"  [surface] Skipped: {e}", file=sys.stderr)
+
+    # Score cycling safety infrastructure
+    safety_info = {}
+    try:
+        from veloai.route_intelligence import score_cycling_safety
+        safety_info = score_cycling_safety(result["coords"])
+        if safety_info.get("details"):
+            print(f"  Cycling safety: {safety_info['details']} (score: {safety_info['safety_score']}/100)", file=sys.stderr)
+    except Exception as e:
+        print(f"  [safety] Skipped: {e}", file=sys.stderr)
 
     # Show route preview in browser
     try:
@@ -394,6 +406,9 @@ def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
         lines.append(f"  🛤 Surface: {breakdown}")
     if surface_check.get("warning"):
         lines.append(f"  ⚠️ {surface_check['warning']}")
+
+    if safety_info.get("details"):
+        lines.append(f"  🛡 Safety: {safety_info['details']} ({safety_info['safety_score']}/100)")
 
     if weather_day:
         lines.append(f"  🌤 {format_weather(weather_day)}")

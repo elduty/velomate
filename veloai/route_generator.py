@@ -109,6 +109,7 @@ def generate(
     name: str = None,
     output_path: str = None,
     waypoints: list = None,
+    safety: float = 0.5,
 ) -> dict:
     """Generate a cycling loop GPX route.
 
@@ -129,6 +130,11 @@ def generate(
         costing_options = ROAD_CYCLING_OPTIONS.copy()
     elif surface == "gravel":
         costing_options = GRAVEL_CYCLING_OPTIONS.copy()
+
+    # Safety: 0.0 = max safety (avoid busy roads), 1.0 = fastest (use all roads)
+    # Maps inversely to Valhalla's use_roads: safety 1.0 → use_roads 0.0
+    if costing_options:
+        costing_options["use_roads"] = round(1.0 - safety, 1)
 
     # Build loop waypoints — use provided waypoints or auto-generate a circular loop
     if waypoints:

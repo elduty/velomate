@@ -237,6 +237,90 @@ def verify_surface(coords: list, expected_surface: str) -> dict:
     return {"match_pct": match_pct, "surfaces": surfaces, "warning": warning}
 
 
+def score_cycling_safety(coords: list) -> dict:
+    """Score a route's cycling safety based on OSM infrastructure tags.
+
+    Samples points along the route, queries for bike lanes, speed limits,
+    and traffic calming. Returns {safety_score: 0-100, details: str}.
+    """
+    if not coords or len(coords) < 10:
+        return {"safety_score": 0, "details": ""}
+
+    step = max(1, len(coords) // 20)
+    samples = coords[::step][:20]
+
+    around_radius = 30
+    union_parts = []
+    for lat, lng in samples:
+        union_parts.append(f'way["highway"](around:{around_radius},{lat},{lng});')
+
+    query = f"""
+    [out:json][timeout:15];
+    (
+      {chr(10).join(union_parts)}
+    );
+    out tags;
+    """
+
+    try:
+        resp = requests.post(OVERPASS_URL, data={"data": query}, timeout=20)
+        resp.raise_for_status()
+        data = resp.json()
+    except (requests.RequestException, ValueError) as e:
+        print(f"  [intelligence] Safety scoring failed: {e}")
+        return {"safety_score": 0, "details": ""}
+
+    total = 0
+    has_bike_lane = 0
+    low_speed = 0
+    has_calming = 0
+    is_path = 0
+
+    for el in data.get("elements", []):
+        tags = el.get("tags", {})
+        total += 1
+
+        # Bike infrastructure
+        if any(tags.get(k) for k in ("cycleway", "cycleway:left", "cycleway:right", "cycleway:both")):
+            has_bike_lane += 1
+        elif tags.get("highway") in ("cycleway", "path", "track"):
+            is_path += 1
+
+        # Low speed
+        maxspeed = tags.get("maxspeed", "")
+        try:
+            if maxspeed and int(maxspeed) <= 30:
+                low_speed += 1
+        except ValueError:
+            pass
+
+        # Traffic calming
+        if tags.get("traffic_calming") or tags.get("highway") == "living_street":
+            has_calming += 1
+
+    if total == 0:
+        return {"safety_score": 0, "details": ""}
+
+    bike_pct = (has_bike_lane + is_path) / total * 100
+    slow_pct = low_speed / total * 100
+    calm_pct = has_calming / total * 100
+
+    # Score: 0-100 (higher = safer)
+    score = min(100, int(bike_pct * 0.5 + slow_pct * 0.3 + calm_pct * 0.2))
+
+    parts = []
+    if bike_pct > 0:
+        parts.append(f"bike lanes {bike_pct:.0f}%")
+    if slow_pct > 0:
+        parts.append(f"≤30 km/h zones {slow_pct:.0f}%")
+    if calm_pct > 0:
+        parts.append(f"traffic calming {calm_pct:.0f}%")
+
+    details = ", ".join(parts) if parts else "no cycling infrastructure data"
+
+    return {"safety_score": score, "details": details}
+
+
 def get_ride_density(lat: float, lng: float, radius_km: float, days: int = 30, conn=None) -> dict:
     """Build a grid-based density map of recently ridden roads from GPS history.
 
