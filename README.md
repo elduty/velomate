@@ -8,9 +8,9 @@ Inspired by TeslaMate. Built for cyclists using Strava + Karoo/Komoot.
 
 ## What it does
 
-- **Ingestor** — polls Strava every 10 min, pulls every ride with full streams (HR, power, cadence, speed, altitude, GPS), calculates CTL/ATL/TSB fitness metrics, stores everything in PostgreSQL. Handles cross-device deduplication (Karoo > unknown/Zwift > Watch) and Strava-Komoot matching (same-day ±10% distance)
-- **Grafana** — dashboards for activity history, fitness trends, and per-activity detail (speed, elevation, HR, power, cadence vs distance)
-- **VeloAI CLI** — reads from DB to produce WhatsApp-friendly ride recommendations based on current fitness (TSB) + weather forecast + Komoot routes
+- **Ingestor** — polls Strava every 10 min, pulls every ride with full per-second streams (HR, power, cadence, speed, altitude, GPS), calculates CTL/ATL/TSB fitness metrics, stores everything in PostgreSQL. Automatically deduplicates when multiple devices record the same ride (e.g., Karoo + Apple Watch both syncing to Strava) by keeping the richer data source and merging any missing fields.
+- **Grafana** — 5 dashboards: overview hub, activity detail (with GPS map, zones, splits), fitness trends, weekly report, training log
+- **VeloAI CLI** — ride recommendations based on fitness + weather, and route planning via Valhalla GPX generation → Komoot upload → Karoo sync
 
 ---
 
