@@ -16,7 +16,7 @@ VeloAI is a self-hosted cycling data platform (inspired by TeslaMate). Data flow
 
 ## Architecture
 
-Three Docker Compose services on a homelab:
+Three Docker Compose services on a server:
 
 - **veloai-postgres** (PostgreSQL 15, port 5423) — five tables: `activities`, `activity_streams`, `athlete_stats`, `routes`, `sync_state`
 - **veloai-ingestor** (Python 3.11) — polls Strava every 10min, Komoot every 1h; auto-backfills 12 months on first run; handles cross-device deduplication (Karoo > unknown/Zwift > Watch) by matching same-day activities within ±10% distance
@@ -24,7 +24,7 @@ Three Docker Compose services on a homelab:
 
 Separate from Docker:
 
-- **veloai CLI** (`veloai/`) — runs on Mac mini, connects to homelab DB, merges fitness + Komoot routes + Open-Meteo weather into ride recommendations
+- **veloai CLI** (`veloai/`) — runs on local machine, connects to server DB, merges fitness + Komoot routes + Open-Meteo weather into ride recommendations
 
 ## Key Commands
 
@@ -46,7 +46,7 @@ docker compose exec veloai-postgres psql -U veloai -c "SELECT COUNT(*) FROM acti
 # Grafana dashboard changes: edit JSON in grafana/dashboards/, then:
 docker compose restart veloai-grafana
 
-# CLI (Mac mini only)
+# CLI (local machine only)
 pip install -r requirements.txt
 python3 -m veloai.cli
 ```

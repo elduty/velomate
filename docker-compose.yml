@@ -50,7 +50,7 @@ services:
       - ./grafana/dashboards:/etc/grafana/dashboards
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
-      GF_SERVER_ROOT_URL: https://veloai.mrmartian.in/
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3021/}
       GF_SERVER_SERVE_FROM_SUB_PATH: "false"
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     depends_on:

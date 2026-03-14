@@ -24,13 +24,13 @@ Komoot API          ←── polling (1 hr)
                       [ ingestor (Docker) ]
                               │
                               ▼
-                      [ PostgreSQL 15 ]  ←── VeloAI CLI (Mac mini)
+                      [ PostgreSQL 15 ]  ←── VeloAI CLI (local machine)
                               │
                               ▼
                       [ Grafana 12 ]
 ```
 
-All services run on homelab via Docker Compose. VeloAI CLI runs on Mac mini, connects over LAN.
+All services run on server via Docker Compose. VeloAI CLI runs on local machine, connects over LAN.
 
 ---
 
@@ -38,9 +38,9 @@ All services run on homelab via Docker Compose. VeloAI CLI runs on Mac mini, con
 
 | Service | Image | Host Port | URL |
 |---|---|---|---|
-| PostgreSQL | postgres:15 | 5423 | `10.7.40.15:5423` |
+| PostgreSQL | postgres:15 | 5423 | configured in `.env` |
 | Ingestor | custom Python | — | — |
-| Grafana | grafana/grafana:12 | 3021 | `https://veloai.mrmartian.in` |
+| Grafana | grafana/grafana:12.4 | 3021 | `http://localhost:3021` |
 
 ---
 
@@ -49,7 +49,7 @@ All services run on homelab via Docker Compose. VeloAI CLI runs on Mac mini, con
 ### 1. Clone and configure
 
 ```bash
-git clone ssh://git@10.7.40.20:2222/MrMartian/veloai.git
+git clone https://github.com/your-user/veloai.git
 cd veloai
 cp .env.example .env
 # Edit .env — fill in all values
@@ -93,7 +93,7 @@ docker compose up -d
 
 On first run, the ingestor backfills the last 12 months of Strava activities + streams.
 
-### 4. VeloAI CLI (Mac mini only)
+### 4. VeloAI CLI (local machine only)
 
 ```bash
 pip install -r requirements.txt
@@ -145,7 +145,7 @@ Interpretation: TSB > +10 = fresh (push hard) · TSB -10..+10 = neutral · TSB <
 
 ## Grafana Dashboards
 
-Access: `https://veloai.mrmartian.in` (or `http://10.7.40.15:3021` on LAN)
+Access: `http://localhost:3021` (or configure `GRAFANA_ROOT_URL` in `.env` for remote access)
 
 | Dashboard | Description |
 |---|---|
@@ -241,7 +241,7 @@ docker compose up -d --force-recreate
 
 ### Update Grafana dashboards (after editing JSON)
 ```bash
-git pull  # on homelab
+git pull  # on server
 docker compose restart grafana
 ```
 

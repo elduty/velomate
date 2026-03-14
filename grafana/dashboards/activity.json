@@ -796,8 +796,8 @@
       "options": {
         "view": {
           "id": "fit",
-          "lat": 38.69,
-          "lon": -9.32,
+          "lat": 0,
+          "lon": 0,
           "zoom": 12
         },
         "layers": [
