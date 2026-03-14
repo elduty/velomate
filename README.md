@@ -2,22 +2,22 @@
 
 A self-hosted cycling data platform — automatic ride ingestion, Grafana dashboards, and fitness-aware ride planning.
 
-Inspired by TeslaMate. Built for cyclists using Strava + Karoo/Komoot.
+Inspired by TeslaMate. Built for cyclists using Strava.
 
 ---
 
 ## What it does
 
-- **Ingestor** — polls Strava every 10 min, pulls every ride with full per-second streams (HR, power, cadence, speed, altitude, GPS), calculates CTL/ATL/TSB fitness metrics, stores everything in PostgreSQL. Strava is the single source of truth — all devices (Karoo, Watch, Zwift) sync through it. Automatically deduplicates when multiple devices record the same ride by keeping the richer data source.
+- **Ingestor** — polls Strava every 10 min, pulls every ride with full per-second streams (HR, power, cadence, speed, altitude, GPS), calculates CTL/ATL/TSB fitness metrics, stores everything in PostgreSQL. Strava is the single source of truth — any device that syncs to Strava works. Automatically deduplicates when multiple devices record the same ride by keeping the richer data source.
 - **Grafana** — 5 dashboards: overview hub, activity detail (with GPS map, zones, splits), fitness trends, weekly report, training log
-- **VeloAI CLI** — ride recommendations based on fitness + weather, and route planning via Valhalla GPX generation → Komoot upload → Karoo sync
+- **VeloAI CLI** — ride recommendations based on fitness + weather, and route planning via Valhalla GPX generation → Komoot upload
 
 ---
 
 ## Architecture
 
 ```
-Karoo 3 → Strava API ←── polling (10 min)
+Any device → Strava API ←── polling (10 min)
 Komoot              ←── route upload (CLI)
                               │
                               ▼
