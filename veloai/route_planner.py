@@ -20,7 +20,7 @@ DEFAULT_SPEEDS = {"road": 27, "gravel": 22, "mtb": 17}
 SURFACE_MULTIPLIERS = {"road": 1.1, "gravel": 0.85, "mtb": 0.7}
 
 
-def parse_duration(duration_str: str) -> int | None:
+def parse_duration(duration_str: str) -> object:
     """Parse duration string to minutes. Supports '2h', '1h30m', '90min', '1:30'."""
     if not duration_str:
         return None
@@ -46,7 +46,7 @@ def parse_duration(duration_str: str) -> int | None:
     return None
 
 
-def resolve_date(date_str: str) -> str | None:
+def resolve_date(date_str: str) -> object:
     """Resolve date string to YYYY-MM-DD. Supports 'tomorrow', day names, ISO dates."""
     if not date_str:
         return None
@@ -77,7 +77,7 @@ def resolve_date(date_str: str) -> str | None:
     return None
 
 
-def estimate_distance(duration_min: int, surface: str, avg_speed: float | None) -> float:
+def estimate_distance(duration_min: int, surface: str, avg_speed: object) -> float:
     """Estimate route distance (km) from duration and speed.
     Uses ride history avg_speed with surface multiplier, or defaults.
     """
@@ -88,7 +88,7 @@ def estimate_distance(duration_min: int, surface: str, avg_speed: float | None) 
     return round(duration_min / 60 * speed, 1)
 
 
-def adjust_for_fitness(distance_km: float, tsb: float | None) -> tuple:
+def adjust_for_fitness(distance_km: float, tsb: object) -> object:
     """Adjust distance based on TSB. Returns (adjusted_distance, note)."""
     if tsb is None:
         return distance_km, None
@@ -122,7 +122,7 @@ def format_weather(day: dict) -> str:
 
 
 def format_output(duration_min: int, surface: str, distance_km: float,
-                  fitness_note: str | None, weather_day: dict | None,
+                  fitness_note: object, weather_day: object,
                   komoot_url: str, waypoint_names: list = None) -> str:
     """Format the route plan output."""
     lines = []
