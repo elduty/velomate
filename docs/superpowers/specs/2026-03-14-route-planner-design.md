@@ -1,32 +1,25 @@
 # Route Planner (v1) — Design Spec
 
-**Goal:** Add a `plan` subcommand to the VeloAI CLI that generates cycling routes based on natural language or flags, enriched with fitness and weather data, then opens the route on Komoot for saving to Karoo.
+**Goal:** Add a `plan` subcommand to the VeloAI CLI that generates cycling routes based on structured flags, enriched with fitness and weather data, then opens the route on Komoot for saving to Karoo.
 
-**Approach:** Parse user input (LLM or flags) → enrich with DB/weather data → build Komoot planner URL with waypoints → open in browser → print summary.
+**Approach:** Parse flags → enrich with DB/weather data → build Komoot planner URL with waypoints → open in browser → print summary. Natural language parsing is handled by OpenClaw (the caller), not the CLI itself.
 
 ---
 
 ## Design Decisions
 
-1. **Komoot is the routing engine** — VeloAI doesn't do pathfinding. It translates user intent into Komoot route parameters and opens the Komoot web planner with pre-filled waypoints. komPYoot has no confirmed tour creation API, so v1 uses URL-based handoff.
-2. **Claude API for natural language parsing** — extracts structured parameters (duration, surface, loop, waypoints) from free-text input via `requests` (direct API call, no `anthropic` SDK). Flags bypass the LLM entirely.
+1. **Komoot is the routing engine** — VeloAI doesn't do pathfinding. It translates structured flags into Komoot route parameters and opens the Komoot web planner with pre-filled waypoints. komPYoot has no confirmed tour creation API, so v1 uses URL-based handoff.
+2. **Flags-only interface** — the CLI accepts structured flags (`--duration`, `--surface`, `--waypoints`). Natural language parsing is delegated to OpenClaw (the AI agent that calls the CLI), keeping the CLI simple and dependency-free.
 3. **Fitness-aware distance** — target distance derived from duration × avg speed (from ride history), adjusted by TSB.
 4. **Weather-aware output** — fetches forecast for planned ride date, warns about wind/rain/heat.
-5. **Graceful degradation** — if Claude API fails, fall back to requiring flags. If weather fails, skip weather. If DB is unavailable, use default speed estimates.
+5. **Graceful degradation** — if weather fails, skip weather. If DB is unavailable, use default speed estimates.
 6. **CLI refactoring** — `cli.py` is refactored from bare `main()` to argparse subcommands. Running without arguments (`python3 -m veloai.cli`) preserves existing behavior (weekly recommendation).
 
 ---
 
 ## User Interface
 
-### Natural language (default)
-```bash
-python3 -m veloai.cli plan "2h gravel loop through coastal viewpoints"
-python3 -m veloai.cli plan "easy recovery ride, 1 hour, avoid hills"
-python3 -m veloai.cli plan "long road ride to Sintra and back"
-```
-
-### Structured flags
+### Usage (called by OpenClaw or directly)
 ```bash
 python3 -m veloai.cli plan --duration 2h --surface gravel --loop
 python3 -m veloai.cli plan --duration 1h --surface road --loop --preference comfort
@@ -47,23 +40,9 @@ python3 -m veloai.cli plan --duration 3h --surface road --waypoints "Sintra,Casc
 
 ## Processing Pipeline
 
-### Step 1: Parse input
+### Step 1: Parse flags
 
-**Natural language path:** Send user input to Claude API with a system prompt:
-
-```
-Extract cycling route parameters from this request. Return JSON:
-{
-  "duration_minutes": <int>,
-  "surface": "road" | "gravel" | "mtb",
-  "loop": <bool>,
-  "waypoints": [<string>],
-  "date": "YYYY-MM-DD",
-  "notes": "<any extra context>"
-}
-```
-
-**Flags path:** argparse directly, no LLM call.
+argparse parses `--duration`, `--surface`, `--loop`, `--waypoints`, `--date`. Duration string ("2h", "1h30m", "90min") is parsed to minutes. Date string ("tomorrow", "saturday", "2026-03-15") is resolved to YYYY-MM-DD.
 
 ### Step 2: Estimate distance
 
@@ -132,24 +111,20 @@ Komoot planner URL format: `https://www.komoot.com/plan/@{lat},{lng},{zoom}/{spo
 
 | File | Responsibility |
 |------|----------------|
-| `veloai/route_planner.py` | Core pipeline: parse → enrich → build URL → format output |
-| `veloai/llm.py` | Claude API wrapper via `requests` (direct Messages API call, no SDK) |
+| `veloai/route_planner.py` | Core pipeline: enrich → build URL → format output |
 | `veloai/cli.py` | Refactor to argparse subcommands: default=`recommend`, new=`plan` |
 | `veloai/geocode.py` | Nominatim geocoder (place name → lat/lng) |
 | `veloai/weather.py` | Already exists — reused for forecast |
 | `veloai/db.py` | Already exists — add `get_avg_speed()` query |
-| `veloai/keychain.py` | Already exists — add `get_string()` for non-JSON values |
 
 ### New dependency
 
-- No new pip dependencies — uses `requests` (already installed) for Claude API and Nominatim
-- Anthropic API key stored in macOS Keychain: `openclaw/anthropic` (plain string, retrieved via new `keychain.get_string()`)
+- No new pip dependencies — uses `requests` (already installed) for Nominatim geocoding
 
 ### CLI refactoring
 
 `cli.py` must be refactored from bare `main()` to argparse with subcommands:
 - `python3 -m veloai.cli` (no args) → runs existing `recommend` flow (backward compatible)
-- `python3 -m veloai.cli plan "..."` → runs new route planner
 - `python3 -m veloai.cli plan --duration 2h --surface gravel --loop`
 
 ---
@@ -179,7 +154,6 @@ Speed estimates are overridden by actual ride history averages when available.
 | Key | Source | Value |
 |-----|--------|-------|
 | Home coordinates | `LOCATION` in `cli.py` | 38.69, -9.32 (São Domingos de Rana) — reuse existing constant |
-| Anthropic API key | Keychain | `openclaw/anthropic` (plain string via `keychain.get_string()`) |
 | Default surface | Config/flag | `gravel` |
 
 ---
@@ -188,9 +162,7 @@ Speed estimates are overridden by actual ride history averages when available.
 
 | Failure | Behavior |
 |---------|----------|
-| Claude API unreachable/invalid key | Print error, fall back to requiring flags |
-| LLM returns malformed JSON | Retry once, then fall back to flags |
-| LLM returns invalid values (duration=0) | Apply defaults, warn user |
+| Invalid duration format | Print error, exit |
 | Nominatim geocoding fails | Skip waypoints, plan from home only |
 | Weather API fails | Skip weather section in output |
 | DB unavailable | Use default speed estimates (road=27, gravel=22, mtb=17 km/h) |
