@@ -7,3 +7,4 @@ venv/
 .DS_Store
 *.egg-info/
 dist/
+config.yaml

@@ -1,0 +1,38 @@
+# VeloAI Configuration
+# Copy to ~/.config/veloai/config.yaml and edit with your values.
+#
+# All values can be overridden by environment variables.
+# Passwords support three methods: direct value, env var name, or shell command.
+
+home:
+  lat: 0.0            # Your home latitude (required)
+  lng: 0.0            # Your home longitude (required)
+  name: ""            # Display name for your location
+
+db:
+  host: localhost      # PostgreSQL host
+  port: 5432          # PostgreSQL port
+  name: veloai        # Database name
+  user: veloai        # Database user
+  password: ""        # Direct password, or use password_env/password_cmd below
+  # password_env: VELOAI_DB_PASS         # Read password from this env var
+  # password_cmd: "vault read -field=password secret/veloai/db"  # Shell command
+
+komoot:
+  email: ""
+  password: ""
+  # email_env: KOMOOT_EMAIL
+  # password_env: KOMOOT_PASSWORD
+
+strava:
+  client_id: ""
+  client_secret: ""
+  refresh_token: ""
+
+defaults:
+  surface: gravel     # road, gravel, or mtb
+  loop: true          # Round-trip routes by default
+
+fitness:
+  threshold_hr: 170   # Max HR threshold (0 = auto-estimate from data)
+  ftp: 150            # Functional threshold power in watts (0 = auto-estimate)
