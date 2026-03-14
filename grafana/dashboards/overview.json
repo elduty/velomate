@@ -871,17 +871,18 @@
             },
             "layers": [
               {
-                "type": "heatmap",
+                "type": "markers",
                 "name": "Rides",
                 "config": {
-                  "weight": {
-                    "fixed": 1
-                  },
-                  "radius": {
-                    "fixed": 5
-                  },
-                  "blur": {
-                    "fixed": 12
+                  "showLegend": false,
+                  "style": {
+                    "color": {
+                      "fixed": "#ff9830"
+                    },
+                    "opacity": 0.3,
+                    "size": {
+                      "fixed": 2
+                    }
                   }
                 },
                 "location": {
