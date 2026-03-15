@@ -728,7 +728,8 @@
               "mode": "normal",
               "group": "A"
             },
-            "barWidthFactor": 0.6
+            "barWidthFactor": 0.6,
+            "barAlignment": 1
           }
         },
         "overrides": [
@@ -791,7 +792,8 @@
               "mode": "normal",
               "group": "A"
             },
-            "barWidthFactor": 0.6
+            "barWidthFactor": 0.6,
+            "barAlignment": 1
           }
         },
         "overrides": [
@@ -853,7 +855,8 @@
           "custom": {
             "drawStyle": "bars",
             "fillOpacity": 80,
-            "barWidthFactor": 0.6
+            "barWidthFactor": 0.6,
+            "barAlignment": 1
           }
         },
         "overrides": []
