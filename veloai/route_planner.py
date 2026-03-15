@@ -300,7 +300,10 @@ def plan(duration_str: str = None, distance_str: str = None,
             print(f"  [intelligence] Skipped: {e}", file=sys.stderr)
 
     # Generate real GPX route via Valhalla
-    route_name = f"VeloAI {duration_min // 60}h{duration_min % 60:02d}m {surface.title()}"
+    if target_distance:
+        route_name = f"VeloAI {target_distance:.0f}km {surface.title()}"
+    else:
+        route_name = f"VeloAI {duration_min // 60}h{duration_min % 60:02d}m {surface.title()}"
     if waypoint_names:
         route_name += " via " + ", ".join(waypoint_names)
 
@@ -392,6 +395,7 @@ def plan(duration_str: str = None, distance_str: str = None,
 
         preview(result["coords"], route_name, wp_for_preview, route_info={
             "distance_km": actual_km,
+            "duration_min": duration_min,
             "elevation": elevation_info,
             "scenic": scenic_info,
             "surface": surface_check,

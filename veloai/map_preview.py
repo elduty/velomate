@@ -41,19 +41,29 @@ def preview(coords: list, name: str, waypoints: list | None = None,
     # Build info cards HTML
     cards_html = ""
 
-    # Distance + elevation card
+    # Distance + duration + elevation cards
     dist = info.get("distance_km", 0)
+    dur = info.get("duration_min", 0)
     elev = info.get("elevation", {})
-    if dist or elev:
-        climb = elev.get("total_climb", 0)
-        descent = elev.get("total_descent", 0)
-        gradient = elev.get("max_gradient", 0)
+    if dist:
         cards_html += f"""
         <div class="card">
             <div class="card-icon">📏</div>
             <div class="card-body">
                 <div class="card-value">{dist:.0f} km</div>
                 <div class="card-label">Distance</div>
+            </div>
+        </div>"""
+    if dur:
+        hours = dur // 60
+        mins = dur % 60
+        dur_str = f"{hours}h {mins:02d}m" if hours else f"{mins}m"
+        cards_html += f"""
+        <div class="card">
+            <div class="card-icon">⏱</div>
+            <div class="card-body">
+                <div class="card-value">{dur_str}</div>
+                <div class="card-label">Est. duration</div>
             </div>
         </div>"""
         if climb:
