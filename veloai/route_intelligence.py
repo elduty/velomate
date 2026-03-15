@@ -587,12 +587,14 @@ def smart_waypoints(
     # Get ride history density
     density = get_ride_density(lat, lng, radius_km)
 
-    # Combine and score candidates
+    # Combine and score candidates — filter by actual radius
+    max_dist_km = radius_km * 1.5  # hard cap: no candidate beyond 1.5x route radius
     candidates = []
 
     for poi in pois:
         dist = math.sqrt((poi["lat"] - lat) ** 2 + (poi["lng"] - lng) ** 2) * 111
-        # Prefer POIs that are roughly at the route radius (not too close, not too far)
+        if dist > max_dist_km:
+            continue
         ideal_dist = radius_km * 0.7
         dist_score = max(0, 1 - abs(dist - ideal_dist) / radius_km)
 
@@ -625,8 +627,10 @@ def smart_waypoints(
             "angle": math.atan2(poi["lat"] - lat, poi["lng"] - lng),
         })
 
-    for seg in segments[:10]:  # top 10 by popularity
+    for seg in segments[:10]:
         dist = math.sqrt((seg["lat"] - lat) ** 2 + (seg["lng"] - lng) ** 2) * 111
+        if dist > max_dist_km:
+            continue
         ideal_dist = radius_km * 0.7
         dist_score = max(0, 1 - abs(dist - ideal_dist) / radius_km)
         pop_score = min(1.0, seg["athlete_count"] / 500)  # normalize
@@ -657,6 +661,8 @@ def smart_waypoints(
     }
     for kh in komoot_highlights:
         dist = math.sqrt((kh["lat"] - lat) ** 2 + (kh["lng"] - lng) ** 2) * 111
+        if dist > max_dist_km:
+            continue
         ideal_dist = radius_km * 0.7
         dist_score = max(0, 1 - abs(dist - ideal_dist) / radius_km)
         type_score = komoot_type_scores.get(kh["category"], 0.5)
