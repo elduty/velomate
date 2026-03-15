@@ -294,7 +294,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT a.id, a.name AS \"Name\", TO_CHAR(a.date, 'YYYY-MM-DD') AS \"Date\", TO_CHAR(a.date, 'Dy') AS \"Day\", ROUND((a.distance_m / 1000.0)::numeric, 1) AS \"Dist (km)\", ROUND(a.elevation_m::numeric, 0) AS \"Elev (m)\", TO_CHAR(a.duration_s * interval '1 second', 'HH24:MI') AS \"Time\", ROUND(a.avg_speed_kmh::numeric, 1) AS \"Avg Speed\", COALESCE(a.avg_hr::text, '—') AS \"Avg HR\", COALESCE(a.avg_power::text, '—') AS \"Avg W\", ROUND(a.tss::numeric, 0) AS \"TSS\", CASE a.sport_type WHEN 'cycling_outdoor' THEN 'Outdoor' WHEN 'cycling_indoor' THEN 'Indoor' WHEN 'zwift' THEN 'Zwift' WHEN 'strength' THEN 'Strength' ELSE COALESCE(a.sport_type, '—') END AS \"Type\", EXTRACT(EPOCH FROM a.date - interval '1 hour')::bigint * 1000 AS from_ts, EXTRACT(EPOCH FROM a.date + a.duration_s * interval '1 second' + interval '1 hour')::bigint * 1000 AS to_ts FROM activities a WHERE $__timeFilter(a.date) AND ('${sport_type}' = 'All' OR a.sport_type = '${sport_type}') ORDER BY a.date DESC;",
+          "rawSql": "SELECT a.id, a.name AS \"Name\", TO_CHAR(a.date, 'YYYY-MM-DD') AS \"Date\", TO_CHAR(a.date, 'Dy') AS \"Day\", ROUND((a.distance_m / 1000.0)::numeric, 1) AS \"Dist (km)\", ROUND(a.elevation_m::numeric, 0) AS \"Elev (m)\", TO_CHAR(a.duration_s * interval '1 second', 'HH24:MI') AS \"Time\", ROUND(a.avg_speed_kmh::numeric, 1) AS \"Avg Speed\", COALESCE(a.avg_hr::text, '—') AS \"Avg HR\", COALESCE(a.avg_power::text, '—') AS \"Avg W\", ROUND(a.tss::numeric, 0) AS \"TSS\", CASE a.sport_type WHEN 'cycling_outdoor' THEN 'Outdoor' WHEN 'cycling_indoor' THEN 'Indoor' WHEN 'zwift' THEN 'Zwift' WHEN 'strength' THEN 'Strength' ELSE COALESCE(a.sport_type, '—') END AS \"Type\", EXTRACT(EPOCH FROM a.date - interval '1 hour')::bigint * 1000 AS from_ts, EXTRACT(EPOCH FROM a.date + a.duration_s * interval '1 second' + interval '1 hour')::bigint * 1000 AS to_ts FROM activities a WHERE $__timeFilter(a.date) ORDER BY a.date DESC;",
           "format": "table",
           "refId": "A"
         }
@@ -468,44 +468,6 @@
     }
   ],
   "templating": {
-    "list": [
-      {
-        "name": "sport_type",
-        "type": "custom",
-        "label": "Sport",
-        "query": "All : All, Outdoor : cycling_outdoor, Indoor : cycling_indoor, Zwift : zwift, E-Bike : ebike",
-        "current": {
-          "text": "All",
-          "value": "All"
-        },
-        "options": [
-          {
-            "text": "All",
-            "value": "All",
-            "selected": true
-          },
-          {
-            "text": "Outdoor",
-            "value": "cycling_outdoor",
-            "selected": false
-          },
-          {
-            "text": "Indoor",
-            "value": "cycling_indoor",
-            "selected": false
-          },
-          {
-            "text": "Zwift",
-            "value": "zwift",
-            "selected": false
-          },
-          {
-            "text": "E-Bike",
-            "value": "ebike",
-            "selected": false
-          }
-        ]
-      }
-    ]
+    "list": []
   }
 }

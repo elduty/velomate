@@ -70,43 +70,6 @@
             "selected": false
           }
         ]
-      },
-      {
-        "name": "sport_type",
-        "type": "custom",
-        "label": "Sport",
-        "query": "All : All, Outdoor : cycling_outdoor, Indoor : cycling_indoor, Zwift : zwift, E-Bike : ebike",
-        "current": {
-          "text": "All",
-          "value": "All"
-        },
-        "options": [
-          {
-            "text": "All",
-            "value": "All",
-            "selected": true
-          },
-          {
-            "text": "Outdoor",
-            "value": "cycling_outdoor",
-            "selected": false
-          },
-          {
-            "text": "Indoor",
-            "value": "cycling_indoor",
-            "selected": false
-          },
-          {
-            "text": "Zwift",
-            "value": "zwift",
-            "selected": false
-          },
-          {
-            "text": "E-Bike",
-            "value": "ebike",
-            "selected": false
-          }
-        ]
       }
     ]
   },
@@ -127,7 +90,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT COUNT(*) AS \"Rides\" FROM activities WHERE $__timeFilter(date) AND ('${sport_type}' = 'All' OR sport_type = '${sport_type}');",
+          "rawSql": "SELECT COUNT(*) AS \"Rides\" FROM activities WHERE $__timeFilter(date);",
           "format": "table",
           "refId": "A"
         }
@@ -175,7 +138,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND((COALESCE(SUM(distance_m), 0) / 1000.0)::numeric, 1) AS \"Distance\" FROM activities WHERE $__timeFilter(date) AND ('${sport_type}' = 'All' OR sport_type = '${sport_type}');",
+          "rawSql": "SELECT ROUND((COALESCE(SUM(distance_m), 0) / 1000.0)::numeric, 1) AS \"Distance\" FROM activities WHERE $__timeFilter(date);",
           "format": "table",
           "refId": "A"
         }
@@ -224,7 +187,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND(COALESCE(SUM(elevation_m), 0)::numeric, 0) AS \"Elevation\" FROM activities WHERE $__timeFilter(date) AND ('${sport_type}' = 'All' OR sport_type = '${sport_type}');",
+          "rawSql": "SELECT ROUND(COALESCE(SUM(elevation_m), 0)::numeric, 0) AS \"Elevation\" FROM activities WHERE $__timeFilter(date);",
           "format": "table",
           "refId": "A"
         }
@@ -273,7 +236,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT COALESCE(SUM(duration_s), 0) AS \"Duration\" FROM activities WHERE $__timeFilter(date) AND ('${sport_type}' = 'All' OR sport_type = '${sport_type}');",
+          "rawSql": "SELECT COALESCE(SUM(duration_s), 0) AS \"Duration\" FROM activities WHERE $__timeFilter(date);",
           "format": "table",
           "refId": "A"
         }
@@ -322,7 +285,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT COALESCE(SUM(calories), 0) AS \"Calories\" FROM activities WHERE $__timeFilter(date) AND ('${sport_type}' = 'All' OR sport_type = '${sport_type}') AND calories IS NOT NULL;",
+          "rawSql": "SELECT COALESCE(SUM(calories), 0) AS \"Calories\" FROM activities WHERE $__timeFilter(date) AND calories IS NOT NULL;",
           "format": "table",
           "refId": "A"
         }
