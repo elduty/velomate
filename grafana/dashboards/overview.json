@@ -1371,7 +1371,7 @@
           },
           "targets": [
             {
-              "rawSql": "SELECT ROUND(ctl::numeric, 1) AS \"CTL\" FROM athlete_stats ORDER BY date DESC LIMIT 1;",
+              "rawSql": "SELECT ROUND(ctl::numeric, 1) AS \"CTL\" FROM athlete_stats WHERE $__timeFilter(date) ORDER BY date DESC LIMIT 1;",
               "format": "table",
               "refId": "A"
             }
@@ -1411,7 +1411,7 @@
           },
           "targets": [
             {
-              "rawSql": "SELECT ROUND(atl::numeric, 1) AS \"ATL\" FROM athlete_stats ORDER BY date DESC LIMIT 1;",
+              "rawSql": "SELECT ROUND(atl::numeric, 1) AS \"ATL\" FROM athlete_stats WHERE $__timeFilter(date) ORDER BY date DESC LIMIT 1;",
               "format": "table",
               "refId": "A"
             }
@@ -1451,7 +1451,7 @@
           },
           "targets": [
             {
-              "rawSql": "SELECT ROUND(tsb::numeric, 1) AS \"TSB\" FROM athlete_stats ORDER BY date DESC LIMIT 1;",
+              "rawSql": "SELECT ROUND(tsb::numeric, 1) AS \"TSB\" FROM athlete_stats WHERE $__timeFilter(date) ORDER BY date DESC LIMIT 1;",
               "format": "table",
               "refId": "A"
             }
@@ -1557,7 +1557,7 @@
           },
           "targets": [
             {
-              "rawSql": "WITH best20 AS (SELECT ROUND(MAX(avg_20min) * 0.95) AS ftp FROM (SELECT AVG(s.power) OVER (PARTITION BY s.activity_id ORDER BY s.time_offset RANGE BETWEEN 1199 PRECEDING AND CURRENT ROW) AS avg_20min FROM activity_streams s JOIN activities a ON a.id = s.activity_id WHERE a.date >= CURRENT_DATE - interval '90 days' AND s.power IS NOT NULL AND s.power > 0) sub WHERE avg_20min IS NOT NULL) SELECT COALESCE((SELECT ftp FROM best20 WHERE ftp > 0), (SELECT ROUND(percentile_cont(0.95) WITHIN GROUP (ORDER BY avg_power)::numeric, 0) FROM activities WHERE avg_power IS NOT NULL AND avg_power > 0)) AS \"FTP\";",
+              "rawSql": "WITH best20 AS (SELECT ROUND(MAX(avg_20min) * 0.95) AS ftp FROM (SELECT AVG(s.power) OVER (PARTITION BY s.activity_id ORDER BY s.time_offset RANGE BETWEEN 1199 PRECEDING AND CURRENT ROW) AS avg_20min FROM activity_streams s JOIN activities a ON a.id = s.activity_id WHERE $__timeFilter(a.date) AND s.power IS NOT NULL AND s.power > 0) sub WHERE avg_20min IS NOT NULL) SELECT COALESCE((SELECT ftp FROM best20 WHERE ftp > 0), (SELECT ROUND(percentile_cont(0.95) WITHIN GROUP (ORDER BY avg_power)::numeric, 0) FROM activities WHERE $__timeFilter(date) AND avg_power IS NOT NULL AND avg_power > 0)) AS \"FTP\";",
               "format": "table",
               "refId": "A"
             }
