@@ -1160,7 +1160,7 @@
           },
           "targets": [
             {
-              "rawSql": "SELECT MAX(avg_power) AS \"Best Power\" FROM activities WHERE $__timeFilter(date) AND duration_s > 1200 AND avg_power IS NOT NULL;",
+              "rawSql": "SELECT MAX(avg_power) AS \"Best Power\" FROM activities WHERE $__timeFilter(date) AND duration_s > 1200 AND avg_power IS NOT NULL AND is_indoor IS NOT TRUE;",
               "format": "table",
               "refId": "A"
             }
@@ -1356,7 +1356,7 @@
           },
           "targets": [
             {
-              "rawSql": "SELECT MAX(avg_power) AS \"Best Power\" FROM activities WHERE duration_s > 1200 AND avg_power IS NOT NULL;",
+              "rawSql": "SELECT MAX(avg_power) AS \"Best Power\" FROM activities WHERE duration_s > 1200 AND avg_power IS NOT NULL AND is_indoor IS NOT TRUE;",
               "format": "table",
               "refId": "A"
             }
@@ -1405,7 +1405,7 @@
           },
           "targets": [
             {
-              "rawSql": "SELECT date::date AS \"time\", ROUND((avg_power * 1.05)::numeric, 0) AS \"Est 20min Power (W)\" FROM activities WHERE avg_power IS NOT NULL AND avg_power > 0 AND duration_s > 1200 ORDER BY date;",
+              "rawSql": "SELECT date::date AS \"time\", ROUND((avg_power * 1.05)::numeric, 0) AS \"Est 20min Power (W)\" FROM activities WHERE avg_power IS NOT NULL AND avg_power > 0 AND duration_s > 1200 AND is_indoor IS NOT TRUE ORDER BY date;",
               "format": "time_series",
               "refId": "A"
             }
