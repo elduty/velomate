@@ -29,6 +29,21 @@ def _get_healthy_conn():
             return None
 
 
+def _daily_fitness_recalc():
+    """Recalculate fitness at the start of each day so CTL/ATL/TSB decay on rest days."""
+    conn = None
+    try:
+        conn = _get_healthy_conn()
+        if conn:
+            recalculate_fitness(conn)
+            print("[daily] Fitness recalculated through today")
+    except Exception as e:
+        print(f"[daily] Fitness recalc error: {e}")
+    finally:
+        if conn:
+            conn.close()
+
+
 def poll_strava():
     """Fetch activities since last sync, store streams, recalculate fitness."""
     conn = None
@@ -87,8 +102,9 @@ def run():
 
     interval = int(os.environ.get("POLL_INTERVAL_MINUTES", 10))
     schedule.every(interval).minutes.do(poll_strava)
+    schedule.every().day.at("00:05").do(_daily_fitness_recalc)
 
-    print(f"[main] Polling Strava every {interval}min")
+    print(f"[main] Polling Strava every {interval}min, fitness recalc daily at 00:05")
 
     # Run once immediately
     poll_strava()
