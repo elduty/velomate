@@ -16,13 +16,6 @@
   "refresh": "5m",
   "links": [
     {
-      "title": "Fitness Trends",
-      "url": "/d/veloai-fitness/fitness-trends",
-      "type": "link",
-      "icon": "dashboard",
-      "keepTime": true
-    },
-    {
       "title": "Activity Detail",
       "url": "/d/veloai-activity/activity-detail",
       "type": "link",

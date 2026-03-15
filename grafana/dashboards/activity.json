@@ -20,13 +20,6 @@
       "type": "link",
       "icon": "dashboard",
       "keepTime": true
-    },
-    {
-      "title": "Fitness Trends",
-      "url": "/d/veloai-fitness/fitness-trends",
-      "type": "link",
-      "icon": "dashboard",
-      "keepTime": true
     }
   ],
   "templating": {
@@ -945,7 +938,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH deltas AS (SELECT time_offset, hr, power, speed_kmh, altitude_m, COALESCE(speed_kmh, 0) / 3600.0 * (time_offset - LAG(time_offset, 1, time_offset) OVER (ORDER BY time_offset)) AS dist_delta FROM activity_streams WHERE activity_id = ${activity_id}), cumulative AS (SELECT time_offset, hr, power, speed_kmh, altitude_m, SUM(dist_delta) OVER (ORDER BY time_offset ROWS UNBOUNDED PRECEDING) AS dist_km FROM deltas), splits AS (SELECT FLOOR(dist_km)::int + 1 AS \"KM\", ROUND(AVG(speed_kmh)::numeric, 1) AS \"Avg Speed\", ROUND(AVG(hr)::numeric, 0) AS \"Avg HR\", ROUND(AVG(NULLIF(power, 0))::numeric, 0) AS \"Avg Power\", ROUND((MAX(altitude_m) - MIN(altitude_m))::numeric, 0) AS \"Elev Range (m)\", COUNT(*) AS seconds FROM cumulative WHERE dist_km >= 0 GROUP BY FLOOR(dist_km)::int) SELECT \"KM\", \"Avg Speed\", \"Avg HR\", COALESCE(\"Avg Power\"::text, '—') AS \"Avg Power\", \"Elev Range (m)\", TO_CHAR(seconds * interval '1 second', 'MI:SS') AS \"Time\" FROM splits ORDER BY \"KM\";",
+          "rawSql": "WITH deltas AS (SELECT time_offset, hr, power, speed_kmh, altitude_m, COALESCE(speed_kmh, 0) / 3600.0 * (time_offset - LAG(time_offset, 1, time_offset) OVER (ORDER BY time_offset)) AS dist_delta FROM activity_streams WHERE activity_id = ${activity_id}), cumulative AS (SELECT time_offset, hr, power, speed_kmh, altitude_m, SUM(dist_delta) OVER (ORDER BY time_offset ROWS UNBOUNDED PRECEDING) AS dist_km FROM deltas), splits AS (SELECT FLOOR(dist_km)::int + 1 AS \"KM\", ROUND(AVG(speed_kmh)::numeric, 1) AS \"Avg Speed\", ROUND(AVG(hr)::numeric, 0) AS \"Avg HR\", ROUND(AVG(NULLIF(power, 0))::numeric, 0) AS \"Avg Power\", ROUND((MAX(altitude_m) - MIN(altitude_m))::numeric, 0) AS \"Elev Range (m)\", COUNT(*) AS seconds FROM cumulative WHERE dist_km >= 0 GROUP BY FLOOR(dist_km)::int) SELECT \"KM\", \"Avg Speed\", \"Avg HR\", COALESCE(\"Avg Power\"::text, '\u2014') AS \"Avg Power\", \"Elev Range (m)\", TO_CHAR(seconds * interval '1 second', 'MI:SS') AS \"Time\" FROM splits ORDER BY \"KM\";",
           "format": "table",
           "refId": "A"
         }
