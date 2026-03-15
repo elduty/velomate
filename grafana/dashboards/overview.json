@@ -619,8 +619,8 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 12,
-        "y": 6
+        "x": 0,
+        "y": 14
       },
       "datasource": {
         "type": "postgres",
@@ -731,8 +731,8 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 0,
-        "y": 14
+        "x": 12,
+        "y": 6
       },
       "datasource": {
         "type": "postgres",
@@ -844,7 +844,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 14
+        "y": 30
       },
       "datasource": {
         "type": "postgres",
@@ -1068,7 +1068,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 22
+        "y": 14
       },
       "datasource": {
         "type": "postgres",
@@ -1179,8 +1179,8 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 0,
-        "y": 30
+        "x": 12,
+        "y": 22
       },
       "datasource": {
         "type": "postgres",
@@ -1291,7 +1291,7 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 12,
+        "x": 0,
         "y": 30
       },
       "datasource": {
