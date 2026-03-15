@@ -22,8 +22,7 @@ Inspired by [TeslaMate](https://github.com/teslamate-org/teslamate). Works with 
 
 ### Intelligent Route Planning
 - Generates real road-following GPX loops via [Valhalla](https://github.com/valhalla/valhalla) (free, OpenStreetMap-based)
-- Saves GPX files for import into any bike computer or app
-- Optional Komoot upload with `--upload` flag (requires `komPYoot`)
+- Saves GPX files for import into any bike computer or app (Komoot, Garmin, Wahoo, etc.)
 - Smart waypoint selection from 10 data sources (see below)
 - Weather-aware: best ride time, UV warnings, wind direction analysis
 - Safety control: `--safety` flag adjusts preference for bike lanes vs main roads
@@ -138,7 +137,7 @@ python3 -m veloai.cli plan --duration 2h --surface gravel
 python3 -m veloai.cli plan --duration 3h --surface road --waypoints "Sintra,Cascais"
 python3 -m veloai.cli plan --duration 1h --surface mtb --safety 1.0
 python3 -m veloai.cli plan --duration 2h --preference comfort
-python3 -m veloai.cli plan --duration 2h --surface gravel --upload  # upload to Komoot
+python3 -m veloai.cli plan --duration 2h --preference comfort
 ```
 
 ### Plan flags
@@ -153,7 +152,6 @@ python3 -m veloai.cli plan --duration 2h --surface gravel --upload  # upload to 
 | `--date` | `tomorrow` | When to ride (`today`, `saturday`, `2026-03-20`) |
 | `--time` | — | Start time (`14:00`, `2pm`, `9am`) |
 | `--start` | from config | Override start as `lat,lng` |
-| `--upload` | false | Upload GPX to Komoot (requires komPYoot + credentials) |
 | `--loop` | true | Round-trip route |
 
 ### Example output
@@ -171,7 +169,6 @@ python3 -m veloai.cli plan --duration 2h --surface gravel --upload  # upload to 
   🌅 Sunrise 06:45, sunset 18:46
   💪 neutral (TSB -4)
   💾 GPX: /tmp/veloai_route_gravel_24km.gpx
-  🔗 https://www.komoot.com/tour/123456789    ← only with --upload
 ```
 
 ## Fitness Metrics
@@ -222,7 +219,6 @@ Configured via `~/.config/veloai/config.yaml` (see `config.example.yaml`):
 
 - Home coordinates (required for route planning)
 - Database connection
-- Komoot credentials (optional — only for `--upload` flag)
 - Strava credentials (for segment data in route intelligence)
 - Avoid zones (lat/lng areas to exclude from routes)
 

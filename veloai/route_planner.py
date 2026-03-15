@@ -204,58 +204,11 @@ def _get_strava_token() -> str | None:
         return None
 
 
-def _upload_to_komoot(gpx_path: str, surface: str, name: str) -> str | None:
-    """Upload GPX to Komoot as a planned route (not recorded). Returns tour URL or None."""
-    try:
-        import requests as _requests
-        from komPYoot.api import API, Sport
-        from veloai.config import load as load_config
-
-        cfg = load_config()
-        komoot_cfg = cfg["komoot"]
-        if not komoot_cfg.get("email") or not komoot_cfg.get("password"):
-            print("  Komoot credentials not configured — skipping upload", file=sys.stderr)
-            return None
-        api = API()
-        api.login(komoot_cfg["email"], komoot_cfg["password"])
-
-        sport_map = {
-            "road":   "racebike",
-            "gravel": "touringbicycle",
-            "mtb":    "mtb",
-        }
-        sport_flag = sport_map.get(surface, "touringbicycle")
-
-        # Upload as planned route (type=tour_planned) instead of recorded activity
-        with open(gpx_path, "rb") as f:
-            gpx_data = f.read()
-        resp = _requests.post(
-            "https://api.komoot.de/v007/tours/",
-            params={"data_type": "gpx", "sport": sport_flag, "type": "tour_planned"},
-            headers={"User-Agent": "VeloAI"},
-            data=gpx_data,
-            auth=(api.user_details["user_id"], api.user_details["token"]),
-            timeout=30,
-        )
-        ok = resp.status_code in (200, 201, 202)
-        if ok:
-            tour_id = resp.json().get("id")
-            print(f"  Planned route created (ID: {tour_id})", file=sys.stderr)
-            if tour_id:
-                return f"https://www.komoot.com/tour/{tour_id}"
-            return "https://www.komoot.com/user/tours"
-        else:
-            print(f"  Komoot upload failed: HTTP {resp.status_code}", file=sys.stderr)
-    except Exception as e:
-        print(f"  Komoot upload failed: {e}", file=sys.stderr)
-    return None
-
-
 def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
          waypoints_str: str = None, date_str: str = "tomorrow",
          time_str: str = None,
          home_lat: float = None, home_lng: float = None,
-         upload: bool = True, preference: str = "variety",
+         preference: str = "variety",
          safety: float = 0.5) -> str:
     """Generate a real cycling route, upload to Komoot, return summary."""
 
@@ -398,16 +351,6 @@ def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
     except Exception as e:
         print(f"  [preview] Skipped: {e}", file=sys.stderr)
 
-    # Upload to Komoot (opt-in, requires credentials)
-    komoot_url = None
-    if upload:
-        from veloai.config import load as _load_cfg
-        _cfg = _load_cfg()
-        if _cfg["komoot"].get("email") and _cfg["komoot"].get("password"):
-            print(f"  Uploading to Komoot...", file=sys.stderr)
-            komoot_url = _upload_to_komoot(gpx_path, surface, route_name)
-        else:
-            print(f"  Komoot credentials not configured — skipping upload", file=sys.stderr)
 
     # Build output
     lines = []
@@ -513,7 +456,5 @@ def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
         lines.append(f"  💪 {fitness_note}")
 
     lines.append(f"  💾 GPX: {gpx_path}")
-    if komoot_url:
-        lines.append(f"  🔗 {komoot_url}")
 
     return "\n".join(lines)

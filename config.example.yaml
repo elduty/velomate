@@ -18,12 +18,6 @@ db:
   # password_env: VELOAI_DB_PASS         # Read password from this env var
   # password_cmd: "vault read -field=password secret/veloai/db"  # Shell command
 
-komoot:
-  email: ""
-  password: ""
-  # email_env: KOMOOT_EMAIL
-  # password_env: KOMOOT_PASSWORD
-
 strava:
   client_id: ""
   client_secret: ""
