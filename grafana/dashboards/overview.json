@@ -9,8 +9,8 @@
   "schemaVersion": 39,
   "version": 1,
   "time": {
-    "from": "now-7d",
-    "to": "now"
+    "from": "now-30d/d",
+    "to": "now/d"
   },
   "refresh": "5m",
   "links": [
@@ -699,22 +699,22 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.distance_m) / 1000.0, 0) AS \"Outdoor (km)\" FROM generate_series($__timeFrom()::timestamptz, $__timeTo()::timestamptz, '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = date_trunc('${group_by}', gs) AND a.sport_type = 'cycling_outdoor' GROUP BY gs ORDER BY gs;",
+          "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.distance_m) / 1000.0, 0) AS \"Outdoor (km)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'cycling_outdoor' GROUP BY gs ORDER BY gs;",
           "format": "time_series",
           "refId": "A"
         },
         {
-          "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.distance_m) / 1000.0, 0) AS \"Zwift (km)\" FROM generate_series($__timeFrom()::timestamptz, $__timeTo()::timestamptz, '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = date_trunc('${group_by}', gs) AND a.sport_type = 'zwift' GROUP BY gs ORDER BY gs;",
+          "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.distance_m) / 1000.0, 0) AS \"Zwift (km)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'zwift' GROUP BY gs ORDER BY gs;",
           "format": "time_series",
           "refId": "B"
         },
         {
-          "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.distance_m) / 1000.0, 0) AS \"E-Bike (km)\" FROM generate_series($__timeFrom()::timestamptz, $__timeTo()::timestamptz, '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = date_trunc('${group_by}', gs) AND a.sport_type = 'ebike' GROUP BY gs ORDER BY gs;",
+          "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.distance_m) / 1000.0, 0) AS \"E-Bike (km)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'ebike' GROUP BY gs ORDER BY gs;",
           "format": "time_series",
           "refId": "C"
         },
         {
-          "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.distance_m) / 1000.0, 0) AS \"Indoor (km)\" FROM generate_series($__timeFrom()::timestamptz, $__timeTo()::timestamptz, '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = date_trunc('${group_by}', gs) AND a.sport_type = 'cycling_indoor' GROUP BY gs ORDER BY gs;",
+          "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.distance_m) / 1000.0, 0) AS \"Indoor (km)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'cycling_indoor' GROUP BY gs ORDER BY gs;",
           "format": "time_series",
           "refId": "D"
         }
@@ -728,8 +728,7 @@
               "mode": "normal",
               "group": "A"
             },
-            "barWidthFactor": 0.6,
-            "barAlignment": 1
+            "barWidthFactor": 0.6
           }
         },
         "overrides": [
@@ -768,17 +767,17 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.elevation_m), 0) AS \"Outdoor (m)\" FROM generate_series($__timeFrom()::timestamptz, $__timeTo()::timestamptz, '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = date_trunc('${group_by}', gs) AND a.sport_type = 'cycling_outdoor' GROUP BY gs ORDER BY gs;",
+          "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.elevation_m), 0) AS \"Outdoor (m)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'cycling_outdoor' GROUP BY gs ORDER BY gs;",
           "format": "time_series",
           "refId": "A"
         },
         {
-          "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.elevation_m), 0) AS \"Zwift (m)\" FROM generate_series($__timeFrom()::timestamptz, $__timeTo()::timestamptz, '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = date_trunc('${group_by}', gs) AND a.sport_type = 'zwift' GROUP BY gs ORDER BY gs;",
+          "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.elevation_m), 0) AS \"Zwift (m)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'zwift' GROUP BY gs ORDER BY gs;",
           "format": "time_series",
           "refId": "B"
         },
         {
-          "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.elevation_m), 0) AS \"E-Bike (m)\" FROM generate_series($__timeFrom()::timestamptz, $__timeTo()::timestamptz, '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = date_trunc('${group_by}', gs) AND a.sport_type = 'ebike' GROUP BY gs ORDER BY gs;",
+          "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.elevation_m), 0) AS \"E-Bike (m)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'ebike' GROUP BY gs ORDER BY gs;",
           "format": "time_series",
           "refId": "C"
         }
@@ -792,8 +791,7 @@
               "mode": "normal",
               "group": "A"
             },
-            "barWidthFactor": 0.6,
-            "barAlignment": 1
+            "barWidthFactor": 0.6
           }
         },
         "overrides": [
@@ -841,7 +839,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.tss), 0) AS \"TSS\" FROM generate_series($__timeFrom()::timestamptz, $__timeTo()::timestamptz, '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = date_trunc('${group_by}', gs) GROUP BY gs ORDER BY gs;",
+          "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.tss), 0) AS \"TSS\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs GROUP BY gs ORDER BY gs;",
           "format": "time_series",
           "refId": "A"
         }
@@ -855,8 +853,7 @@
           "custom": {
             "drawStyle": "bars",
             "fillOpacity": 80,
-            "barWidthFactor": 0.6,
-            "barAlignment": 1
+            "barWidthFactor": 0.6
           }
         },
         "overrides": []
