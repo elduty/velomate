@@ -1,50 +1,88 @@
 # VeloAI 🚴
 
-A self-hosted cycling data platform — automatic ride ingestion, Grafana dashboards, and fitness-aware ride planning.
+A self-hosted cycling data platform — automatic ride ingestion from Strava, Grafana dashboards for analytics, and intelligent route planning.
 
-Inspired by TeslaMate. Built for cyclists using Strava.
+Inspired by [TeslaMate](https://github.com/teslamate-org/teslamate). Works with any device that syncs to Strava.
 
----
+## Features
 
-## What it does
+### Data Ingestion
+- Polls Strava every 10 minutes for new rides
+- Stores full per-second telemetry (HR, power, cadence, speed, altitude, GPS)
+- Calculates CTL/ATL/TSB fitness metrics locally (no Strava Premium needed)
+- FTP auto-estimated from rolling 90-day best 20-minute power
+- Smart deduplication when multiple devices record the same ride
 
-- **Ingestor** — polls Strava every 10 min, pulls every ride with full per-second streams (HR, power, cadence, speed, altitude, GPS), calculates CTL/ATL/TSB fitness metrics, stores everything in PostgreSQL. Strava is the single source of truth — any device that syncs to Strava works. Automatically deduplicates when multiple devices record the same ride by scoring data richness (power > HR > distance > cadence) and keeping the record with the most useful fields.
-- **Grafana** — 5 dashboards: overview hub, activity detail (with GPS map, zones, splits), fitness trends, weekly report, training log
-- **VeloAI CLI** — ride recommendations based on fitness + weather, and route planning via Valhalla GPX generation → Komoot upload
+### Grafana Dashboards (5 dashboards)
+- **Overview** — hero stats, weekly/monthly volume, training load (TSS), records & progress trends, year in review, lifetime ride heatmap
+- **Activity Detail** — GPS route map with speed/HR/power color overlay, HR and power zone distribution, per-km splits, normalized power, intensity factor, variability index
+- **Fitness Trends** — CTL/ATL/TSB over time with PR annotations
+- **Weekly Report** — week summary, week-over-week comparison, daily breakdown, HR zones
+- **Training Log** — chronological ride table with drill-down, cumulative distance and TSS
 
----
+### Intelligent Route Planning
+- Generates real road-following GPX loops via [Valhalla](https://github.com/valhalla/valhalla) (free, OpenStreetMap-based)
+- Uploads routes to Komoot → auto-syncs to bike computers
+- Smart waypoint selection from 10 data sources (see below)
+- Weather-aware: best ride time, UV warnings, wind direction analysis
+- Safety control: `--safety` flag adjusts preference for bike lanes vs main roads
+- Configurable avoid zones for roads/areas you don't want to ride
+
+## Route Intelligence — 10 Data Sources
+
+When planning a route, VeloAI selects waypoints and enriches the output using:
+
+| # | Source | Data | API |
+|---|--------|------|-----|
+| 1 | **OpenStreetMap POIs** | Viewpoints, cafes, peaks, water fountains, bike shops | Overpass (free) |
+| 2 | **Strava segments** | Popular cycling roads near you | Strava API |
+| 3 | **Komoot highlights** | Community-curated cycling POIs | Vector tiles (free, no auth) |
+| 4 | **Your ride history** | 30-day GPS density grid — variety or comfort mode | Local DB |
+| 5 | **OSM surface tags** | Road surface verification (asphalt, gravel, etc.) | Overpass (free) |
+| 6 | **OSM cycling infrastructure** | Bike lanes, speed limits, traffic calming → safety score | Overpass (free) |
+| 7 | **Open-Meteo weather** | Temperature, wind, UV, rain + hourly forecast | Open-Meteo (free) |
+| 8 | **Open-Meteo air quality** | European AQI, PM2.5, PM10 | Open-Meteo (free) |
+| 9 | **Open Topo Data** | Elevation profile, climb/descent, max gradient | Open Topo Data (free) |
+| 10 | **Sunrise/Sunset** | Daylight safety, golden hour | sunrise-sunset.org (free) |
+
+Additionally, the route planner detects **waymarked cycling trails** (EuroVelo, national routes) along the generated path.
+
+## Deduplication — Data Richness Scoring
+
+When multiple devices record the same ride (e.g., a bike computer and a watch both syncing to Strava), VeloAI keeps the record with the richest data:
+
+| Field | Score |
+|-------|-------|
+| Power data | +3 |
+| Heart rate | +2 |
+| Distance > 0 | +1 |
+| Cadence | +1 |
+| Calories | +1 |
+| Elevation > 0 | +1 |
+
+The record with the higher total score wins. Missing fields from the losing record (e.g., HR from a watch when a bike computer wins on power) are merged into the winner. This works with any device brand — no hardcoded priorities.
 
 ## Architecture
 
 ```
-Any device → Strava API ←── polling (10 min)
-Komoot              ←── route upload (CLI)
-                              │
-                              ▼
-                      [ ingestor (Docker) ]
-                              │
-                              ▼
-                      [ PostgreSQL 15 ]  ←── VeloAI CLI (local machine)
-                              │
-                              ▼
-                      [ Grafana 12 ]
+Any device → Strava → [Ingestor] → PostgreSQL → Grafana dashboards
+                                        ↑
+                            VeloAI CLI (route planning + recommendations)
+                                        ↓
+                              Valhalla → GPX → Komoot
 ```
 
-All services run on server via Docker Compose. VeloAI CLI runs on local machine, connects over LAN.
+Three Docker Compose services:
 
----
+| Service | Image | Port |
+|---------|-------|------|
+| PostgreSQL | `postgres:15` | 5423 |
+| Ingestor | custom Python 3.11 | — |
+| Grafana | `grafana/grafana:12.4` | 3021 |
 
-## Services
+The CLI runs locally and connects to the database over the network.
 
-| Service | Image | Host Port | URL |
-|---|---|---|---|
-| PostgreSQL | postgres:15 | 5423 | configured in `.env` |
-| Ingestor | custom Python | — | — |
-| Grafana | grafana/grafana:12.4 | 3021 | `http://localhost:3021` |
-
----
-
-## Setup
+## Quick Start
 
 ### 1. Clone and configure
 
@@ -52,35 +90,22 @@ All services run on server via Docker Compose. VeloAI CLI runs on local machine,
 git clone https://github.com/your-user/veloai.git
 cd veloai
 cp .env.example .env
-# Edit .env — fill in all values
+# Edit .env with your Strava API credentials and passwords
 ```
 
-### 2. `.env` values needed
-
-```
-POSTGRES_PASSWORD=       # DB password
-STRAVA_CLIENT_ID=        # from https://www.strava.com/settings/api
-STRAVA_CLIENT_SECRET=    # from Strava API settings
-STRAVA_REFRESH_TOKEN=    # obtained via OAuth (see below)
-GRAFANA_PASSWORD=        # Grafana admin password
-VELOAI_DB_HOST=your-db-host  # PostgreSQL host (for CLI — ingestor uses Docker DNS)
-VELOAI_DB_PORT=5432          # PostgreSQL port (for CLI — ingestor uses Docker DNS)
-```
-
-#### Getting a Strava refresh token
+### 2. Get a Strava refresh token
 
 ```bash
-# 1. Open in browser (replace YOUR_CLIENT_ID):
-https://www.strava.com/oauth/authorize?client_id=YOUR_CLIENT_ID&response_type=code&redirect_uri=http://localhost&approval_prompt=force&scope=activity:read_all
+# Open in browser (replace YOUR_CLIENT_ID):
+# https://www.strava.com/oauth/authorize?client_id=YOUR_CLIENT_ID&response_type=code&redirect_uri=http://localhost&approval_prompt=force&scope=activity:read_all
 
-# 2. After authorizing, copy the `code=` param from the redirect URL
-# 3. Exchange for refresh token:
+# After authorizing, exchange the code:
 curl -X POST https://www.strava.com/oauth/token \
   -d client_id=YOUR_CLIENT_ID \
   -d client_secret=YOUR_CLIENT_SECRET \
-  -d code=CODE_FROM_STEP_2 \
+  -d code=CODE_FROM_REDIRECT \
   -d grant_type=authorization_code
-# → use refresh_token from the response
+# Use the refresh_token from the response
 ```
 
 ### 3. Start services
@@ -89,171 +114,122 @@ curl -X POST https://www.strava.com/oauth/token \
 docker compose up -d
 ```
 
-On first run, the ingestor backfills the last 12 months of Strava activities + streams.
+On first run, the ingestor backfills the last 12 months of Strava activities.
 
-### 4. VeloAI CLI (local machine only)
+### 4. Set up the CLI
 
 ```bash
 pip install -r requirements.txt
-python3 -m veloai.cli
+cp config.example.yaml ~/.config/veloai/config.yaml
+# Edit with your home coordinates, DB host, and Komoot credentials
 ```
 
-Requires a config file with credentials:
+Credentials support three methods: direct values, environment variables, or shell commands (`password_cmd`) for secret managers like Keychain, 1Password, or Vault.
+
+## CLI Usage
 
 ```bash
-cp config.example.yaml ~/.config/veloai/config.yaml
-# Edit with your home coordinates, DB host, Strava/Komoot credentials
+# Weekly ride recommendation (fitness + weather + past routes)
+python3 -m veloai.cli
+
+# Plan a route
+python3 -m veloai.cli plan --duration 2h --surface gravel
+python3 -m veloai.cli plan --duration 3h --surface road --waypoints "Sintra,Cascais"
+python3 -m veloai.cli plan --duration 1h --surface mtb --safety 1.0
+python3 -m veloai.cli plan --duration 2h --preference comfort --no-upload
 ```
 
-Supports env var overrides and `password_cmd` for secret managers (Keychain, 1Password, etc.).
+### Plan flags
 
----
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--duration` | required | Ride time (`2h`, `1h30m`, `90min`) |
+| `--surface` | `gravel` | `road`, `gravel`, or `mtb` |
+| `--safety` | `0.5` | 0.0 = fastest, 1.0 = safest (prefers bike lanes) |
+| `--preference` | `variety` | `variety` (new roads) or `comfort` (familiar) |
+| `--waypoints` | — | Comma-separated place names |
+| `--date` | `tomorrow` | When to ride (`today`, `saturday`, `2026-03-20`) |
+| `--time` | — | Start time (`14:00`, `2pm`, `9am`) |
+| `--start` | from config | Override start as `lat,lng` |
+| `--no-upload` | false | Skip Komoot upload, just preview |
+| `--loop` | true | Round-trip route |
 
-## Database
+### Example output
 
-**Host:** configured in `.env` or `config.yaml`
-**DB:** `veloai` | **User:** `veloai`
+```
+🗺 *VeloAI 2h00m Gravel via Miradouro de Aviões, Café mydream, Manique*
+  📏 24 km
+  📅 2026-03-16 at 09:00
+  🛤 Surface: asphalt 55%, unknown 34%, gravel 11%
+  ⛰ Climb: +239m / -264m (max gradient 9.8%)
+  🌿 Scenic: wood (17), water (6), park (3) (78/100)
+  🛡 Safety: bike lanes 17% (8/100)
+  🌤 Mainly clear, 10-21°C, wind 12 km/h
+  🕐 Best time: 09:00 (14°C, wind 10 km/h, UV 2)
+  🌅 Sunrise 06:45, sunset 18:46
+  💪 neutral (TSB -4)
+  🔗 https://www.komoot.com/tour/123456789
+  Uploaded to Komoot — change to 'Planned' in the app if needed
+```
 
-### Tables
+## Fitness Metrics
+
+```
+Power TSS = (duration_s × avg_power × IF) / (FTP × 3600) × 100   (preferred)
+HR TSS    = (duration_h) × (avg_hr / threshold_hr)² × 100         (fallback)
+CTL       = 42-day EMA of daily TSS   (chronic training load / fitness)
+ATL       = 7-day EMA of daily TSS    (acute training load / fatigue)
+TSB       = CTL − ATL                 (training stress balance / form)
+```
+
+- **FTP**: auto-estimated from rolling 90-day best 20-minute power × 0.95, or configured manually
+- **Threshold HR**: 95th percentile of your max HRs, or configured manually
+- **TSB interpretation**: > +10 fresh · -10 to +10 neutral · < -10 fatigued
+
+## Database Schema
 
 | Table | Contents |
-|---|---|
-| `activities` | Every ride — distance, duration, HR, power, cadence, elevation, calories, `is_indoor`, `sport_type`, `device` |
-| `activity_streams` | Per-second stream data — HR, power, cadence, speed, altitude, GPS |
-| `athlete_stats` | Daily CTL/ATL/TSB fitness metrics |
-| `routes` | Route library (historical rides used for recommendations) |
+|-------|----------|
+| `activities` | Every ride — distance, duration, HR, power, cadence, elevation, calories, TSS, sport type, device |
+| `activity_streams` | Per-second telemetry — HR, power, cadence, speed, altitude, lat/lng |
+| `athlete_stats` | Daily fitness metrics — CTL, ATL, TSB, weekly volume |
+| `routes` | Route library for recommendations |
 | `sync_state` | Ingestor bookmarks (last synced timestamps) |
 
-### Fitness metrics
+Schema is managed in code (`ingestor/db.py:create_schema()`) using `IF NOT EXISTS` / `ADD COLUMN IF NOT EXISTS`. No migration tool.
 
-```
-Power TSS      = (duration_s × avg_power × IF) / (FTP × 3600) × 100   (preferred)
-HR TSS         = (duration_h) × (avg_hr / threshold_hr)² × 100         (fallback)
-CTL            = 42-day EMA of daily TSS  (fitness)
-ATL            = 7-day EMA of daily TSS   (fatigue)
-TSB            = CTL − ATL               (form)
-```
+## Configuration
 
-Power-based TSS is preferred when power data is available; HR-based is the fallback.
-Threshold HR = 95th percentile of max HRs; FTP estimated from 95th percentile of avg power.
+### Ingestor (Docker)
 
-Interpretation: TSB > +10 = fresh (push hard) · TSB -10..+10 = neutral · TSB < -10 = fatigued (easy or rest)
+Configured via `.env` file:
 
----
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `POSTGRES_PASSWORD` | Yes | Database password |
+| `STRAVA_CLIENT_ID` | Yes | From strava.com/settings/api |
+| `STRAVA_CLIENT_SECRET` | Yes | From Strava API settings |
+| `STRAVA_REFRESH_TOKEN` | Yes | OAuth refresh token |
+| `GRAFANA_PASSWORD` | Yes | Grafana admin password |
+| `VELOAI_MAX_HR` | No | Your max heart rate (0 = auto-estimate) |
+| `VELOAI_FTP` | No | Your FTP in watts (0 = auto-estimate) |
 
-## Grafana Dashboards
+### CLI (local)
 
-Access: `http://localhost:3021` (or configure `GRAFANA_ROOT_URL` in `.env` for remote access)
+Configured via `~/.config/veloai/config.yaml` (see `config.example.yaml`):
 
-| Dashboard | Description |
-|---|---|
-| **Overview** | All activities table, weekly distance/elevation bars, HR trend |
-| **Fitness Trends** | CTL/ATL/TSB over time, weekly load |
-| **Activity Detail** | Per-activity stats + speed/elevation/HR/power/cadence vs distance |
+- Home coordinates (required for route planning)
+- Database connection
+- Komoot credentials (for route upload)
+- Strava credentials (for segment data in route intelligence)
+- Avoid zones (lat/lng areas to exclude from routes)
 
-### Activity Detail dashboard
+## Requirements
 
-Stat row: Name · Distance · Duration · Elevation · Avg Speed · Calories · Avg HR · Max HR · Avg Power · Sport · Device · Date
+- Docker + Docker Compose (for ingestor, PostgreSQL, Grafana)
+- Python 3.10+ (for CLI)
+- A Strava account with API access
 
-Charts (x-axis = distance in km, computed from speed × time delta):
-- **Speed & Elevation** — dual y-axis, smooth line
-- **Heart Rate & Power** — dual y-axis
-- **Cadence**
+## License
 
-Navigate to an activity via the Overview dashboard (click activity name → opens Activity Detail).
-
----
-
-## Repo Structure
-
-```
-veloai/
-├── docker-compose.yml
-├── .env                      # gitignored — local secrets
-├── .env.example              # template — safe to commit
-├── ingestor/
-│   ├── Dockerfile
-│   ├── requirements.txt
-│   ├── main.py               # scheduler: Strava polling
-│   ├── strava.py             # OAuth refresh, activity + stream fetch
-│   ├── fitness.py            # CTL/ATL/TSB calculator
-│   └── db.py                 # PostgreSQL connection + upserts + schema
-├── grafana/
-│   ├── provisioning/
-│   │   ├── datasources/      # PostgreSQL auto-provisioned
-│   │   └── dashboards/       # auto-load from grafana/dashboards/
-│   └── dashboards/
-│       ├── overview.json
-│       ├── activity.json     # Activity Detail
-│       └── fitness-trends.json
-├── veloai/                   # CLI package
-│   ├── __main__.py
-│   ├── cli.py                # entry point (argparse subcommands)
-│   ├── config.py             # YAML + env var config loader
-│   ├── route_planner.py      # route planning pipeline
-│   ├── route_generator.py    # Valhalla GPX loop generation
-│   ├── geocode.py            # Nominatim geocoder
-│   ├── planner.py            # weekly ride recommendations
-│   ├── db.py                 # DB reader
-│   ├── route_planner.py      # route planning pipeline
-│   ├── route_generator.py    # Valhalla GPX generation
-│   ├── route_intelligence.py # smart waypoint selection (OSM + Strava + Komoot highlights)
-│   └── weather.py            # Open-Meteo forecast
-├── config.example.yaml       # CLI config template
-├── tests/                    # pytest (70 pure function tests)
-└── docs/
-    ├── specs/
-    │   ├── 2026-03-13-veloai-architecture.md      # v1 spec
-    │   └── 2026-03-13-veloai-v2-architecture.md   # v2 spec (current)
-    └── plans/
-        ├── 2026-03-13-v1-restructure.md
-        └── 2026-03-13-v2-pipeline.md
-```
-
----
-
-## Common Operations
-
-### Check ingestor logs
-```bash
-docker compose logs -f ingestor
-```
-
-### Force re-sync fitness metrics
-```bash
-docker compose exec ingestor python3 -c "
-from db import get_connection
-from fitness import recalculate_fitness
-recalculate_fitness(get_connection())
-"
-```
-
-### Check activity count
-```bash
-docker compose exec veloai-postgres psql -U veloai -c "SELECT COUNT(*) FROM activities;"
-```
-
-### Restart after config change
-```bash
-docker compose up -d --force-recreate
-```
-
-### Update Grafana dashboards (after editing JSON)
-```bash
-git pull  # on server
-docker compose restart grafana
-```
-
----
-
-## Known Issues / Pending
-
-- Activity Detail charts use `trend` panel type for distance x-axis — requires Grafana 9+
-- Grafana dashboard provisioning reloads on container restart (not hot-reload)
-- Strava rate limits: 100 req/15min — stream backfill throttles automatically
-- Valhalla route generator creates loops mathematically — doesn't consider preferred roads or scenic preferences yet
-- Requires Python 3.10+ (uses `X | None` union type syntax)
-
----
-
-*Last updated: 2026-03-15*
+MIT
