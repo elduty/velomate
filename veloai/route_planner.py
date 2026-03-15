@@ -256,12 +256,14 @@ def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
     # Geocode explicit waypoints, or use smart waypoints from route intelligence
     waypoint_names = []
     valhalla_waypoints = []
+    preview_waypoints = []  # full data for map preview
     if waypoints_str:
         from veloai.geocode import geocode_many
         places = [p.strip() for p in waypoints_str.split(",")]
         geocoded = geocode_many(places, home_lat, home_lng)
         waypoint_names = [g["display_name"].split(",")[0] for g in geocoded]
         valhalla_waypoints = [{"lat": g["lat"], "lon": g["lng"]} for g in geocoded]
+        preview_waypoints = [{"lat": g["lat"], "lng": g["lng"], "name": g["display_name"].split(",")[0], "reason": "user waypoint"} for g in geocoded]
     else:
         # No explicit waypoints — use route intelligence for smart placement
         try:
@@ -271,6 +273,7 @@ def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
             if smart:
                 waypoint_names = [w["name"] for w in smart]
                 valhalla_waypoints = [{"lat": w["lat"], "lon": w["lng"]} for w in smart]
+                preview_waypoints = smart  # already has lat, lng, name, reason
                 desc = ', '.join(w["name"] + ' (' + w["reason"] + ')' for w in smart)
                 print(f"  Smart waypoints: {desc}", file=sys.stderr)
         except Exception as e:
@@ -345,7 +348,7 @@ def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
     # Show route preview in browser
     try:
         from veloai.map_preview import preview
-        wp_for_preview = [{"lat": w["lat"], "lng": w.get("lng", w.get("lon")), "name": w.get("name", ""), "reason": w.get("reason", "")} for w in (valhalla_waypoints if valhalla_waypoints else [])] if waypoint_names else None
+        wp_for_preview = preview_waypoints if preview_waypoints else None
 
         # Collect best time info
         best_time_info = None
