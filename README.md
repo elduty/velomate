@@ -198,7 +198,7 @@ TSB       = CTL − ATL                 (training stress balance / form)
 | `activities` | Every ride — distance, duration, HR, power, cadence, elevation, calories, TSS, sport type, device |
 | `activity_streams` | Per-second telemetry — HR, power, cadence, speed, altitude, lat/lng |
 | `athlete_stats` | Daily fitness metrics — CTL, ATL, TSB, weekly volume |
-| `routes` | Unique rides (deduplicated by distance/elevation for recommendations) |
+| `routes` | Legacy — created by schema but not actively written to |
 | `sync_state` | Ingestor bookmarks (last synced timestamps) |
 
 Schema is managed in code (`ingestor/db.py:create_schema()`) using `IF NOT EXISTS` / `ADD COLUMN IF NOT EXISTS`. No migration tool.

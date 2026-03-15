@@ -170,6 +170,7 @@ def fetch_forecast(lat: float, lon: float) -> List[Dict]:
         temp_max = data["temperature_2m_max"][i]
         temp_min = data["temperature_2m_min"][i]
         uv_max = data.get("uv_index_max", [0] * 7)[i] if i < len(data.get("uv_index_max", [])) else 0
+        day_hourly = [h for h in hourly if h["time"].startswith(date_str)]
         forecast.append({
             "date": date_str,
             "day_name": DAY_NAMES[dt.weekday()],
@@ -181,7 +182,7 @@ def fetch_forecast(lat: float, lon: float) -> List[Dict]:
             "code": code,
             "weather": WMO_CODES.get(code, "Unknown"),
             "score": _score_weather(precip, wind, temp_max, code, uv_max),
-            "hourly": hourly,
+            "hourly": day_hourly,
         })
     return forecast
 
@@ -209,7 +210,7 @@ def fetch_air_quality(lat: float, lon: float, date_str: str) -> dict | None:
 
 
 def fetch_sunrise_sunset(lat: float, lon: float, date_str: str) -> dict | None:
-    """Fetch sunrise/sunset times. Returns {sunrise, sunset, golden_hour_end} or None."""
+    """Fetch sunrise/sunset times. Returns {sunrise, sunset, civil_twilight_end} or None."""
     url = SUNRISE_URL.format(lat=lat, lng=lon, date=date_str)
     try:
         r = requests.get(url, timeout=10)

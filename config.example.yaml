@@ -11,7 +11,7 @@ home:
 
 db:
   host: localhost      # PostgreSQL host
-  port: 5432          # PostgreSQL port
+  port: 5423          # PostgreSQL port (mapped from 5432 inside Docker)
   name: veloai        # Database name
   user: veloai        # Database user
   password: ""        # Direct password, or use password_env/password_cmd below

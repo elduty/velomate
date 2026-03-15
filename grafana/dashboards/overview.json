@@ -395,12 +395,16 @@
                 "value": null
               },
               {
-                "color": "yellow",
+                "color": "orange",
                 "value": -10
               },
               {
                 "color": "green",
-                "value": 10
+                "value": 0
+              },
+              {
+                "color": "blue",
+                "value": 15
               }
             ]
           },
@@ -571,7 +575,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH weeks AS (SELECT DISTINCT date_trunc('week', date)::date AS week_start FROM activities WHERE date IS NOT NULL), latest AS (SELECT MAX(week_start) AS start_from FROM weeks), numbered AS (SELECT week_start, ROW_NUMBER() OVER (ORDER BY week_start DESC) AS rn, ((SELECT start_from FROM latest) - ((ROW_NUMBER() OVER (ORDER BY week_start DESC) - 1) * 7)::int) AS expected FROM weeks) SELECT COUNT(*) AS \"Weeks\" FROM numbered WHERE week_start = expected;",
+          "rawSql": "WITH weeks AS (SELECT DISTINCT date_trunc('week', date)::date AS week_start FROM activities WHERE date IS NOT NULL AND sport_type IN ('cycling_outdoor', 'cycling_indoor', 'zwift', 'ebike')), latest AS (SELECT MAX(week_start) AS start_from FROM weeks), numbered AS (SELECT week_start, ROW_NUMBER() OVER (ORDER BY week_start DESC) AS rn, ((SELECT start_from FROM latest) - ((ROW_NUMBER() OVER (ORDER BY week_start DESC) - 1) * 7)::int) AS expected FROM weeks) SELECT COUNT(*) AS \"Weeks\" FROM numbered WHERE week_start = expected;",
           "format": "table",
           "refId": "A"
         }
@@ -620,7 +624,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT CURRENT_DATE - MAX(date::date) AS \"Days\" FROM activities;",
+          "rawSql": "SELECT CURRENT_DATE - MAX(date::date) AS \"Days\" FROM activities WHERE sport_type IN ('cycling_outdoor', 'cycling_indoor', 'zwift', 'ebike');",
           "format": "table",
           "refId": "A"
         }
@@ -761,7 +765,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.elevation_m), 0) AS \"Elevation (m)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs GROUP BY gs ORDER BY gs;",
+          "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.elevation_m), 0) AS \"Elevation (m)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.is_indoor IS NOT TRUE GROUP BY gs ORDER BY gs;",
           "format": "time_series",
           "refId": "A"
         }
@@ -950,7 +954,7 @@
           },
           "targets": [
             {
-              "rawSql": "SELECT s.lat AS \"latitude\", s.lng AS \"longitude\", a.date AS \"time\" FROM activity_streams s JOIN activities a ON a.id = s.activity_id WHERE s.lat IS NOT NULL AND s.lng IS NOT NULL AND s.time_offset % 10 = 0 ORDER BY a.date, s.time_offset LIMIT 500000;",
+              "rawSql": "SELECT s.lat AS \"latitude\", s.lng AS \"longitude\", a.date AS \"time\" FROM activity_streams s JOIN activities a ON a.id = s.activity_id WHERE s.lat IS NOT NULL AND s.lng IS NOT NULL AND a.is_indoor IS NOT TRUE AND s.time_offset % 10 = 0 ORDER BY a.date, s.time_offset LIMIT 500000;",
               "format": "table",
               "refId": "A"
             }
@@ -1021,7 +1025,7 @@
           },
           "targets": [
             {
-              "rawSql": "SELECT ROUND((distance_m / 1000.0)::numeric, 1) AS \"Longest\" FROM activities WHERE $__timeFilter(date) AND distance_m > 0 ORDER BY distance_m DESC LIMIT 1;",
+              "rawSql": "SELECT ROUND((distance_m / 1000.0)::numeric, 1) AS \"Longest\" FROM activities WHERE $__timeFilter(date) AND distance_m > 0 AND is_indoor IS NOT TRUE ORDER BY distance_m DESC LIMIT 1;",
               "format": "table",
               "refId": "A"
             }
@@ -1119,7 +1123,7 @@
           },
           "targets": [
             {
-              "rawSql": "SELECT ROUND(MAX(avg_speed_kmh)::numeric, 1) AS \"Fastest\" FROM activities WHERE $__timeFilter(date) AND distance_m > 5000;",
+              "rawSql": "SELECT ROUND(MAX(avg_speed_kmh)::numeric, 1) AS \"Fastest\" FROM activities WHERE $__timeFilter(date) AND distance_m > 5000 AND is_indoor IS NOT TRUE;",
               "format": "table",
               "refId": "A"
             }
@@ -1217,7 +1221,7 @@
           },
           "targets": [
             {
-              "rawSql": "SELECT ROUND((distance_m / 1000.0)::numeric, 1) AS \"Longest\" FROM activities WHERE distance_m > 0 ORDER BY distance_m DESC LIMIT 1;",
+              "rawSql": "SELECT ROUND((distance_m / 1000.0)::numeric, 1) AS \"Longest\" FROM activities WHERE distance_m > 0 AND is_indoor IS NOT TRUE ORDER BY distance_m DESC LIMIT 1;",
               "format": "table",
               "refId": "A"
             }
@@ -1315,7 +1319,7 @@
           },
           "targets": [
             {
-              "rawSql": "SELECT ROUND(MAX(avg_speed_kmh)::numeric, 1) AS \"Fastest\" FROM activities WHERE distance_m > 5000;",
+              "rawSql": "SELECT ROUND(MAX(avg_speed_kmh)::numeric, 1) AS \"Fastest\" FROM activities WHERE distance_m > 5000 AND is_indoor IS NOT TRUE;",
               "format": "table",
               "refId": "A"
             }
@@ -1456,7 +1460,7 @@
           },
           "targets": [
             {
-              "rawSql": "SELECT date::date AS \"time\", ROUND(avg_speed_kmh::numeric, 1) AS \"Avg Speed (km/h)\" FROM activities WHERE avg_speed_kmh > 0 AND distance_m > 5000 ORDER BY date;",
+              "rawSql": "SELECT date::date AS \"time\", ROUND(avg_speed_kmh::numeric, 1) AS \"Avg Speed (km/h)\" FROM activities WHERE avg_speed_kmh > 0 AND distance_m > 5000 AND is_indoor IS NOT TRUE ORDER BY date;",
               "format": "time_series",
               "refId": "A"
             }
@@ -1708,7 +1712,7 @@
           },
           "targets": [
             {
-              "rawSql": "SELECT TO_CHAR(date, 'Mon') AS \"Month\", EXTRACT(YEAR FROM date)::int AS \"Year\", COUNT(*) AS \"Rides\", ROUND((SUM(distance_m) / 1000)::numeric, 0) AS \"Distance (km)\", ROUND(SUM(elevation_m)::numeric, 0) AS \"Elevation (m)\", ROUND((SUM(duration_s) / 3600.0)::numeric, 1) AS \"Hours\" FROM activities WHERE date IS NOT NULL GROUP BY TO_CHAR(date, 'Mon'), EXTRACT(YEAR FROM date), EXTRACT(MONTH FROM date) ORDER BY EXTRACT(YEAR FROM date), EXTRACT(MONTH FROM date);",
+              "rawSql": "SELECT TO_CHAR(date, 'Mon') AS \"Month\", EXTRACT(YEAR FROM date)::int AS \"Year\", COUNT(*) AS \"Rides\", ROUND((SUM(distance_m) / 1000)::numeric, 0) AS \"Distance (km)\", ROUND(SUM(elevation_m)::numeric, 0) AS \"Elevation (m)\", ROUND((SUM(duration_s) / 3600.0)::numeric, 1) AS \"Hours\" FROM activities WHERE date IS NOT NULL AND is_indoor IS NOT TRUE GROUP BY TO_CHAR(date, 'Mon'), EXTRACT(YEAR FROM date), EXTRACT(MONTH FROM date) ORDER BY EXTRACT(YEAR FROM date), EXTRACT(MONTH FROM date);",
               "format": "table",
               "refId": "A"
             }

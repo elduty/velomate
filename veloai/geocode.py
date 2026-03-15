@@ -34,7 +34,8 @@ def geocode(place: str, near_lat: float = 0, near_lng: float = 0) -> dict | None
                 "display_name": r.get("display_name", place),
             }
     except (requests.RequestException, KeyError, ValueError) as e:
-        print(f"[geocode] Failed to geocode '{place}': {e}")
+        import sys
+        print(f"[geocode] Failed to geocode '{place}': {e}", file=sys.stderr)
     return None
 
 

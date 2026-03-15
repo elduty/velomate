@@ -49,7 +49,7 @@ def cmd_recommend(args):
 
 
 def cmd_plan(args):
-    """Plan a route and upload to Komoot."""
+    """Plan a cycling route with weather and intelligence enrichment."""
     from veloai.route_planner import plan
 
     cfg = load_config()
@@ -57,7 +57,14 @@ def cmd_plan(args):
 
     if args.start:
         parts = args.start.split(",")
-        home_lat, home_lng = float(parts[0]), float(parts[1])
+        if len(parts) != 2:
+            print("Error: --start must be 'lat,lng' (e.g. '38.72,-9.14')", file=sys.stderr)
+            return
+        try:
+            home_lat, home_lng = float(parts[0]), float(parts[1])
+        except ValueError:
+            print("Error: --start must be 'lat,lng' with numeric values", file=sys.stderr)
+            return
     else:
         home_lat, home_lng = home["lat"], home["lng"]
 
@@ -86,7 +93,7 @@ def main():
     subparsers = parser.add_subparsers(dest="command")
 
     # Plan subcommand
-    plan_parser = subparsers.add_parser("plan", help="Plan a route on Komoot")
+    plan_parser = subparsers.add_parser("plan", help="Plan a cycling route")
     target = plan_parser.add_mutually_exclusive_group(required=True)
     target.add_argument("--duration", "-d", help="Ride duration (e.g. 2h, 1h30m, 90min)")
     target.add_argument("--distance", "-k", help="Target distance in km (e.g. 30, 50km)")

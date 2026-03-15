@@ -76,13 +76,14 @@ class TestResolveDate:
 
 
 class TestEstimateDistance:
-    def test_gravel_with_avg_speed(self):
+    def test_with_avg_speed(self):
+        # avg_speed is already surface-specific, no multiplier applied
         result = estimate_distance(120, "gravel", avg_speed=25.0)
-        assert result == 42.5
+        assert result == 50.0  # 2h × 25 km/h
 
     def test_road_with_avg_speed(self):
-        result = estimate_distance(120, "road", avg_speed=25.0)
-        assert result == 55.0
+        result = estimate_distance(120, "road", avg_speed=30.0)
+        assert result == 60.0  # 2h × 30 km/h
 
     def test_mtb_no_avg_speed(self):
         result = estimate_distance(60, "mtb", avg_speed=None)

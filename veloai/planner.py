@@ -63,10 +63,10 @@ def recommend(days: List[Dict], tours: List[Dict], fitness: Dict = None) -> str:
     form_note = _form_note(fitness)
     if form_note or fitness:
         lines.append("*💪 Fitness*")
-        if fitness.get("ctl") is not None:
+        if fitness.get("ctl") is not None and fitness.get("atl") is not None:
             lines.append(f"  • Fitness (CTL): {float(fitness['ctl']):.1f}")
             lines.append(f"  • Fatigue (ATL): {float(fitness['atl']):.1f}")
-            lines.append(f"  • Form (TSB): {float(fitness['tsb']):+.1f}")
+            lines.append(f"  • Form (TSB): {float(fitness.get('tsb', 0)):+.1f}")
         if form_note:
             lines.append(f"  {form_note}")
         lines.append("")
@@ -106,12 +106,10 @@ def recommend(days: List[Dict], tours: List[Dict], fitness: Dict = None) -> str:
         for i, r in enumerate(routes, 1):
             dist = r["distance"] / 1000
             elev = r.get("elevation_up", 0)
-            sport = r.get("sport", "cycling").replace("touringbicycle", "touring bike")
+            sport = r.get("sport", "cycling")
             date = r.get("date", "")[:10]
-            url = f"https://www.komoot.com/tour/{r['id']}"
             lines.append(f"  {i}. *{r['name']}* — {dist:.1f}km, +{elev:.0f}m ({sport})")
             lines.append(f"     Last done: {date}")
-            lines.append(f"     {url}")
     else:
         lines.append("  No routes found")
 

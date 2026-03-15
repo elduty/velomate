@@ -1,13 +1,14 @@
 """Polling scheduler for Strava ingestion."""
 
 import os
+import sys
 import time
 import traceback
 
 import schedule
 
 from db import get_connection, create_schema, get_sync_state
-from strava import sync_activities, backfill
+from strava import sync_activities, backfill, reclassify_activities
 from fitness import recalculate_fitness
 
 
@@ -89,5 +90,19 @@ def run():
         time.sleep(30)
 
 
+def run_reclassify():
+    """One-time reclassification of all activities using Strava's type field."""
+    conn = get_connection()
+    try:
+        reclassify_activities(conn)
+        recalculate_fitness(conn)
+        print("[reclassify] Fitness metrics recalculated")
+    finally:
+        conn.close()
+
+
 if __name__ == "__main__":
-    run()
+    if len(sys.argv) > 1 and sys.argv[1] == "reclassify":
+        run_reclassify()
+    else:
+        run()

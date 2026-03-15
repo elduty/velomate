@@ -1296,7 +1296,7 @@
           },
           "targets": [
             {
-              "rawSql": "WITH rolling AS (SELECT time_offset, AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 29 PRECEDING AND CURRENT ROW) AS rolling_30s FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) SELECT ROUND(POWER(AVG(POWER(rolling_30s, 4)), 0.25)::numeric, 0) AS \"NP (W)\" FROM rolling WHERE rolling_30s IS NOT NULL;",
+              "rawSql": "WITH rolling AS (SELECT time_offset, AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 29 PRECEDING AND CURRENT ROW) AS rolling_30s FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) SELECT ROUND(POWER(AVG(POWER(rolling_30s, 4)), 0.25)::numeric, 0) AS \"NP (W)\" FROM rolling WHERE rolling_30s IS NOT NULL;",
               "format": "table",
               "refId": "A"
             }
@@ -1334,7 +1334,7 @@
           },
           "targets": [
             {
-              "rawSql": "WITH ftp AS (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY avg_power) AS ftp_val FROM activities WHERE avg_power IS NOT NULL AND avg_power > 0), rolling AS (SELECT AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 29 PRECEDING AND CURRENT ROW) AS rolling_30s FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) SELECT ROUND((POWER(AVG(POWER(rolling_30s, 4)), 0.25) / ftp.ftp_val)::numeric, 2) AS \"IF\" FROM rolling, ftp WHERE rolling_30s IS NOT NULL GROUP BY ftp.ftp_val;",
+              "rawSql": "WITH ftp AS (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY avg_power) AS ftp_val FROM activities WHERE avg_power IS NOT NULL AND avg_power > 0), rolling AS (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 29 PRECEDING AND CURRENT ROW) AS rolling_30s FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) SELECT ROUND((POWER(AVG(POWER(rolling_30s, 4)), 0.25) / ftp.ftp_val)::numeric, 2) AS \"IF\" FROM rolling, ftp WHERE rolling_30s IS NOT NULL GROUP BY ftp.ftp_val;",
               "format": "table",
               "refId": "A"
             }
@@ -1388,7 +1388,7 @@
           },
           "targets": [
             {
-              "rawSql": "WITH rolling AS (SELECT AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 29 PRECEDING AND CURRENT ROW) AS rolling_30s FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0), np AS (SELECT POWER(AVG(POWER(rolling_30s, 4)), 0.25) AS np_val FROM rolling WHERE rolling_30s IS NOT NULL) SELECT ROUND((np.np_val / a.avg_power)::numeric, 2) AS \"VI\" FROM np, activities a WHERE a.id = ${activity_id} AND a.avg_power > 0;",
+              "rawSql": "WITH rolling AS (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 29 PRECEDING AND CURRENT ROW) AS rolling_30s FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0), np AS (SELECT POWER(AVG(POWER(rolling_30s, 4)), 0.25) AS np_val FROM rolling WHERE rolling_30s IS NOT NULL) SELECT ROUND((np.np_val / a.avg_power)::numeric, 2) AS \"VI\" FROM np, activities a WHERE a.id = ${activity_id} AND a.avg_power > 0;",
               "format": "table",
               "refId": "A"
             }
@@ -1442,7 +1442,7 @@
           },
           "targets": [
             {
-              "rawSql": "WITH rolling AS (SELECT AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 299 PRECEDING AND CURRENT ROW) AS avg_5min, AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 1199 PRECEDING AND CURRENT ROW) AS avg_20min FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) SELECT ROUND(MAX(avg_5min)::numeric, 0) AS \"Best 5min (W)\", ROUND(MAX(avg_20min)::numeric, 0) AS \"Best 20min (W)\" FROM rolling;",
+              "rawSql": "WITH rolling AS (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 299 PRECEDING AND CURRENT ROW) AS avg_5min, AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 1199 PRECEDING AND CURRENT ROW) AS avg_20min FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) SELECT ROUND(MAX(avg_5min)::numeric, 0) AS \"Best 5min (W)\", ROUND(MAX(avg_20min)::numeric, 0) AS \"Best 20min (W)\" FROM rolling;",
               "format": "table",
               "refId": "A"
             }

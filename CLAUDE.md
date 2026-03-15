@@ -20,7 +20,7 @@ Three Docker Compose services on a server:
 
 - **veloai-postgres** (PostgreSQL 15, port 5423) — five tables: `activities`, `activity_streams`, `athlete_stats`, `routes`, `sync_state`
 - **veloai-ingestor** (Python 3.11) — polls Strava every 10min; auto-backfills 12 months on first run; handles cross-device deduplication when multiple devices record the same ride (keeps the record with the richest data — power > HR > distance) by matching same-day activities within ±10% distance
-- **veloai-grafana** (Grafana 12.0, port 3021) — dashboards provisioned from JSON files in `grafana/dashboards/`
+- **veloai-grafana** (Grafana 12.4, port 3021) — dashboards provisioned from JSON files in `grafana/dashboards/`
 
 Separate from Docker:
 
@@ -40,6 +40,9 @@ docker compose logs -f ingestor
 docker compose exec veloai-ingestor python3 -c \
   "from db import get_connection; from fitness import recalculate_fitness; recalculate_fitness(get_connection())"
 
+# Reclassify all activities using Strava's type field (one-time migration)
+docker compose exec veloai-ingestor python3 main.py reclassify
+
 # Query DB directly
 docker compose exec veloai-postgres psql -U veloai -c "SELECT COUNT(*) FROM activities;"
 
@@ -55,14 +58,14 @@ python3 -m veloai.cli
 
 - `ingestor/` — Dockerized polling service. `main.py` is the scheduler; `strava.py` handles Strava API calls; `db.py` owns schema DDL + all upserts; `fitness.py` does EMA-based CTL/ATL/TSB calculation
 - `veloai/` — CLI package. `cli.py` is the entry point; `planner.py` formats WhatsApp output; `weather.py` calls Open-Meteo; `db.py` is a read-only DB client; `config.py` loads YAML config + env vars; `route_planner.py` + `route_generator.py` handle Valhalla route creation
-- `grafana/dashboards/` — Three dashboard JSON files (overview, fitness-trends, activity). Provisioned automatically on container start
+- `grafana/dashboards/` — Five dashboard JSON files (overview, activity, fitness-trends, weekly-report, training-log). Provisioned automatically on container start
 - `grafana/provisioning/` — Grafana datasource + dashboard provider YAML configs
 
 ## Important Patterns
 
 - **Schema lives in code**: `ingestor/db.py:create_schema()` is the source of truth for DDL. No migration tool — schema changes go there with `IF NOT EXISTS` / `ADD COLUMN IF NOT EXISTS`
 - **Dedup logic**: Two strategies in `ingestor/db.py` — `find_duplicate()` (time-window + duration) for cross-device like Zwift+Watch, `find_duplicate_by_distance()` (same-day ±10% distance) for matching duplicate Strava uploads
-- **Activity classification**: `classify_activity()` in `ingestor/db.py` infers `is_indoor` and `sport_type` from device, distance, and activity name
+- **Activity classification**: `classify_activity()` in `ingestor/db.py` uses Strava's `type` field as primary classifier (Run, Swim, Ride, WeightTraining, etc.), with device/trainer/distance as fallback. Sport types: `cycling_outdoor`, `cycling_indoor`, `zwift`, `ebike`, `running`, `swimming`, `strength`, `hiking`, `walking`, `rowing`, `other`
 - **Fitness TSS**: Power-based TSS preferred over HR-based; thresholds auto-estimated from 95th percentile of historical data
 - **Grafana dashboards**: Hand-edited JSON. The activity detail dashboard uses `__data.fields.id` variable to link from overview. Charts use `trend` panel type with distance-based x-axis
 
@@ -72,7 +75,7 @@ python3 -m veloai.cli
 
 **CLI (local):** Configuration in `~/.config/veloai/config.yaml` (see `config.example.yaml`). Supports env var overrides and `password_cmd` for secret managers (Keychain, 1Password, Vault, etc.). No hardcoded credentials or personal data in codebase.
 
-70 pytest tests covering pure functions. No CI/CD. Deployment is manual git pull + `docker compose up -d`.
+71 pytest tests covering pure functions (requires Python 3.10+ for union type syntax). No CI/CD. Deployment is manual git pull + `docker compose up -d`.
 
 ## Known Limitations
 

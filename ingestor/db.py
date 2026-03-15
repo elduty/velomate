@@ -93,19 +93,49 @@ def create_schema(conn):
 
 
 def classify_activity(data: dict) -> dict:
-    """Add is_indoor and sport_type fields based on device/distance/name."""
+    """Add is_indoor and sport_type fields based on Strava type, device, and name.
+    Uses Strava's activity type as the primary classifier, with device/name as fallback.
+    """
+    strava_type = (data.get("strava_type") or "").lower()
     device = data.get("device", "")
     distance_m = data.get("distance_m") or 0
     name = (data.get("name") or "").lower()
+    trainer = data.get("trainer", False)
 
-    if device == "zwift":
-        is_indoor, sport_type = True, "zwift"
-    elif any(k in name for k in ("weight", "train", "gym", "strength", "yoga", "pilates")):
-        is_indoor, sport_type = True, "strength"
-    elif distance_m > 0:
-        is_indoor, sport_type = False, "cycling_outdoor"
+    # Strava type-based classification (primary)
+    CYCLING_TYPES = {"ride", "virtualride", "ebikeride", "handcycle", "velomobile"}
+    NON_CYCLING_TYPES = {
+        "run": "running", "virtualrun": "running",
+        "walk": "walking", "hike": "hiking",
+        "swim": "swimming",
+        "weighttraining": "strength", "workout": "strength", "yoga": "strength",
+        "crossfit": "strength", "elliptical": "strength", "stairstepper": "strength",
+        "rowing": "rowing", "canoeing": "rowing", "kayaking": "rowing",
+        "alpineski": "other", "backcountryski": "other", "crosscountryski": "other",
+        "iceskate": "other", "inlineskate": "other", "skateboard": "other",
+        "snowboard": "other", "snowshoe": "other", "surfing": "other",
+        "rockclimbing": "other", "standuppaddling": "other",
+    }
+
+    if strava_type in NON_CYCLING_TYPES:
+        sport_type = NON_CYCLING_TYPES[strava_type]
+        is_indoor = trainer or strava_type.startswith("virtual") or distance_m == 0
+    elif strava_type in CYCLING_TYPES or strava_type == "":
+        # Cycling or unknown — use device/name/distance heuristics
+        if device == "zwift" or strava_type == "virtualride":
+            is_indoor, sport_type = True, "zwift"
+        elif trainer:
+            is_indoor, sport_type = True, "cycling_indoor"
+        elif strava_type == "ebikeride":
+            is_indoor, sport_type = False, "ebike"
+        elif distance_m > 0:
+            is_indoor, sport_type = False, "cycling_outdoor"
+        else:
+            is_indoor, sport_type = True, "cycling_indoor"
     else:
-        is_indoor, sport_type = True, "cycling_indoor"
+        # Unknown Strava type — fallback to distance heuristic
+        is_indoor = trainer or distance_m == 0
+        sport_type = "other"
 
     return {**data, "is_indoor": is_indoor, "sport_type": sport_type}
 
@@ -171,11 +201,8 @@ def merge_activity_data(existing: tuple, new_data: dict) -> dict:
     Uses data richness scoring — whichever record has more useful fields wins.
     """
     ex_id, ex_strava_id, ex_device, ex_distance, ex_hr, ex_power = existing
-    ex_richness = sum([
-        3 if ex_power else 0,
-        2 if ex_hr else 0,
-        1 if ex_distance and ex_distance > 0 else 0,
-    ])
+    ex_data = {"avg_power": ex_power, "avg_hr": ex_hr, "distance_m": ex_distance}
+    ex_richness = _data_richness(ex_data)
     new_richness = _data_richness(new_data)
 
     # Keep richer record as base, fill gaps from the other
@@ -250,24 +277,32 @@ def upsert_activity(conn, data: dict) -> int:
                 print(f"  [dedup] Skipping {data['name']} — weaker duplicate of existing activity {ex_id}")
                 return ex_id
             else:
-                # Atomic merge: disable autocommit so DELETE + INSERT are one transaction
-                print(f"  [dedup] Merging {data['name']} with existing activity {ex_id} (richness {new_richness} vs {ex_richness})")
+                # Atomic merge: save streams, delete old, insert new, restore streams
+                print(f"  [dedup] Merging {data['name']} with existing activity {ex_id}")
                 conn.autocommit = False
                 try:
                     with conn.cursor() as cur:
-                        # Reassign streams to survive the DELETE CASCADE
-                        cur.execute("UPDATE activity_streams SET activity_id = -1 WHERE activity_id = %s", (ex_id,))
+                        # Save existing streams in memory before CASCADE deletes them
+                        cur.execute("""
+                            SELECT time_offset, hr, power, cadence, speed_kmh, altitude_m, lat, lng
+                            FROM activity_streams WHERE activity_id = %s
+                        """, (ex_id,))
+                        saved_streams = cur.fetchall()
                         cur.execute("DELETE FROM activities WHERE id = %s", (ex_id,))
                     data = merged
                     activity_id = _do_insert(conn, data, now)
-                    # Reattach preserved streams to the new activity (if it has none)
-                    with conn.cursor() as cur:
-                        cur.execute("SELECT COUNT(*) FROM activity_streams WHERE activity_id = %s", (activity_id,))
-                        new_has_streams = cur.fetchone()[0] > 0
-                        if not new_has_streams:
-                            cur.execute("UPDATE activity_streams SET activity_id = %s WHERE activity_id = -1", (activity_id,))
-                        else:
-                            cur.execute("DELETE FROM activity_streams WHERE activity_id = -1")
+                    # Restore saved streams if new activity has none of its own
+                    if saved_streams:
+                        with conn.cursor() as cur:
+                            cur.execute("SELECT COUNT(*) FROM activity_streams WHERE activity_id = %s", (activity_id,))
+                            if cur.fetchone()[0] == 0:
+                                psycopg2.extras.execute_values(
+                                    cur,
+                                    """INSERT INTO activity_streams
+                                        (activity_id, time_offset, hr, power, cadence, speed_kmh, altitude_m, lat, lng)
+                                        VALUES %s""",
+                                    [(activity_id, *row) for row in saved_streams],
+                                )
                     conn.commit()
                     return activity_id
                 except Exception:
@@ -294,56 +329,6 @@ def upsert_streams(conn, activity_id: int, streams: list):
               s.get("cadence"), s.get("speed_kmh"), s.get("altitude_m"),
               s.get("lat"), s.get("lng")) for s in streams]
         )
-
-
-def upsert_komoot_activity(conn, data: dict) -> int:
-    """Insert or update a Komoot-only activity (no strava_id).
-    Uses komoot_tour_id as the conflict key.
-    """
-    now = datetime.now(timezone.utc)
-    data = classify_activity(data)
-    with conn.cursor() as cur:
-        cur.execute("""
-            INSERT INTO activities (
-                komoot_tour_id, name, date, distance_m, duration_s, elevation_m,
-                avg_hr, max_hr, avg_power, max_power, avg_cadence,
-                avg_speed_kmh, calories, suffer_score, device,
-                is_indoor, sport_type, synced_at
-            ) VALUES (
-                %(komoot_tour_id)s, %(name)s, %(date)s, %(distance_m)s, %(duration_s)s, %(elevation_m)s,
-                %(avg_hr)s, %(max_hr)s, %(avg_power)s, %(max_power)s, %(avg_cadence)s,
-                %(avg_speed_kmh)s, %(calories)s, %(suffer_score)s, %(device)s,
-                %(is_indoor)s, %(sport_type)s, %(synced_at)s
-            )
-            ON CONFLICT (komoot_tour_id) WHERE komoot_tour_id IS NOT NULL DO UPDATE SET
-                name = EXCLUDED.name,
-                distance_m = EXCLUDED.distance_m,
-                duration_s = EXCLUDED.duration_s,
-                elevation_m = EXCLUDED.elevation_m,
-                avg_speed_kmh = EXCLUDED.avg_speed_kmh,
-                device = EXCLUDED.device,
-                is_indoor = EXCLUDED.is_indoor,
-                sport_type = EXCLUDED.sport_type,
-                synced_at = EXCLUDED.synced_at
-            RETURNING id
-        """, {**data, "synced_at": now})
-        return cur.fetchone()[0]
-
-
-def upsert_route(conn, data: dict):
-    """Insert or update a route."""
-    with conn.cursor() as cur:
-        cur.execute("""
-            INSERT INTO routes (komoot_id, name, distance_m, elevation_m, sport, last_ridden_at, ride_count)
-            VALUES (%(komoot_id)s, %(name)s, %(distance_m)s, %(elevation_m)s, %(sport)s, %(last_ridden_at)s, %(ride_count)s)
-            ON CONFLICT (komoot_id) DO UPDATE SET
-                name = EXCLUDED.name,
-                distance_m = EXCLUDED.distance_m,
-                elevation_m = EXCLUDED.elevation_m,
-                sport = EXCLUDED.sport,
-                last_ridden_at = EXCLUDED.last_ridden_at,
-                ride_count = EXCLUDED.ride_count
-        """, data)
 
 
 def upsert_athlete_stats(conn, date, stats: dict):

@@ -1,5 +1,6 @@
 """Route map preview — generates an HTML map with route info and opens in browser."""
 
+import html
 import os
 import tempfile
 import webbrowser
@@ -31,9 +32,10 @@ def preview(coords: list, name: str, waypoints: list | None = None,
         return ""
 
     info = route_info or {}
+    name = html.escape(name)  # prevent XSS via route/waypoint names
     gpx_content = _read_gpx(info.get("gpx_path", ""))
-    # Escape for embedding in JS string
-    gpx_js = gpx_content.replace("\\", "\\\\").replace("`", "\\`").replace("${", "\\${") if gpx_content else ""
+    # Escape for embedding in JS template literal
+    gpx_js = gpx_content.replace("\\", "\\\\").replace("`", "\\`").replace("${", "\\${").replace("</script>", "<\\/script>") if gpx_content else ""
     gpx_filename = os.path.basename(info.get("gpx_path", "route.gpx"))
 
     # Build coordinate array for Leaflet
@@ -43,8 +45,8 @@ def preview(coords: list, name: str, waypoints: list | None = None,
     markers_js = ""
     if waypoints:
         for wp in waypoints:
-            wp_name = wp.get("name", "").replace("'", "\\'")
-            wp_reason = wp.get("reason", "").replace("'", "\\'")
+            wp_name = html.escape(wp.get("name", "")).replace("'", "\\'")
+            wp_reason = html.escape(wp.get("reason", "")).replace("'", "\\'")
             markers_js += f"""
             L.marker([{wp['lat']}, {wp['lng']}])
                 .addTo(map)
@@ -194,7 +196,7 @@ def preview(coords: list, name: str, waypoints: list | None = None,
     wp_html = ""
     if waypoints:
         wp_items = "".join(
-            f'<li><b>{wp.get("name", "")}</b> <span class="wp-reason">{wp.get("reason", "")}</span></li>'
+            f'<li><b>{html.escape(wp.get("name", ""))}</b> <span class="wp-reason">{html.escape(wp.get("reason", ""))}</span></li>'
             for wp in waypoints
         )
         wp_html = f"""

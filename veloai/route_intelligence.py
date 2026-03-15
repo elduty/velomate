@@ -1,13 +1,38 @@
 """Route intelligence — smart waypoint selection using OSM POIs and Strava segments."""
 
+import math
+import sys
+import time
+
 import requests
 
 
+def _haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
+    """Distance between two points in km, corrected for latitude."""
+    dlat = lat2 - lat1
+    dlng = lng2 - lng1
+    cos_lat = math.cos(math.radians((lat1 + lat2) / 2))
+    return math.sqrt((dlat * 111.0) ** 2 + (dlng * 111.0 * cos_lat) ** 2)
+
+
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
+
+# Rate limiting for Overpass API (max ~2 heavy queries/min)
+_last_overpass_call = 0.0
+_OVERPASS_MIN_INTERVAL = 2.0  # seconds between calls
 KOMOOT_TILE_URL = "https://api.main.komoot.net/v007/tiles/discover/highlights/{sport}/{z}/{x}/{y}.vector.pbf"
 
 # Komoot sport mapping for tile API
 KOMOOT_TILE_SPORTS = {"road": "racebike", "gravel": "touringbicycle", "mtb": "mtb"}
+
+
+def _overpass_throttle():
+    """Enforce minimum interval between Overpass API calls."""
+    global _last_overpass_call
+    elapsed = time.time() - _last_overpass_call
+    if elapsed < _OVERPASS_MIN_INTERVAL:
+        time.sleep(_OVERPASS_MIN_INTERVAL - elapsed)
+    _last_overpass_call = time.time()
 
 
 def get_pois(lat: float, lng: float, radius_km: float, poi_types: list | None = None) -> list[dict]:
@@ -38,11 +63,12 @@ def get_pois(lat: float, lng: float, radius_km: float, poi_types: list | None = 
     """
 
     try:
+        _overpass_throttle()
         resp = requests.post(OVERPASS_URL, data={"data": query}, timeout=15)
         resp.raise_for_status()
         data = resp.json()
     except (requests.RequestException, ValueError) as e:
-        print(f"  [intelligence] Overpass API error: {e}")
+        print(f"  [intelligence] Overpass API error: {e}", file=sys.stderr)
         return []
 
     results = []
@@ -83,7 +109,7 @@ def get_strava_segments(lat: float, lng: float, radius_km: float, access_token: 
         resp.raise_for_status()
         data = resp.json()
     except (requests.RequestException, ValueError) as e:
-        print(f"  [intelligence] Strava segments error: {e}")
+        print(f"  [intelligence] Strava segments error: {e}", file=sys.stderr)
         return []
 
     results = []
@@ -108,9 +134,9 @@ def get_komoot_highlights(lat: float, lng: float, radius_km: float, surface: str
     import math
 
     try:
-        import mapbox_vector_tile
+        import mapbox_vector_tile  # noqa: local import — optional dependency
     except ImportError:
-        print("  [intelligence] mapbox-vector-tile not installed — skipping Komoot highlights")
+        print("  [intelligence] mapbox-vector-tile not installed — skipping Komoot highlights", file=sys.stderr)
         return []
 
     sport = KOMOOT_TILE_SPORTS.get(surface, "touringbicycle")
@@ -190,11 +216,12 @@ def verify_surface(coords: list, expected_surface: str) -> dict:
     """
 
     try:
+        _overpass_throttle()
         resp = requests.post(OVERPASS_URL, data={"data": query}, timeout=20)
         resp.raise_for_status()
         data = resp.json()
     except (requests.RequestException, ValueError) as e:
-        print(f"  [intelligence] Surface verification failed: {e}")
+        print(f"  [intelligence] Surface verification failed: {e}", file=sys.stderr)
         return {"match_pct": 100, "surfaces": {}, "warning": None}
 
     # Count surface types
@@ -275,11 +302,12 @@ def score_scenic(coords: list) -> dict:
     """
 
     try:
+        _overpass_throttle()
         resp = requests.post(OVERPASS_URL, data={"data": query}, timeout=20)
         resp.raise_for_status()
         data = resp.json()
     except (requests.RequestException, ValueError) as e:
-        print(f"  [intelligence] Scenic scoring failed: {e}")
+        print(f"  [intelligence] Scenic scoring failed: {e}", file=sys.stderr)
         return {"scenic_score": 0, "features": []}
 
     feature_counts: dict[str, int] = {}
@@ -308,7 +336,7 @@ def score_scenic(coords: list) -> dict:
 
 def get_elevation_profile(coords: list) -> dict:
     """Get elevation profile using Open Topo Data API.
-    Returns {total_climb: m, total_descent: m, max_gradient: %, profile: list}.
+    Returns {total_climb: m, total_descent: m, max_gradient: %}.
     """
     if not coords or len(coords) < 10:
         return {"total_climb": 0, "total_descent": 0, "max_gradient": 0}
@@ -328,29 +356,30 @@ def get_elevation_profile(coords: list) -> dict:
         resp.raise_for_status()
         data = resp.json()
     except (requests.RequestException, ValueError) as e:
-        print(f"  [intelligence] Elevation profile failed: {e}")
+        print(f"  [intelligence] Elevation profile failed: {e}", file=sys.stderr)
         return {"total_climb": 0, "total_descent": 0, "max_gradient": 0}
 
-    elevations = []
-    for r in data.get("results", []):
+    # Pair each elevation with its sample point (skip nulls together)
+    elev_points = []
+    for r, sample in zip(data.get("results", []), samples):
         elev = r.get("elevation")
         if elev is not None:
-            elevations.append(elev)
+            elev_points.append((elev, sample))
 
-    if len(elevations) < 2:
+    if len(elev_points) < 2:
         return {"total_climb": 0, "total_descent": 0, "max_gradient": 0}
 
-    import math
     total_climb = 0
     total_descent = 0
     max_gradient = 0
 
-    for i in range(1, len(elevations)):
-        diff = elevations[i] - elevations[i - 1]
+    for i in range(1, len(elev_points)):
+        diff = elev_points[i][0] - elev_points[i - 1][0]
         # Approximate distance between samples
-        lat1, lng1 = samples[i - 1]
-        lat2, lng2 = samples[i]
-        dist_m = math.sqrt(((lat2 - lat1) * 111000) ** 2 + ((lng2 - lng1) * 85000) ** 2)
+        lat1, lng1 = elev_points[i - 1][1]
+        lat2, lng2 = elev_points[i][1]
+        cos_lat = math.cos(math.radians((lat1 + lat2) / 2))
+        dist_m = math.sqrt(((lat2 - lat1) * 111000) ** 2 + ((lng2 - lng1) * 111000 * cos_lat) ** 2)
 
         if diff > 0:
             total_climb += diff
@@ -391,6 +420,7 @@ def find_cycling_trails(coords: list) -> list[str]:
     """
 
     try:
+        _overpass_throttle()
         resp = requests.post(OVERPASS_URL, data={"data": query}, timeout=15)
         resp.raise_for_status()
         data = resp.json()
@@ -440,11 +470,12 @@ def score_cycling_safety(coords: list) -> dict:
     """
 
     try:
+        _overpass_throttle()
         resp = requests.post(OVERPASS_URL, data={"data": query}, timeout=20)
         resp.raise_for_status()
         data = resp.json()
     except (requests.RequestException, ValueError) as e:
-        print(f"  [intelligence] Safety scoring failed: {e}")
+        print(f"  [intelligence] Safety scoring failed: {e}", file=sys.stderr)
         return {"safety_score": 0, "details": ""}
 
     total = 0
@@ -533,9 +564,9 @@ def get_ride_density(lat: float, lng: float, radius_km: float, days: int = 30, c
             for row in cur.fetchall():
                 grid_key = (round(row[0] / grid_size) * grid_size, round(row[1] / grid_size) * grid_size)
                 density[grid_key] = density.get(grid_key, 0) + 1
-        print(f"  [intelligence] Ride density: {len(density)} grid cells from last {days} days")
+        print(f"  [intelligence] Ride density: {len(density)} grid cells from last {days} days", file=sys.stderr)
     except Exception as e:
-        print(f"  [intelligence] Ride density failed: {e}")
+        print(f"  [intelligence] Ride density failed: {e}", file=sys.stderr)
     finally:
         if own_conn and conn:
             conn.close()
@@ -566,23 +597,21 @@ def smart_waypoints(
 
     Returns list of {lat, lng, name, reason} for use as Valhalla waypoints.
     """
-    import math
-
     radius_km = (target_km / (2 * math.pi)) * 1.2  # slightly larger than route radius
 
     # Get POIs from OSM
     pois = get_pois(lat, lng, radius_km)
-    print(f"  [intelligence] Found {len(pois)} POIs from OSM")
+    print(f"  [intelligence] Found {len(pois)} POIs from OSM", file=sys.stderr)
 
     # Get Strava segments if token available
     segments = []
     if strava_token:
         segments = get_strava_segments(lat, lng, radius_km, strava_token)
-        print(f"  [intelligence] Found {len(segments)} Strava segments")
+        print(f"  [intelligence] Found {len(segments)} Strava segments", file=sys.stderr)
 
     # Get Komoot community highlights
     komoot_highlights = get_komoot_highlights(lat, lng, radius_km, surface)
-    print(f"  [intelligence] Found {len(komoot_highlights)} Komoot highlights")
+    print(f"  [intelligence] Found {len(komoot_highlights)} Komoot highlights", file=sys.stderr)
 
     # Get ride history density
     density = get_ride_density(lat, lng, radius_km)
@@ -592,7 +621,7 @@ def smart_waypoints(
     candidates = []
 
     for poi in pois:
-        dist = math.sqrt((poi["lat"] - lat) ** 2 + (poi["lng"] - lng) ** 2) * 111
+        dist = _haversine_km(lat, lng, poi["lat"], poi["lng"])
         if dist > max_dist_km:
             continue
         ideal_dist = radius_km * 0.7
@@ -628,7 +657,7 @@ def smart_waypoints(
         })
 
     for seg in segments[:10]:
-        dist = math.sqrt((seg["lat"] - lat) ** 2 + (seg["lng"] - lng) ** 2) * 111
+        dist = _haversine_km(lat, lng, seg["lat"], seg["lng"])
         if dist > max_dist_km:
             continue
         ideal_dist = radius_km * 0.7
@@ -660,7 +689,7 @@ def smart_waypoints(
         "settlement": 0.5, "other_man_made": 0.4,
     }
     for kh in komoot_highlights:
-        dist = math.sqrt((kh["lat"] - lat) ** 2 + (kh["lng"] - lng) ** 2) * 111
+        dist = _haversine_km(lat, lng, kh["lat"], kh["lng"])
         if dist > max_dist_km:
             continue
         ideal_dist = radius_km * 0.7
@@ -694,7 +723,7 @@ def smart_waypoints(
         from veloai.config import load as load_config
         avoid_zones = load_config().get("avoid", [])
         if avoid_zones:
-            print(f"  [intelligence] Avoiding {len(avoid_zones)} configured zones")
+            print(f"  [intelligence] Avoiding {len(avoid_zones)} configured zones", file=sys.stderr)
     except Exception:
         pass
 
@@ -708,13 +737,16 @@ def smart_waypoints(
             break
         # Check angular separation (at least 45 degrees from any selected)
         angle = c["angle"]
-        too_close = any(abs(angle - ua) < math.radians(45) for ua in used_angles)
+        too_close = any(
+            abs((angle - ua + math.pi) % (2 * math.pi) - math.pi) < math.radians(45)
+            for ua in used_angles
+        )
         if too_close:
             continue
         # Check avoid zones
         in_avoid_zone = False
         for zone in avoid_zones:
-            zdist = math.sqrt((c["lat"] - zone["lat"]) ** 2 + (c["lng"] - zone["lng"]) ** 2) * 111000  # meters
+            zdist = _haversine_km(c["lat"], c["lng"], zone["lat"], zone["lng"]) * 1000  # meters
             if zdist < zone.get("radius", 500):
                 in_avoid_zone = True
                 break

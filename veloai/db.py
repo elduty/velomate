@@ -63,18 +63,47 @@ def get_routes(conn) -> list:
         return []
 
 
-def get_avg_speed(conn) -> float | None:
+def get_avg_speed(conn, surface: str | None = None) -> float | None:
     """Get average outdoor cycling speed (km/h) from ride history.
-    Uses the 75th percentile of speeds from rides >5km to get a
-    realistic cruising speed, excluding slow/short rides.
+    Uses the median speed from rides >5km to get a realistic cruising speed.
+    If surface is provided, filters by speed ranges typical for that surface
+    (road > 22 km/h, gravel/mtb < 25 km/h) to separate surface-specific data.
+    Falls back to overall median if not enough surface-specific data.
     Returns None if no data available.
     """
     if not conn:
         return None
     try:
         with conn.cursor() as cur:
+            # Try surface-specific speed first
+            if surface == "road":
+                cur.execute("""
+                    SELECT ROUND(percentile_cont(0.5) WITHIN GROUP (ORDER BY avg_speed_kmh)::numeric, 1)
+                    FROM activities
+                    WHERE sport_type = 'cycling_outdoor'
+                      AND avg_speed_kmh > 22
+                      AND distance_m > 5000
+                    HAVING COUNT(*) >= 5
+                """)
+                row = cur.fetchone()
+                if row and row[0]:
+                    return float(row[0])
+            elif surface in ("gravel", "mtb"):
+                cur.execute("""
+                    SELECT ROUND(percentile_cont(0.5) WITHIN GROUP (ORDER BY avg_speed_kmh)::numeric, 1)
+                    FROM activities
+                    WHERE sport_type = 'cycling_outdoor'
+                      AND avg_speed_kmh > 0 AND avg_speed_kmh < 25
+                      AND distance_m > 5000
+                    HAVING COUNT(*) >= 5
+                """)
+                row = cur.fetchone()
+                if row and row[0]:
+                    return float(row[0])
+
+            # Fallback: overall median
             cur.execute("""
-                SELECT ROUND(percentile_cont(0.75) WITHIN GROUP (ORDER BY avg_speed_kmh)::numeric, 1)
+                SELECT ROUND(percentile_cont(0.5) WITHIN GROUP (ORDER BY avg_speed_kmh)::numeric, 1)
                 FROM activities
                 WHERE sport_type = 'cycling_outdoor'
                   AND avg_speed_kmh > 0

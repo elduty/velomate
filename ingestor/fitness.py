@@ -33,6 +33,7 @@ def estimate_threshold_hr(conn) -> int:
             SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY max_hr)
             FROM activities
             WHERE max_hr IS NOT NULL AND max_hr > 0
+              AND sport_type IN ('cycling_outdoor', 'cycling_indoor', 'zwift', 'ebike')
         """)
         row = cur.fetchone()
         if row and row[0]:
@@ -52,6 +53,7 @@ def estimate_ftp(conn) -> int:
                 SELECT id FROM activities
                 WHERE date >= CURRENT_DATE - interval '90 days'
                   AND avg_power IS NOT NULL AND avg_power > 0
+                  AND sport_type IN ('cycling_outdoor', 'cycling_indoor', 'zwift', 'ebike')
             ),
             rolling AS (
                 SELECT
@@ -59,7 +61,7 @@ def estimate_ftp(conn) -> int:
                     AVG(s.power) OVER (
                         PARTITION BY s.activity_id
                         ORDER BY s.time_offset
-                        ROWS BETWEEN 1199 PRECEDING AND CURRENT ROW
+                        RANGE BETWEEN 1199 PRECEDING AND CURRENT ROW
                     ) AS avg_20min
                 FROM activity_streams s
                 JOIN recent_activities a ON a.id = s.activity_id
@@ -77,6 +79,7 @@ def estimate_ftp(conn) -> int:
             SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY avg_power)
             FROM activities
             WHERE avg_power IS NOT NULL AND avg_power > 0
+              AND sport_type IN ('cycling_outdoor', 'cycling_indoor', 'zwift', 'ebike')
         """)
         row = cur.fetchone()
         if row and row[0]:
@@ -121,12 +124,13 @@ def recalculate_fitness(conn):
         ftp = estimate_ftp(conn)
         print(f"[fitness] Auto-estimated FTP: {ftp}W (rolling 90-day best 20min × 0.95)")
 
-    # Store per-activity TSS
+    # Store per-activity TSS (cycling only — running/strength use different thresholds)
     with conn.cursor() as cur:
         cur.execute("""
             SELECT id, duration_s, avg_hr, avg_power
             FROM activities
             WHERE date IS NOT NULL
+              AND sport_type IN ('cycling_outdoor', 'cycling_indoor', 'zwift', 'ebike')
         """)
         activity_rows = cur.fetchall()
 
@@ -140,12 +144,13 @@ def recalculate_fitness(conn):
         with conn.cursor() as cur:
             cur.execute("UPDATE activities SET tss = %s WHERE id = %s", (round(tss, 1), act_id))
 
-    # Read back stored TSS + distance/elevation (reuse values just written above)
+    # Read back stored TSS + distance/elevation (cycling only)
     with conn.cursor() as cur:
         cur.execute("""
             SELECT date::date, COALESCE(tss, 0), distance_m, elevation_m
             FROM activities
             WHERE date IS NOT NULL
+              AND sport_type IN ('cycling_outdoor', 'cycling_indoor', 'zwift', 'ebike')
             ORDER BY date
         """)
         rows = cur.fetchall()

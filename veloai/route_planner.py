@@ -1,4 +1,4 @@
-"""Route planner — generates a real cycling GPX route and uploads it to Komoot."""
+"""Route planner — generates a cycling GPX route with weather and intelligence enrichment."""
 
 import re
 import sys
@@ -9,8 +9,6 @@ from datetime import datetime, timedelta
 DEFAULT_SPEEDS = {"road": 27, "gravel": 22, "mtb": 17}
 
 # Surface multipliers against overall outdoor avg speed
-SURFACE_MULTIPLIERS = {"road": 1.1, "gravel": 0.85, "mtb": 0.7}
-
 
 def parse_duration(duration_str: str) -> int | None:
     """Parse duration string to minutes. Supports '2h', '1h30m', '90min', '1:30'."""
@@ -82,15 +80,20 @@ def parse_time(time_str: str) -> str | None:
             hour += 12
         elif suffix == "am" and hour == 12:
             hour = 0
+        if hour > 23:
+            return None
         return f"{hour:02d}:00"
 
     return None
 
 
-def estimate_distance(duration_min: int, surface: str, avg_speed: object) -> float:
-    """Estimate route distance (km) from duration and speed."""
+def estimate_distance(duration_min: int, surface: str, avg_speed: float | None) -> float:
+    """Estimate route distance (km) from duration and speed.
+    avg_speed is already surface-specific from DB, so no multiplier needed.
+    Falls back to DEFAULT_SPEEDS when no ride history is available.
+    """
     if avg_speed:
-        speed = float(avg_speed) * SURFACE_MULTIPLIERS.get(surface, 0.85)
+        speed = float(avg_speed)
     else:
         speed = DEFAULT_SPEEDS.get(surface, 22)
     return round(duration_min / 60 * speed, 1)
@@ -224,6 +227,7 @@ def plan(duration_str: str = None, distance_str: str = None,
          safety: float = 0.5,
          output_dir: str = None) -> str:
     """Generate a cycling route. Accepts either duration or distance."""
+    safety = max(0.0, min(1.0, safety))
 
     # Parse duration or distance
     duration_min = parse_duration(duration_str) if duration_str else None
@@ -243,7 +247,7 @@ def plan(duration_str: str = None, distance_str: str = None,
         conn = get_connection()
         if conn:
             try:
-                avg_speed = get_avg_speed(conn)
+                avg_speed = get_avg_speed(conn, surface=surface)
                 fitness = get_latest_fitness(conn)
             finally:
                 conn.close()
@@ -254,7 +258,7 @@ def plan(duration_str: str = None, distance_str: str = None,
     if target_distance:
         distance_km = target_distance
         # Estimate duration for display
-        speed = float(avg_speed) * SURFACE_MULTIPLIERS.get(surface, 1.0) if avg_speed else DEFAULT_SPEEDS.get(surface, 22)
+        speed = float(avg_speed) if avg_speed else DEFAULT_SPEEDS.get(surface, 22)
         duration_min = int(target_distance / speed * 60) if speed > 0 else 60
     else:
         distance_km = estimate_distance(duration_min, surface, avg_speed)
@@ -271,7 +275,7 @@ def plan(duration_str: str = None, distance_str: str = None,
                     weather_day = day
                     break
         except Exception as e:
-            print(f"  [route] {e}", file=__import__("sys").stderr)
+            print(f"  [route] {e}", file=sys.stderr)
 
 
     # Geocode explicit waypoints, or use smart waypoints from route intelligence
@@ -369,21 +373,26 @@ def plan(duration_str: str = None, distance_str: str = None,
     except Exception as e:
         print(f"  [safety] Skipped: {e}", file=sys.stderr)
 
+    # Compute best ride hours once (used for preview, wind analysis, and output)
+    best_hours = None
+    if ride_date and weather_day and weather_day.get("hourly"):
+        try:
+            from veloai.weather import best_ride_hours
+            best_hours = best_ride_hours(weather_day["hourly"], ride_date)
+        except Exception:
+            pass
+
     # Show route preview in browser
+    html_path = None
     try:
         from veloai.map_preview import preview
         wp_for_preview = preview_waypoints if preview_waypoints else None
 
         # Collect best time info
         best_time_info = None
-        if ride_date and weather_day and weather_day.get("hourly"):
-            try:
-                from veloai.weather import best_ride_hours
-                bh = best_ride_hours(weather_day["hourly"], ride_date)
-                if bh:
-                    best_time_info = {"hour": bh[0]["time"][11:16], "temp": bh[0]["temp"], "wind": bh[0]["wind"], "uv": bh[0]["uv"]}
-            except Exception:
-                pass
+        if best_hours:
+            top = best_hours[0]
+            best_time_info = {"hour": top["time"][11:16], "temp": top["temp"], "wind": top["wind"], "uv": top["uv"]}
 
         # Collect sun info
         sun_info = None
@@ -408,13 +417,11 @@ def plan(duration_str: str = None, distance_str: str = None,
             "trails": trails,
             "gpx_path": gpx_path,
         }, output_dir=output_dir)
-        if output_dir:
-            print(f"🌐 Preview: {html_path}")
-        else:
+        if not output_dir:
             print(f"  Route preview opened in browser", file=sys.stderr)
     except Exception as e:
+        html_path = None
         print(f"  [preview] Skipped: {e}", file=sys.stderr)
-
 
     # Build output
     lines = []
@@ -453,16 +460,10 @@ def plan(duration_str: str = None, distance_str: str = None,
             lines.append(f"  ⚠️ High wind — consider a sheltered route")
 
         # Wind direction analysis against route
-        if ride_date and weather_day.get("hourly") and result.get("coords"):
-            try:
-                from veloai.weather import best_ride_hours
-                best_hours = best_ride_hours(weather_day["hourly"], ride_date)
-                if best_hours:
-                    wind_warning = _analyze_wind(result["coords"], best_hours[0]["wind_dir"], best_hours[0]["wind"])
-                    if wind_warning:
-                        lines.append(f"  💨 {wind_warning}")
-            except Exception as e:
-                print(f"  [route] {e}", file=__import__("sys").stderr)
+        if best_hours and result.get("coords"):
+            wind_warning = _analyze_wind(result["coords"], best_hours[0]["wind_dir"], best_hours[0]["wind"])
+            if wind_warning:
+                lines.append(f"  💨 {wind_warning}")
 
         if weather_day["precip"] > 5:
             lines.append(f"  ⚠️ Rain expected — check conditions")
@@ -476,16 +477,10 @@ def plan(duration_str: str = None, distance_str: str = None,
             lines.append(f"  ☀️ Hot day — consider an early morning ride")
 
         # Suggest best ride time
-        if ride_date and weather_day.get("hourly"):
-            try:
-                from veloai.weather import best_ride_hours
-                best = best_ride_hours(weather_day["hourly"], ride_date)
-                if best:
-                    top = best[0]
-                    hour = top["time"][11:16]
-                    lines.append(f"  🕐 Best time: {hour} ({top['temp']:.0f}°C, wind {top['wind']:.0f} km/h, UV {top['uv']:.0f})")
-            except Exception as e:
-                print(f"  [route] {e}", file=__import__("sys").stderr)
+        if best_hours:
+            top = best_hours[0]
+            hour = top["time"][11:16]
+            lines.append(f"  🕐 Best time: {hour} ({top['temp']:.0f}°C, wind {top['wind']:.0f} km/h, UV {top['uv']:.0f})")
 
 
     # Air quality
@@ -502,17 +497,15 @@ def plan(duration_str: str = None, distance_str: str = None,
         except Exception as e:
             print(f"  [aqi] {e}", file=sys.stderr)
 
-    # Sunrise/sunset safety
-    if ride_date and ride_time and home_lat:
+    # Sunrise/sunset display
+    # Note: sunrise-sunset.org returns UTC times; ride_time is local.
+    # We display times but don't compare them — timezone mismatch would give wrong warnings.
+    if ride_date and home_lat:
         try:
             from veloai.weather import fetch_sunrise_sunset
             sun = fetch_sunrise_sunset(home_lat, home_lng, ride_date)
             if sun:
-                lines.append(f"  🌅 Sunrise {sun['sunrise']}, sunset {sun['sunset']}")
-                if ride_time > sun["sunset"]:
-                    lines.append(f"  ⚠️ Ride starts after sunset — bring lights!")
-                elif ride_time < sun["sunrise"]:
-                    lines.append(f"  ⚠️ Ride starts before sunrise — bring lights!")
+                lines.append(f"  🌅 Sunrise {sun['sunrise']}, sunset {sun['sunset']} (UTC)")
         except Exception as e:
             print(f"  [sun] {e}", file=sys.stderr)
 
@@ -520,5 +513,7 @@ def plan(duration_str: str = None, distance_str: str = None,
         lines.append(f"  💪 {fitness_note}")
 
     lines.append(f"  💾 GPX: {gpx_path}")
+    if output_dir and html_path:
+        lines.append(f"  🌐 Preview: {html_path}")
 
     return "\n".join(lines)
