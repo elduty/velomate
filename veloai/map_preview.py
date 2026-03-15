@@ -15,7 +15,7 @@ def _read_gpx(gpx_path: str) -> str:
 
 
 def preview(coords: list, name: str, waypoints: list | None = None,
-            route_info: dict | None = None) -> str:
+            route_info: dict | None = None, output_dir: str | None = None) -> str:
     """Generate an HTML map preview of a route and open in browser.
 
     coords: list of (lat, lng) tuples from the GPX
@@ -301,9 +301,21 @@ def preview(coords: list, name: str, waypoints: list | None = None,
 </body>
 </html>"""
 
-    fd, path = tempfile.mkstemp(suffix=".html", prefix="veloai_preview_")
-    with os.fdopen(fd, "w") as f:
-        f.write(html)
+    if output_dir:
+        import re
+        import unicodedata
+        normalized = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode()
+        slug = re.sub(r"[^a-z0-9]+", "-", normalized.lower()).strip("-")
+        slug = slug[:60]
+        filename = f"veloai-{slug}.html"
+        path = os.path.join(output_dir, filename)
+        os.makedirs(output_dir, exist_ok=True)
+        with open(path, "w") as f:
+            f.write(html)
+    else:
+        fd, path = tempfile.mkstemp(suffix=".html", prefix="veloai_preview_")
+        with os.fdopen(fd, "w") as f:
+            f.write(html)
+        webbrowser.open(f"file://{path}")
 
-    webbrowser.open(f"file://{path}")
     return path

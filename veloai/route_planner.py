@@ -221,7 +221,8 @@ def plan(duration_str: str = None, distance_str: str = None,
          time_str: str = None,
          home_lat: float = None, home_lng: float = None,
          preference: str = "variety",
-         safety: float = 0.5) -> str:
+         safety: float = 0.5,
+         output_dir: str = None) -> str:
     """Generate a cycling route. Accepts either duration or distance."""
 
     # Parse duration or distance
@@ -393,7 +394,7 @@ def plan(duration_str: str = None, distance_str: str = None,
             except Exception:
                 pass
 
-        preview(result["coords"], route_name, wp_for_preview, route_info={
+        html_path = preview(result["coords"], route_name, wp_for_preview, route_info={
             "distance_km": actual_km,
             "duration_min": duration_min,
             "elevation": elevation_info,
@@ -406,8 +407,11 @@ def plan(duration_str: str = None, distance_str: str = None,
             "sun": sun_info,
             "trails": trails,
             "gpx_path": gpx_path,
-        })
-        print(f"  Route preview opened in browser", file=sys.stderr)
+        }, output_dir=output_dir)
+        if output_dir:
+            print(f"🌐 Preview: {html_path}")
+        else:
+            print(f"  Route preview opened in browser", file=sys.stderr)
     except Exception as e:
         print(f"  [preview] Skipped: {e}", file=sys.stderr)
 
