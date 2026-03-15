@@ -10,7 +10,7 @@ Inspired by [TeslaMate](https://github.com/teslamate-org/teslamate). Works with 
 - Polls Strava every 10 minutes for new rides
 - Stores full per-second telemetry (HR, power, cadence, speed, altitude, GPS)
 - Calculates CTL/ATL/TSB fitness metrics locally (no Strava Premium needed)
-- FTP auto-estimated from rolling 90-day best 20-minute power
+- FTP auto-estimated from rolling 90-day best 20-minute power, or configured manually
 - Smart deduplication when multiple devices record the same ride
 
 ### Grafana Dashboards (5 dashboards)
@@ -182,8 +182,8 @@ ATL       = 7-day EMA of daily TSS    (acute training load / fatigue)
 TSB       = CTL − ATL                 (training stress balance / form)
 ```
 
-- **FTP**: auto-estimated from rolling 90-day best 20-minute power × 0.95, or configured manually
-- **Threshold HR**: 95th percentile of your max HRs, or configured manually
+- **FTP**: auto-estimated from rolling 90-day best 20-minute power × 0.95, or configured via `VELOAI_FTP` / `config.yaml`
+- **Threshold HR**: 95th percentile of your max HRs, or configured via `VELOAI_MAX_HR` / `config.yaml`
 - **TSB interpretation**: > +10 fresh · -10 to +10 neutral · < -10 fatigued
 
 ## Database Schema
