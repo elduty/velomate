@@ -134,17 +134,18 @@ python3 -m veloai.cli
 
 # Plan a route
 python3 -m veloai.cli plan --duration 2h
+python3 -m veloai.cli plan --distance 50km --surface gravel
 python3 -m veloai.cli plan --duration 3h --waypoints "Sintra,Cascais"
 python3 -m veloai.cli plan --duration 1h --surface mtb --safety 1.0
-python3 -m veloai.cli plan --duration 2h --preference comfort
-python3 -m veloai.cli plan --duration 2h --preference comfort
+python3 -m veloai.cli plan --distance 30 --preference comfort
 ```
 
 ### Plan flags
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--duration` | required | Ride time (`2h`, `1h30m`, `90min`) |
+| `--duration` | * | Ride time (`2h`, `1h30m`, `90min`) |
+| `--distance` | * | Target distance (`30`, `50km`) |
 | `--surface` | `road` | `road`, `gravel`, or `mtb` |
 | `--safety` | `0.5` | 0.0 = fastest, 1.0 = safest (prefers bike lanes) |
 | `--preference` | `variety` | `variety` (new roads) or `comfort` (familiar) |
@@ -153,6 +154,8 @@ python3 -m veloai.cli plan --duration 2h --preference comfort
 | `--time` | — | Start time (`14:00`, `2pm`, `9am`) |
 | `--start` | from config | Override start as `lat,lng` |
 | `--loop` | true | Round-trip route |
+
+\* Provide either `--duration` or `--distance` (one required, mutually exclusive).
 
 ### Example output
 

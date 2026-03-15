@@ -63,6 +63,7 @@ def cmd_plan(args):
 
     result = plan(
         duration_str=args.duration,
+        distance_str=args.distance,
         surface=args.surface,
         loop=args.loop,
         waypoints_str=args.waypoints,
@@ -85,7 +86,9 @@ def main():
 
     # Plan subcommand
     plan_parser = subparsers.add_parser("plan", help="Plan a route on Komoot")
-    plan_parser.add_argument("--duration", "-d", required=True, help="Ride duration (e.g. 2h, 1h30m, 90min)")
+    target = plan_parser.add_mutually_exclusive_group(required=True)
+    target.add_argument("--duration", "-d", help="Ride duration (e.g. 2h, 1h30m, 90min)")
+    target.add_argument("--distance", "-k", help="Target distance in km (e.g. 30, 50km)")
     plan_parser.add_argument("--surface", "-s", default="road", choices=["road", "gravel", "mtb"], help="Surface type (default: road)")
     plan_parser.add_argument("--loop", "-l", action="store_true", default=True, help="Round-trip (default: true)")
     plan_parser.add_argument("--no-loop", action="store_false", dest="loop", help="One-way route")

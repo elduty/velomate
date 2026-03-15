@@ -204,18 +204,32 @@ def _get_strava_token() -> str | None:
         return None
 
 
-def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
+def parse_distance(distance_str: str) -> float | None:
+    """Parse distance string to km. Supports '30', '50km', '25.5'."""
+    if not distance_str:
+        return None
+    s = distance_str.lower().strip().rstrip("km").strip()
+    try:
+        return float(s)
+    except ValueError:
+        return None
+
+
+def plan(duration_str: str = None, distance_str: str = None,
+         surface: str = "road", loop: bool = True,
          waypoints_str: str = None, date_str: str = "tomorrow",
          time_str: str = None,
          home_lat: float = None, home_lng: float = None,
          preference: str = "variety",
          safety: float = 0.5) -> str:
-    """Generate a real cycling route, upload to Komoot, return summary."""
+    """Generate a cycling route. Accepts either duration or distance."""
 
-    # Parse duration
-    duration_min = parse_duration(duration_str)
-    if not duration_min:
-        return f"Error: could not parse duration '{duration_str}'. Use format like '2h', '1h30m', '90min'"
+    # Parse duration or distance
+    duration_min = parse_duration(duration_str) if duration_str else None
+    target_distance = parse_distance(distance_str) if distance_str else None
+
+    if not duration_min and not target_distance:
+        return "Error: provide --duration (e.g. 2h) or --distance (e.g. 30km)"
 
     ride_date = resolve_date(date_str)
     ride_time = parse_time(time_str)
@@ -235,8 +249,14 @@ def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
     except Exception as e:
         print(f"  DB unavailable ({e}), using defaults", file=sys.stderr)
 
-    # Estimate target distance
-    distance_km = estimate_distance(duration_min, surface, avg_speed)
+    # Determine target distance
+    if target_distance:
+        distance_km = target_distance
+        # Estimate duration for display
+        speed = float(avg_speed) * SURFACE_MULTIPLIERS.get(surface, 1.0) if avg_speed else DEFAULT_SPEEDS.get(surface, 22)
+        duration_min = int(target_distance / speed * 60) if speed > 0 else 60
+    else:
+        distance_km = estimate_distance(duration_min, surface, avg_speed)
     distance_km, fitness_note = adjust_for_fitness(distance_km, fitness.get("tsb"))
 
     # Weather check
