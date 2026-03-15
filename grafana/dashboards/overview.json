@@ -1062,7 +1062,7 @@
           },
           "targets": [
             {
-              "rawSql": "SELECT ROUND(MAX(elevation_m)::numeric, 0) AS \"Most Elev\" FROM activities WHERE $__timeFilter(date) AND elevation_m > 0;",
+              "rawSql": "SELECT ROUND(MAX(elevation_m)::numeric, 0) AS \"Most Elev\" FROM activities WHERE $__timeFilter(date) AND elevation_m > 0 AND is_indoor IS NOT TRUE;",
               "format": "table",
               "refId": "A"
             }
@@ -1258,7 +1258,7 @@
           },
           "targets": [
             {
-              "rawSql": "SELECT ROUND(MAX(elevation_m)::numeric, 0) AS \"Most Elev\" FROM activities WHERE elevation_m > 0;",
+              "rawSql": "SELECT ROUND(MAX(elevation_m)::numeric, 0) AS \"Most Elev\" FROM activities WHERE elevation_m > 0 AND is_indoor IS NOT TRUE;",
               "format": "table",
               "refId": "A"
             }
