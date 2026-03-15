@@ -60,7 +60,8 @@ def get_routes(conn) -> list:
 
 def get_avg_speed(conn) -> float | None:
     """Get average outdoor cycling speed (km/h) from ride history.
-    Only considers rides > 5km to exclude warm-ups and errands.
+    Uses the 75th percentile of speeds from rides >5km to get a
+    realistic cruising speed, excluding slow/short rides.
     Returns None if no data available.
     """
     if not conn:
@@ -68,7 +69,7 @@ def get_avg_speed(conn) -> float | None:
     try:
         with conn.cursor() as cur:
             cur.execute("""
-                SELECT ROUND(AVG(avg_speed_kmh)::numeric, 1)
+                SELECT ROUND(percentile_cont(0.75) WITHIN GROUP (ORDER BY avg_speed_kmh)::numeric, 1)
                 FROM activities
                 WHERE sport_type = 'cycling_outdoor'
                   AND avg_speed_kmh > 0
