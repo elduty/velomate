@@ -346,7 +346,40 @@ def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
     try:
         from veloai.map_preview import preview
         wp_for_preview = [{"lat": w["lat"], "lng": w.get("lng", w.get("lon")), "name": w.get("name", ""), "reason": w.get("reason", "")} for w in (valhalla_waypoints if valhalla_waypoints else [])] if waypoint_names else None
-        preview(result["coords"], route_name, wp_for_preview)
+
+        # Collect best time info
+        best_time_info = None
+        if ride_date and weather_day and weather_day.get("hourly"):
+            try:
+                from veloai.weather import best_ride_hours
+                bh = best_ride_hours(weather_day["hourly"], ride_date)
+                if bh:
+                    best_time_info = {"hour": bh[0]["time"][11:16], "temp": bh[0]["temp"], "wind": bh[0]["wind"], "uv": bh[0]["uv"]}
+            except Exception:
+                pass
+
+        # Collect sun info
+        sun_info = None
+        if ride_date and home_lat:
+            try:
+                from veloai.weather import fetch_sunrise_sunset
+                sun_info = fetch_sunrise_sunset(home_lat, home_lng, ride_date)
+            except Exception:
+                pass
+
+        preview(result["coords"], route_name, wp_for_preview, route_info={
+            "distance_km": actual_km,
+            "elevation": elevation_info,
+            "scenic": scenic_info,
+            "surface": surface_check,
+            "safety": safety_info,
+            "weather": weather_day,
+            "fitness": fitness_note,
+            "best_time": best_time_info,
+            "sun": sun_info,
+            "trails": trails,
+            "gpx_path": gpx_path,
+        })
         print(f"  Route preview opened in browser", file=sys.stderr)
     except Exception as e:
         print(f"  [preview] Skipped: {e}", file=sys.stderr)

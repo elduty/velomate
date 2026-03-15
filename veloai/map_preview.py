@@ -1,40 +1,181 @@
-"""Route map preview — generates an HTML map and opens in browser."""
+"""Route map preview — generates an HTML map with route info and opens in browser."""
 
 import os
 import tempfile
 import webbrowser
 
 
-def preview(coords: list, name: str, waypoints: list | None = None) -> str:
+def preview(coords: list, name: str, waypoints: list | None = None,
+            route_info: dict | None = None) -> str:
     """Generate an HTML map preview of a route and open in browser.
 
     coords: list of (lat, lng) tuples from the GPX
     name: route name
-    waypoints: optional list of {lat, lng, name} dicts
+    waypoints: optional list of {lat, lng, name, reason} dicts
+    route_info: optional dict with enrichment data:
+        distance_km, elevation, scenic, surface, safety, weather, fitness,
+        air_quality, sun, trails, best_time
 
     Returns path to the HTML file.
     """
     if not coords:
         return ""
 
-    # Calculate bounds for auto-fit
-    lats = [c[0] for c in coords]
-    lngs = [c[1] for c in coords]
-    center_lat = (min(lats) + max(lats)) / 2
-    center_lng = (min(lngs) + max(lngs)) / 2
+    info = route_info or {}
 
     # Build coordinate array for Leaflet
-    coord_js = ",".join(f"[{lat},{lng}]" for lat, lng in coords[::5])  # sample every 5th point
+    coord_js = ",".join(f"[{lat},{lng}]" for lat, lng in coords[::5])
 
     # Build waypoint markers
     markers_js = ""
     if waypoints:
         for wp in waypoints:
+            wp_name = wp.get("name", "").replace("'", "\\'")
+            wp_reason = wp.get("reason", "").replace("'", "\\'")
             markers_js += f"""
             L.marker([{wp['lat']}, {wp['lng']}])
                 .addTo(map)
-                .bindPopup('<b>{wp["name"]}</b><br>{wp.get("reason", "")}');
+                .bindPopup('<b>{wp_name}</b><br>{wp_reason}');
             """
+
+    # Build info cards HTML
+    cards_html = ""
+
+    # Distance + elevation card
+    dist = info.get("distance_km", 0)
+    elev = info.get("elevation", {})
+    if dist or elev:
+        climb = elev.get("total_climb", 0)
+        descent = elev.get("total_descent", 0)
+        gradient = elev.get("max_gradient", 0)
+        cards_html += f"""
+        <div class="card">
+            <div class="card-icon">📏</div>
+            <div class="card-body">
+                <div class="card-value">{dist:.0f} km</div>
+                <div class="card-label">Distance</div>
+            </div>
+        </div>"""
+        if climb:
+            cards_html += f"""
+        <div class="card">
+            <div class="card-icon">⛰</div>
+            <div class="card-body">
+                <div class="card-value">+{climb}m / -{descent}m</div>
+                <div class="card-label">Climb · max {gradient}%</div>
+            </div>
+        </div>"""
+
+    # Surface card
+    surface = info.get("surface", {})
+    if surface.get("surfaces"):
+        breakdown = ", ".join(f"{s} {p}%" for s, p in list(surface["surfaces"].items())[:3])
+        cards_html += f"""
+        <div class="card">
+            <div class="card-icon">🛤</div>
+            <div class="card-body">
+                <div class="card-value">{breakdown}</div>
+                <div class="card-label">Surface</div>
+            </div>
+        </div>"""
+
+    # Scenic card
+    scenic = info.get("scenic", {})
+    if scenic.get("features"):
+        features = ", ".join(scenic["features"][:3])
+        cards_html += f"""
+        <div class="card">
+            <div class="card-icon">🌿</div>
+            <div class="card-body">
+                <div class="card-value">{scenic['scenic_score']}/100</div>
+                <div class="card-label">Scenic · {features}</div>
+            </div>
+        </div>"""
+
+    # Safety card
+    safety = info.get("safety", {})
+    if safety.get("details"):
+        cards_html += f"""
+        <div class="card">
+            <div class="card-icon">🛡</div>
+            <div class="card-body">
+                <div class="card-value">{safety['safety_score']}/100</div>
+                <div class="card-label">Safety · {safety['details']}</div>
+            </div>
+        </div>"""
+
+    # Weather card
+    weather = info.get("weather")
+    if weather:
+        cards_html += f"""
+        <div class="card">
+            <div class="card-icon">🌤</div>
+            <div class="card-body">
+                <div class="card-value">{weather.get('temp_min', 0):.0f}–{weather.get('temp_max', 0):.0f}°C</div>
+                <div class="card-label">{weather.get('weather', '')} · wind {weather.get('wind', 0):.0f} km/h</div>
+            </div>
+        </div>"""
+
+    # Best time card
+    best_time = info.get("best_time")
+    if best_time:
+        cards_html += f"""
+        <div class="card">
+            <div class="card-icon">🕐</div>
+            <div class="card-body">
+                <div class="card-value">{best_time['hour']}</div>
+                <div class="card-label">{best_time['temp']:.0f}°C · wind {best_time['wind']:.0f} km/h · UV {best_time['uv']:.0f}</div>
+            </div>
+        </div>"""
+
+    # Sunrise/sunset card
+    sun = info.get("sun")
+    if sun:
+        cards_html += f"""
+        <div class="card">
+            <div class="card-icon">🌅</div>
+            <div class="card-body">
+                <div class="card-value">{sun['sunrise']} – {sun['sunset']}</div>
+                <div class="card-label">Sunrise / Sunset</div>
+            </div>
+        </div>"""
+
+    # Fitness card
+    fitness = info.get("fitness")
+    if fitness:
+        cards_html += f"""
+        <div class="card">
+            <div class="card-icon">💪</div>
+            <div class="card-body">
+                <div class="card-value">{fitness}</div>
+                <div class="card-label">Fitness</div>
+            </div>
+        </div>"""
+
+    # Trails card
+    trails = info.get("trails", [])
+    if trails:
+        cards_html += f"""
+        <div class="card">
+            <div class="card-icon">🚲</div>
+            <div class="card-body">
+                <div class="card-value">{', '.join(trails)}</div>
+                <div class="card-label">Cycling trails</div>
+            </div>
+        </div>"""
+
+    # Waypoints list
+    wp_html = ""
+    if waypoints:
+        wp_items = "".join(
+            f'<li><b>{wp.get("name", "")}</b> <span class="wp-reason">{wp.get("reason", "")}</span></li>'
+            for wp in waypoints
+        )
+        wp_html = f"""
+        <div class="waypoints">
+            <h3>Waypoints</h3>
+            <ol>{wp_items}</ol>
+        </div>"""
 
     html = f"""<!DOCTYPE html>
 <html>
@@ -45,46 +186,52 @@ def preview(coords: list, name: str, waypoints: list | None = None) -> str:
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9/dist/leaflet.css">
     <script src="https://unpkg.com/leaflet@1.9/dist/leaflet.js"></script>
     <style>
-        body {{ margin: 0; font-family: system-ui; background: #1a1a2e; color: #eee; }}
-        #map {{ height: 70vh; }}
-        .info {{ padding: 16px 24px; }}
-        .info h2 {{ margin: 0 0 8px; color: #6ed0ff; }}
-        .info p {{ margin: 4px 0; color: #aaa; }}
-        .btn {{ display: inline-block; margin-top: 12px; padding: 10px 24px; background: #73bf69; color: #fff; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; text-decoration: none; }}
-        .btn:hover {{ background: #5a9e52; }}
+        * {{ box-sizing: border-box; }}
+        body {{ margin: 0; font-family: system-ui, -apple-system, sans-serif; background: #1a1a2e; color: #e0e0e0; }}
+        #map {{ height: 55vh; min-height: 300px; }}
+        .header {{ padding: 16px 24px; border-bottom: 1px solid #2a2d35; }}
+        .header h1 {{ margin: 0; font-size: 20px; color: #6ed0ff; }}
+        .header .gpx {{ margin-top: 4px; font-size: 12px; color: #666; }}
+        .cards {{ display: flex; flex-wrap: wrap; gap: 12px; padding: 16px 24px; }}
+        .card {{ display: flex; align-items: center; gap: 10px; background: #1e2228; border-radius: 8px; padding: 12px 16px; min-width: 200px; flex: 1 1 200px; }}
+        .card-icon {{ font-size: 24px; }}
+        .card-body {{ flex: 1; }}
+        .card-value {{ font-size: 16px; font-weight: 600; color: #fff; }}
+        .card-label {{ font-size: 11px; color: #888; margin-top: 2px; }}
+        .waypoints {{ padding: 0 24px 16px; }}
+        .waypoints h3 {{ margin: 0 0 8px; font-size: 14px; color: #aaa; }}
+        .waypoints ol {{ margin: 0; padding-left: 20px; }}
+        .waypoints li {{ margin: 4px 0; font-size: 13px; }}
+        .wp-reason {{ color: #666; font-size: 11px; }}
+        .footer {{ padding: 12px 24px; border-top: 1px solid #2a2d35; font-size: 12px; color: #555; }}
     </style>
 </head>
 <body>
-    <div class="info">
-        <h2>{name}</h2>
-        <p>Review the route below. If it looks good, the CLI will upload it to Komoot.</p>
+    <div class="header">
+        <h1>{name}</h1>
+        <div class="gpx">GPX: {info.get('gpx_path', '')}</div>
     </div>
     <div id="map"></div>
-    <div class="info">
-        <p>Close this tab when done reviewing.</p>
-    </div>
+    <div class="cards">{cards_html}</div>
+    {wp_html}
+    <div class="footer">Generated by VeloAI</div>
     <script>
         var coords = [{coord_js}];
         var map = L.map('map');
         L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
             attribution: '&copy; OpenStreetMap'
         }}).addTo(map);
-
         var route = L.polyline(coords, {{color: '#6ed0ff', weight: 4, opacity: 0.8}}).addTo(map);
         map.fitBounds(route.getBounds().pad(0.1));
-
-        // Start/end marker
         if (coords.length > 0) {{
             L.circleMarker(coords[0], {{radius: 8, color: '#73bf69', fillColor: '#73bf69', fillOpacity: 1}})
                 .addTo(map).bindPopup('<b>Start / End</b>');
         }}
-
         {markers_js}
     </script>
 </body>
 </html>"""
 
-    # Write to temp file and open
     fd, path = tempfile.mkstemp(suffix=".html", prefix="veloai_preview_")
     with os.fdopen(fd, "w") as f:
         f.write(html)
