@@ -361,6 +361,24 @@ def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
     except Exception as e:
         print(f"  [surface] Skipped: {e}", file=sys.stderr)
 
+    # Score scenic value, elevation profile, cycling trails
+    scenic_info = {}
+    elevation_info = {}
+    trails = []
+    try:
+        from veloai.route_intelligence import score_scenic, get_elevation_profile, find_cycling_trails
+        scenic_info = score_scenic(result["coords"])
+        if scenic_info.get("features"):
+            print(f"  Scenic: {', '.join(scenic_info['features'])} (score: {scenic_info['scenic_score']}/100)", file=sys.stderr)
+        elevation_info = get_elevation_profile(result["coords"])
+        if elevation_info.get("total_climb"):
+            print(f"  Elevation: +{elevation_info['total_climb']}m / -{elevation_info['total_descent']}m, max gradient {elevation_info['max_gradient']}%", file=sys.stderr)
+        trails = find_cycling_trails(result["coords"])
+        if trails:
+            print(f"  Trails: {', '.join(trails)}", file=sys.stderr)
+    except Exception as e:
+        print(f"  [enrichment] {e}", file=sys.stderr)
+
     # Score cycling safety infrastructure
     safety_info = {}
     try:
@@ -407,8 +425,17 @@ def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
     if surface_check.get("warning"):
         lines.append(f"  ⚠️ {surface_check['warning']}")
 
+    if elevation_info.get("total_climb"):
+        lines.append(f"  ⛰ Climb: +{elevation_info['total_climb']}m / -{elevation_info['total_descent']}m (max gradient {elevation_info['max_gradient']}%)")
+
+    if scenic_info.get("features"):
+        lines.append(f"  🌿 Scenic: {', '.join(scenic_info['features'])} ({scenic_info['scenic_score']}/100)")
+
     if safety_info.get("details"):
         lines.append(f"  🛡 Safety: {safety_info['details']} ({safety_info['safety_score']}/100)")
+
+    if trails:
+        lines.append(f"  🚲 Trails: {', '.join(trails)}")
 
     if weather_day:
         lines.append(f"  🌤 {format_weather(weather_day)}")
@@ -450,6 +477,34 @@ def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
             except Exception as e:
                 print(f"  [route] {e}", file=__import__("sys").stderr)
 
+
+    # Air quality
+    if ride_date and home_lat:
+        try:
+            from veloai.weather import fetch_air_quality
+            aqi = fetch_air_quality(home_lat, home_lng, ride_date)
+            if aqi and aqi.get("aqi"):
+                aqi_val = aqi["aqi"]
+                if aqi_val > 100:
+                    lines.append(f"  ⚠️ Poor air quality (AQI {aqi_val}) — consider indoor ride")
+                elif aqi_val > 50:
+                    lines.append(f"  😷 Moderate air quality (AQI {aqi_val})")
+        except Exception as e:
+            print(f"  [aqi] {e}", file=sys.stderr)
+
+    # Sunrise/sunset safety
+    if ride_date and ride_time and home_lat:
+        try:
+            from veloai.weather import fetch_sunrise_sunset
+            sun = fetch_sunrise_sunset(home_lat, home_lng, ride_date)
+            if sun:
+                lines.append(f"  🌅 Sunrise {sun['sunrise']}, sunset {sun['sunset']}")
+                if ride_time > sun["sunset"]:
+                    lines.append(f"  ⚠️ Ride starts after sunset — bring lights!")
+                elif ride_time < sun["sunrise"]:
+                    lines.append(f"  ⚠️ Ride starts before sunrise — bring lights!")
+        except Exception as e:
+            print(f"  [sun] {e}", file=sys.stderr)
 
     if fitness_note:
         lines.append(f"  💪 {fitness_note}")

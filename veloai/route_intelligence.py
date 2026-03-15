@@ -237,6 +237,183 @@ def verify_surface(coords: list, expected_surface: str) -> dict:
     return {"match_pct": match_pct, "surfaces": surfaces, "warning": warning}
 
 
+def score_scenic(coords: list) -> dict:
+    """Score a route's scenic value based on proximity to natural features.
+    Queries OSM for water, forest, coastline, parks, cliffs near the route.
+    Returns {scenic_score: 0-100, features: list[str]}.
+    """
+    if not coords or len(coords) < 10:
+        return {"scenic_score": 0, "features": []}
+
+    step = max(1, len(coords) // 15)
+    samples = coords[::step][:15]
+
+    around_radius = 200  # meters
+    scenic_tags = [
+        'node["natural"="water"]',
+        'way["natural"="water"]',
+        'way["natural"="coastline"]',
+        'way["landuse"="forest"]',
+        'way["natural"="wood"]',
+        'node["natural"="beach"]',
+        'way["leisure"="park"]',
+        'node["natural"="cliff"]',
+        'node["natural"="peak"]',
+    ]
+
+    union_parts = []
+    for lat, lng in samples:
+        for tag in scenic_tags:
+            union_parts.append(f'{tag}(around:{around_radius},{lat},{lng});')
+
+    query = f"""
+    [out:json][timeout:15];
+    (
+      {chr(10).join(union_parts)}
+    );
+    out tags;
+    """
+
+    try:
+        resp = requests.post(OVERPASS_URL, data={"data": query}, timeout=20)
+        resp.raise_for_status()
+        data = resp.json()
+    except (requests.RequestException, ValueError) as e:
+        print(f"  [intelligence] Scenic scoring failed: {e}")
+        return {"scenic_score": 0, "features": []}
+
+    feature_counts: dict[str, int] = {}
+    for el in data.get("elements", []):
+        tags = el.get("tags", {})
+        for key in ("natural", "landuse", "leisure"):
+            val = tags.get(key)
+            if val:
+                feature_counts[val] = feature_counts.get(val, 0) + 1
+
+    if not feature_counts:
+        return {"scenic_score": 0, "features": []}
+
+    # Score by feature variety and count
+    feature_scores = {"coastline": 15, "water": 12, "beach": 10, "cliff": 10,
+                      "peak": 8, "forest": 8, "wood": 8, "park": 6}
+    score = 0
+    for feat, count in feature_counts.items():
+        score += feature_scores.get(feat, 3) * min(count, 3)
+    score = min(100, score)
+
+    features = [f"{feat} ({count})" for feat, count in sorted(feature_counts.items(), key=lambda x: -x[1])[:5]]
+
+    return {"scenic_score": score, "features": features}
+
+
+def get_elevation_profile(coords: list) -> dict:
+    """Get elevation profile using Open Topo Data API.
+    Returns {total_climb: m, total_descent: m, max_gradient: %, profile: list}.
+    """
+    if not coords or len(coords) < 10:
+        return {"total_climb": 0, "total_descent": 0, "max_gradient": 0}
+
+    # Sample every ~200m (roughly every 20th point at 10m spacing)
+    step = max(1, len(coords) // 50)
+    samples = coords[::step][:50]
+
+    # Open Topo Data accepts pipe-separated lat,lng pairs
+    locations = "|".join(f"{lat},{lng}" for lat, lng in samples)
+
+    try:
+        resp = requests.get(
+            f"https://api.opentopodata.org/v1/eudem25m?locations={locations}",
+            timeout=15,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+    except (requests.RequestException, ValueError) as e:
+        print(f"  [intelligence] Elevation profile failed: {e}")
+        return {"total_climb": 0, "total_descent": 0, "max_gradient": 0}
+
+    elevations = []
+    for r in data.get("results", []):
+        elev = r.get("elevation")
+        if elev is not None:
+            elevations.append(elev)
+
+    if len(elevations) < 2:
+        return {"total_climb": 0, "total_descent": 0, "max_gradient": 0}
+
+    import math
+    total_climb = 0
+    total_descent = 0
+    max_gradient = 0
+
+    for i in range(1, len(elevations)):
+        diff = elevations[i] - elevations[i - 1]
+        # Approximate distance between samples
+        lat1, lng1 = samples[i - 1]
+        lat2, lng2 = samples[i]
+        dist_m = math.sqrt(((lat2 - lat1) * 111000) ** 2 + ((lng2 - lng1) * 85000) ** 2)
+
+        if diff > 0:
+            total_climb += diff
+        else:
+            total_descent += abs(diff)
+
+        if dist_m > 10:
+            gradient = abs(diff) / dist_m * 100
+            max_gradient = max(max_gradient, gradient)
+
+    return {
+        "total_climb": round(total_climb),
+        "total_descent": round(total_descent),
+        "max_gradient": round(max_gradient, 1),
+    }
+
+
+def find_cycling_trails(coords: list) -> list[str]:
+    """Find named cycling trail networks (EuroVelo, national routes) along the route.
+    Returns list of trail names.
+    """
+    if not coords or len(coords) < 10:
+        return []
+
+    step = max(1, len(coords) // 10)
+    samples = coords[::step][:10]
+
+    union_parts = []
+    for lat, lng in samples:
+        union_parts.append(f'relation["route"="bicycle"](around:100,{lat},{lng});')
+
+    query = f"""
+    [out:json][timeout:10];
+    (
+      {chr(10).join(union_parts)}
+    );
+    out tags;
+    """
+
+    try:
+        resp = requests.post(OVERPASS_URL, data={"data": query}, timeout=15)
+        resp.raise_for_status()
+        data = resp.json()
+    except (requests.RequestException, ValueError):
+        return []
+
+    trails = set()
+    for el in data.get("elements", []):
+        tags = el.get("tags", {})
+        name = tags.get("name", "")
+        ref = tags.get("ref", "")
+        network = tags.get("network", "")
+        if name:
+            label = name
+            if ref:
+                label = f"{name} ({ref})"
+            trails.add(label)
+        elif ref:
+            trails.add(ref)
+
+    return sorted(trails)
+
+
 def score_cycling_safety(coords: list) -> dict:
     """Score a route's cycling safety based on OSM infrastructure tags.
 

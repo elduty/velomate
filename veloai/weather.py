@@ -12,6 +12,15 @@ WEATHER_URL = (
     "&timezone=auto&forecast_days=7"
 )
 
+AIR_QUALITY_URL = (
+    "https://air-quality-api.open-meteo.com/v1/air-quality"
+    "?latitude={lat}&longitude={lon}"
+    "&hourly=european_aqi,pm2_5,pm10"
+    "&timezone=auto&forecast_days=2"
+)
+
+SUNRISE_URL = "https://api.sunrise-sunset.org/json?lat={lat}&lng={lng}&date={date}&formatted=0"
+
 WMO_CODES = {
     0: "Clear sky", 1: "Mainly clear", 2: "Partly cloudy", 3: "Overcast",
     45: "Foggy", 48: "Depositing rime fog",
@@ -175,3 +184,45 @@ def fetch_forecast(lat: float, lon: float) -> List[Dict]:
             "hourly": hourly,
         })
     return forecast
+
+
+def fetch_air_quality(lat: float, lon: float, date_str: str) -> dict | None:
+    """Fetch air quality for a specific date. Returns {aqi, pm25, pm10} or None."""
+    url = AIR_QUALITY_URL.format(lat=lat, lon=lon)
+    try:
+        r = requests.get(url, timeout=10)
+        r.raise_for_status()
+        data = r.json().get("hourly", {})
+        if not data.get("time"):
+            return None
+        # Find midday hour for the requested date
+        for i, t in enumerate(data["time"]):
+            if t.startswith(date_str) and "T12:" in t:
+                return {
+                    "aqi": data.get("european_aqi", [None])[i],
+                    "pm25": data.get("pm2_5", [None])[i],
+                    "pm10": data.get("pm10", [None])[i],
+                }
+    except Exception:
+        pass
+    return None
+
+
+def fetch_sunrise_sunset(lat: float, lon: float, date_str: str) -> dict | None:
+    """Fetch sunrise/sunset times. Returns {sunrise, sunset, golden_hour_end} or None."""
+    url = SUNRISE_URL.format(lat=lat, lng=lon, date=date_str)
+    try:
+        r = requests.get(url, timeout=10)
+        r.raise_for_status()
+        data = r.json()
+        if data.get("status") != "OK":
+            return None
+        results = data["results"]
+        return {
+            "sunrise": results["sunrise"][11:16],   # HH:MM
+            "sunset": results["sunset"][11:16],
+            "civil_twilight_end": results.get("civil_twilight_end", "")[11:16],
+        }
+    except Exception:
+        pass
+    return None
