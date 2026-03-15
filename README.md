@@ -24,6 +24,7 @@ Inspired by [TeslaMate](https://github.com/teslamate-org/teslamate). Works with 
 - Generates real road-following GPX loops via [Valhalla](https://github.com/valhalla/valhalla) (free, OpenStreetMap-based)
 - Generates GPX files with interactive browser preview (map + route stats + download/share buttons)
 - On iOS/Android, the share button opens the native share sheet to send the GPX directly to any bike computer app
+- `--output DIR` saves the preview HTML to a directory for headless/server use
 - Smart waypoint selection from 10 data sources (see below)
 - Weather-aware: best ride time, UV warnings, wind direction analysis
 - Safety control: `--safety` flag adjusts preference for bike lanes vs main roads
@@ -155,6 +156,7 @@ python3 -m veloai.cli plan --distance 30 --preference comfort
 | `--time` | — | Start time (`14:00`, `2pm`, `9am`) |
 | `--start` | from config | Override start as `lat,lng` |
 | `--loop` | true | Round-trip route |
+| `--output DIR` | — | Save preview HTML to directory (instead of opening browser) |
 
 \* Provide either `--duration` or `--distance` (one required, mutually exclusive).
 
