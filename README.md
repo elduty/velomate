@@ -133,8 +133,8 @@ Credentials support three methods: direct values, environment variables, or shel
 python3 -m veloai.cli
 
 # Plan a route
-python3 -m veloai.cli plan --duration 2h --surface gravel
-python3 -m veloai.cli plan --duration 3h --surface road --waypoints "Sintra,Cascais"
+python3 -m veloai.cli plan --duration 2h
+python3 -m veloai.cli plan --duration 3h --waypoints "Sintra,Cascais"
 python3 -m veloai.cli plan --duration 1h --surface mtb --safety 1.0
 python3 -m veloai.cli plan --duration 2h --preference comfort
 python3 -m veloai.cli plan --duration 2h --preference comfort
@@ -145,7 +145,7 @@ python3 -m veloai.cli plan --duration 2h --preference comfort
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--duration` | required | Ride time (`2h`, `1h30m`, `90min`) |
-| `--surface` | `gravel` | `road`, `gravel`, or `mtb` |
+| `--surface` | `road` | `road`, `gravel`, or `mtb` |
 | `--safety` | `0.5` | 0.0 = fastest, 1.0 = safest (prefers bike lanes) |
 | `--preference` | `variety` | `variety` (new roads) or `comfort` (familiar) |
 | `--waypoints` | — | Comma-separated place names |

@@ -24,7 +24,7 @@ strava:
   refresh_token: ""
 
 defaults:
-  surface: gravel     # road, gravel, or mtb
+  surface: road       # road, gravel, or mtb
   loop: true          # Round-trip routes by default
 
 fitness:
