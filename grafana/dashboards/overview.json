@@ -746,7 +746,7 @@
           },
           {
             "matcher": { "id": "byName", "options": "Indoor (km)" },
-            "properties": [{ "id": "color", "value": { "fixedColor": "#5a3d1e", "mode": "fixed" } }]
+            "properties": [{ "id": "color", "value": { "fixedColor": "#8b5cf6", "mode": "fixed" } }]
           }
         ]
       }
@@ -797,7 +797,7 @@
         "overrides": [
           {
             "matcher": { "id": "byName", "options": "Outdoor (m)" },
-            "properties": [{ "id": "color", "value": { "fixedColor": "#ff9830", "mode": "fixed" } }]
+            "properties": [{ "id": "color", "value": { "fixedColor": "#33658a", "mode": "fixed" } }]
           },
           {
             "matcher": { "id": "byName", "options": "Zwift (m)" },
