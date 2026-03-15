@@ -288,8 +288,11 @@ def preview(coords: list, name: str, waypoints: list | None = None,
                     files: [file],
                 }});
             }} catch (err) {{
-                // Fallback to download if share fails
-                downloadGPX();
+                if (err.name !== 'AbortError') {{
+                    // Real error — fall back to download
+                    downloadGPX();
+                }}
+                // AbortError = user cancelled share sheet — do nothing
             }}
         }}
 
