@@ -110,7 +110,8 @@
           "color": {
             "fixedColor": "#6ed0ff",
             "mode": "fixed"
-          }
+          },
+          "noValue": "No data"
         }
       }
     },
@@ -151,7 +152,8 @@
           "color": {
             "fixedColor": "#33658a",
             "mode": "fixed"
-          }
+          },
+          "noValue": "No data"
         }
       }
     },
@@ -192,7 +194,8 @@
           "color": {
             "fixedColor": "#ff9830",
             "mode": "fixed"
-          }
+          },
+          "noValue": "No data"
         }
       }
     },
@@ -233,7 +236,8 @@
           "color": {
             "fixedColor": "#6ed0ff",
             "mode": "fixed"
-          }
+          },
+          "noValue": "No data"
         }
       }
     },
@@ -274,7 +278,8 @@
           "color": {
             "fixedColor": "#F2495C",
             "mode": "fixed"
-          }
+          },
+          "noValue": "No data"
         }
       }
     },
@@ -314,7 +319,8 @@
           "color": {
             "fixedColor": "#8b5cf6",
             "mode": "fixed"
-          }
+          },
+          "noValue": "No data"
         }
       }
     },
@@ -355,7 +361,8 @@
           "color": {
             "fixedColor": "#8b5cf6",
             "mode": "fixed"
-          }
+          },
+          "noValue": "No data"
         }
       }
     },
@@ -396,7 +403,8 @@
           "color": {
             "fixedColor": "#73bf69",
             "mode": "fixed"
-          }
+          },
+          "noValue": "No data"
         }
       }
     },
@@ -436,7 +444,8 @@
           "color": {
             "fixedColor": "#F2495C",
             "mode": "fixed"
-          }
+          },
+          "noValue": "No data"
         }
       }
     },
@@ -1384,7 +1393,8 @@
               "color": {
                 "fixedColor": "#6ed0ff",
                 "mode": "fixed"
-              }
+              },
+              "noValue": "No data"
             }
           }
         },
@@ -1424,7 +1434,8 @@
               "color": {
                 "fixedColor": "#ff9830",
                 "mode": "fixed"
-              }
+              },
+              "noValue": "No data"
             }
           }
         },
@@ -1530,7 +1541,8 @@
                     }
                   }
                 }
-              ]
+              ],
+              "noValue": "No data"
             }
           }
         },
@@ -1571,7 +1583,8 @@
               "color": {
                 "fixedColor": "#8b5cf6",
                 "mode": "fixed"
-              }
+              },
+              "noValue": "No data"
             }
           }
         },
@@ -1718,7 +1731,8 @@
                 "fixedColor": "#33658a",
                 "mode": "fixed"
               },
-              "unit": "lengthkm"
+              "unit": "lengthkm",
+              "noValue": "No data"
             }
           }
         },
@@ -1759,7 +1773,8 @@
                 "fixedColor": "#6ed0ff",
                 "mode": "fixed"
               },
-              "unit": "lengthkm"
+              "unit": "lengthkm",
+              "noValue": "No data"
             }
           }
         },
@@ -1800,7 +1815,8 @@
                 "fixedColor": "#ff9830",
                 "mode": "fixed"
               },
-              "unit": "lengthm"
+              "unit": "lengthm",
+              "noValue": "No data"
             }
           }
         },
@@ -1841,7 +1857,8 @@
                 "fixedColor": "#6ed0ff",
                 "mode": "fixed"
               },
-              "unit": "lengthm"
+              "unit": "lengthm",
+              "noValue": "No data"
             }
           }
         },
@@ -1882,7 +1899,8 @@
                 "fixedColor": "#6ed0ff",
                 "mode": "fixed"
               },
-              "unit": "s"
+              "unit": "s",
+              "noValue": "No data"
             }
           }
         },
@@ -1923,7 +1941,8 @@
                 "fixedColor": "#6ed0ff",
                 "mode": "fixed"
               },
-              "unit": "s"
+              "unit": "s",
+              "noValue": "No data"
             }
           }
         },
@@ -1964,7 +1983,8 @@
                 "fixedColor": "#F2495C",
                 "mode": "fixed"
               },
-              "unit": "kcal"
+              "unit": "kcal",
+              "noValue": "No data"
             }
           }
         },
@@ -2005,7 +2025,8 @@
                 "fixedColor": "#6ed0ff",
                 "mode": "fixed"
               },
-              "unit": "kcal"
+              "unit": "kcal",
+              "noValue": "No data"
             }
           }
         },
@@ -2046,7 +2067,8 @@
                 "fixedColor": "#8b5cf6",
                 "mode": "fixed"
               },
-              "unit": "watt"
+              "unit": "watt",
+              "noValue": "No data"
             }
           }
         },
@@ -2087,7 +2109,8 @@
                 "fixedColor": "#6ed0ff",
                 "mode": "fixed"
               },
-              "unit": "watt"
+              "unit": "watt",
+              "noValue": "No data"
             }
           }
         },
@@ -2128,7 +2151,8 @@
                 "fixedColor": "#73bf69",
                 "mode": "fixed"
               },
-              "unit": "velocitykmh"
+              "unit": "velocitykmh",
+              "noValue": "No data"
             }
           }
         },
@@ -2169,7 +2193,8 @@
                 "fixedColor": "#6ed0ff",
                 "mode": "fixed"
               },
-              "unit": "velocitykmh"
+              "unit": "velocitykmh",
+              "noValue": "No data"
             }
           }
         },
@@ -2209,7 +2234,8 @@
               "color": {
                 "fixedColor": "#F2495C",
                 "mode": "fixed"
-              }
+              },
+              "noValue": "No data"
             }
           }
         },
@@ -2249,7 +2275,8 @@
               "color": {
                 "fixedColor": "#6ed0ff",
                 "mode": "fixed"
-              }
+              },
+              "noValue": "No data"
             }
           }
         },
@@ -2843,7 +2870,8 @@
                 "value": 0
               }
             ]
-          }
+          },
+          "noValue": "No data"
         }
       }
     },
@@ -2896,7 +2924,8 @@
               }
             ]
           },
-          "unit": "lengthkm"
+          "unit": "lengthkm",
+          "noValue": "No data"
         }
       }
     },
@@ -2949,7 +2978,8 @@
               }
             ]
           },
-          "unit": "lengthm"
+          "unit": "lengthm",
+          "noValue": "No data"
         }
       }
     },
@@ -3002,7 +3032,8 @@
               }
             ]
           },
-          "unit": "s"
+          "unit": "s",
+          "noValue": "No data"
         }
       }
     },
@@ -3055,7 +3086,8 @@
               }
             ]
           },
-          "unit": "kcal"
+          "unit": "kcal",
+          "noValue": "No data"
         }
       }
     },
@@ -3107,7 +3139,8 @@
                 "value": 0
               }
             ]
-          }
+          },
+          "noValue": "No data"
         }
       }
     },
@@ -3160,7 +3193,8 @@
               }
             ]
           },
-          "unit": "watt"
+          "unit": "watt",
+          "noValue": "No data"
         }
       }
     },
@@ -3213,7 +3247,8 @@
               }
             ]
           },
-          "unit": "velocitykmh"
+          "unit": "velocitykmh",
+          "noValue": "No data"
         }
       }
     },
@@ -3265,7 +3300,8 @@
                 "value": 0
               }
             ]
-          }
+          },
+          "noValue": "No data"
         }
       }
     }
