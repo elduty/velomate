@@ -1463,7 +1463,7 @@
         },
         {
           "id": 201,
-          "title": "CTL / ATL / TSB + FTP",
+          "title": "CTL / ATL / TSB",
           "type": "timeseries",
           "gridPos": {
             "h": 8,
@@ -1480,11 +1480,6 @@
               "rawSql": "SELECT date AS \"time\", ctl AS \"Fitness (CTL)\", atl AS \"Fatigue (ATL)\", tsb AS \"Form (TSB)\" FROM athlete_stats WHERE $__timeFilter(date) ORDER BY date;",
               "format": "time_series",
               "refId": "A"
-            },
-            {
-              "rawSql": "SELECT date AS \"time\", ROUND((avg_power * 1.05)::numeric, 0) AS \"Est. FTP (W)\" FROM activities WHERE $__timeFilter(date) AND avg_power IS NOT NULL AND avg_power > 0 AND duration_s > 1200 ORDER BY date;",
-              "format": "time_series",
-              "refId": "B"
             }
           ],
           "fieldConfig": {
@@ -1552,37 +1547,6 @@
                   {
                     "id": "custom.fillOpacity",
                     "value": 10
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "Est. FTP (W)"
-                },
-                "properties": [
-                  {
-                    "id": "color",
-                    "value": {
-                      "fixedColor": "#8b5cf6",
-                      "mode": "fixed"
-                    }
-                  },
-                  {
-                    "id": "custom.drawStyle",
-                    "value": "points"
-                  },
-                  {
-                    "id": "custom.pointSize",
-                    "value": 5
-                  },
-                  {
-                    "id": "custom.axisPlacement",
-                    "value": "right"
-                  },
-                  {
-                    "id": "unit",
-                    "value": "watt"
                   }
                 ]
               }
