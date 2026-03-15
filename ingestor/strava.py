@@ -295,15 +295,13 @@ def sync_activities(conn, after_epoch: int = None):
         detail = fetch_activity_detail(token, raw["id"])
         data = _merge_detail(data, detail)
 
-        activity_id = upsert_activity(conn, data)
+        activity_id, streams_preserved = upsert_activity(conn, data)
 
         # Fetch streams with rate limiting
         time.sleep(1.5)
         raw_streams = fetch_activity_streams(token, raw["id"])
         streams = _parse_streams(raw_streams)
-        # Only write streams if we have new ones — avoids wiping streams
-        # preserved during dedup merge when the new record has none
-        if streams:
+        if streams and not streams_preserved:
             upsert_streams(conn, activity_id, streams)
 
         # Track latest activity time (use UTC start_date, not local)

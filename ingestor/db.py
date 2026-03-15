@@ -235,9 +235,9 @@ def _do_insert(conn, data: dict, now) -> int:
         return cur.fetchone()[0]
 
 
-def upsert_activity(conn, data: dict) -> int:
-    """Insert or update an activity. Returns the activity id.
-    Detects cross-device duplicates and merges data instead of creating duplicates.
+def upsert_activity(conn, data: dict) -> tuple[int, bool]:
+    """Insert or update an activity. Returns (activity_id, streams_preserved).
+    streams_preserved=True means dedup merge already handled streams — caller should not overwrite.
     """
     now = datetime.now(timezone.utc)
     data = classify_activity(data)
@@ -250,7 +250,7 @@ def upsert_activity(conn, data: dict) -> int:
             merged = merge_activity_data(duplicate, data)
             if merged.get("_skip_insert"):
                 print(f"  [dedup] Skipping {data['name']} — weaker duplicate of existing activity {ex_id}")
-                return ex_id
+                return ex_id, True
             else:
                 # Atomic merge: save streams, delete old, insert new, restore streams
                 print(f"  [dedup] Merging {data['name']} with existing activity {ex_id}")
@@ -279,14 +279,14 @@ def upsert_activity(conn, data: dict) -> int:
                                     [(activity_id, *row) for row in saved_streams],
                                 )
                     conn.commit()
-                    return activity_id
+                    return activity_id, True
                 except Exception:
                     conn.rollback()
                     raise
                 finally:
                     conn.autocommit = True
 
-    return _do_insert(conn, data, now)
+    return _do_insert(conn, data, now), False
 
 
 def upsert_streams(conn, activity_id: int, streams: list):
