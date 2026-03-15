@@ -1356,13 +1356,93 @@
       },
       "panels": [
         {
+          "id": 220,
+          "title": "Fitness (CTL)",
+          "type": "stat",
+          "gridPos": {
+            "h": 3,
+            "w": 6,
+            "x": 0,
+            "y": 46
+          },
+          "datasource": {
+            "type": "postgres",
+            "uid": "veloai"
+          },
+          "targets": [
+            {
+              "rawSql": "SELECT ROUND(ctl::numeric, 1) AS \"CTL\" FROM athlete_stats ORDER BY date DESC LIMIT 1;",
+              "format": "table",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "fixedColor": "#6ed0ff",
+                "mode": "fixed"
+              }
+            }
+          }
+        },
+        {
+          "id": 221,
+          "title": "Fatigue (ATL)",
+          "type": "stat",
+          "gridPos": {
+            "h": 3,
+            "w": 6,
+            "x": 6,
+            "y": 46
+          },
+          "datasource": {
+            "type": "postgres",
+            "uid": "veloai"
+          },
+          "targets": [
+            {
+              "rawSql": "SELECT ROUND(atl::numeric, 1) AS \"ATL\" FROM athlete_stats ORDER BY date DESC LIMIT 1;",
+              "format": "table",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "fixedColor": "#ff9830",
+                "mode": "fixed"
+              }
+            }
+          }
+        },
+        {
           "id": 222,
           "title": "Form (TSB)",
           "type": "stat",
           "gridPos": {
             "h": 3,
-            "w": 12,
-            "x": 0,
+            "w": 6,
+            "x": 12,
             "y": 46
           },
           "datasource": {
@@ -1467,8 +1547,8 @@
           "type": "stat",
           "gridPos": {
             "h": 3,
-            "w": 12,
-            "x": 12,
+            "w": 6,
+            "x": 18,
             "y": 46
           },
           "datasource": {
