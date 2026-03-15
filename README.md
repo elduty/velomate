@@ -22,7 +22,7 @@ Inspired by [TeslaMate](https://github.com/teslamate-org/teslamate). Works with 
 
 ### Intelligent Route Planning
 - Generates real road-following GPX loops via [Valhalla](https://github.com/valhalla/valhalla) (free, OpenStreetMap-based)
-- Saves GPX files for import into any bike computer or app (Komoot, Garmin, Wahoo, etc.)
+- Saves GPX files with browser preview — download button on desktop, native share-to-app on iOS/Android
 - Smart waypoint selection from 10 data sources (see below)
 - Weather-aware: best ride time, UV warnings, wind direction analysis
 - Safety control: `--safety` flag adjusts preference for bike lanes vs main roads
@@ -171,7 +171,8 @@ python3 -m veloai.cli plan --distance 30 --preference comfort
   🕐 Best time: 09:00 (14°C, wind 10 km/h, UV 2)
   🌅 Sunrise 06:45, sunset 18:46
   💪 neutral (TSB -4)
-  💾 GPX: /tmp/veloai_route_gravel_24km.gpx
+  💾 GPX: /tmp/veloai_route_road_24km.gpx
+  [📥 Download GPX]  [📤 Share to App ← iOS/Android only]
 ```
 
 ## Fitness Metrics
