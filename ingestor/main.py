@@ -76,6 +76,14 @@ def run():
     if not has_data:
         print("[main] No previous sync — running backfill")
         run_backfill()
+    else:
+        # Recalculate fitness on startup to extend CTL/ATL/TSB decay through today
+        conn = get_connection()
+        try:
+            recalculate_fitness(conn)
+            print("[main] Fitness recalculated through today")
+        finally:
+            conn.close()
 
     interval = int(os.environ.get("POLL_INTERVAL_MINUTES", 10))
     schedule.every(interval).minutes.do(poll_strava)
