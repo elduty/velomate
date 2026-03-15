@@ -85,6 +85,14 @@ def create_schema(conn):
             ALTER TABLE activities ADD COLUMN IF NOT EXISTS sport_type TEXT;
             ALTER TABLE activities ADD COLUMN IF NOT EXISTS tss FLOAT;
 
+            -- Backfill NULL sport_type using device/distance heuristics
+            UPDATE activities SET sport_type = 'zwift', is_indoor = true
+                WHERE sport_type IS NULL AND device = 'zwift';
+            UPDATE activities SET sport_type = 'cycling_outdoor', is_indoor = false
+                WHERE sport_type IS NULL AND distance_m > 0;
+            UPDATE activities SET sport_type = 'cycling_indoor', is_indoor = true
+                WHERE sport_type IS NULL;
+
             CREATE INDEX IF NOT EXISTS idx_activities_date ON activities(date);
             CREATE INDEX IF NOT EXISTS idx_activity_streams_activity_id ON activity_streams(activity_id);
             CREATE UNIQUE INDEX IF NOT EXISTS idx_activities_komoot_tour_id
