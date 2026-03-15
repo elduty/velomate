@@ -9,7 +9,7 @@ Replace the current overview dashboard with a cleaner layout focused on 9 key me
 - **Title:** "Overview" (drop "VeloAI" prefix from all dashboards)
 - **UID:** `veloai-main` (unchanged)
 - **graphTooltip:** `2` — shared crosshair + tooltip across all charts (TeslaMate style)
-- **Default time range:** `now-7d` to `now`
+- **Default time range:** Last 7 days (`now-7d` to `now`)
 - **Variables:** `group_by` (day/week/month) — unchanged
 - **Links:** Activity Detail, Fitness Trends, Weekly Report, Training Log, Year in Review
 

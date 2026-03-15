@@ -1,17 +1,13 @@
 {
   "uid": "veloai-main",
-  "title": "VeloAI Overview",
-  "tags": [
-    "veloai"
-  ],
+  "title": "Overview",
+  "tags": ["veloai"],
   "timezone": "browser",
   "editable": true,
   "schemaVersion": 39,
   "version": 1,
-  "time": {
-    "from": "now-7d",
-    "to": "now"
-  },
+  "graphTooltip": 2,
+  "time": { "from": "now-7d", "to": "now" },
   "refresh": "5m",
   "links": [
     {
@@ -84,47 +80,18 @@
       "id": 1,
       "title": "Rides",
       "type": "stat",
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 0,
-        "y": 0
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "veloai"
-      },
-      "targets": [
-        {
-          "rawSql": "SELECT COUNT(*) AS \"Rides\" FROM activities WHERE $__timeFilter(date);",
-          "format": "table",
-          "refId": "A"
-        }
-      ],
+      "gridPos": { "h": 3, "w": 2, "x": 0, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "veloai" },
+      "targets": [{ "rawSql": "SELECT COUNT(*) AS \"Rides\" FROM activities WHERE $__timeFilter(date);", "format": "table", "refId": "A" }],
       "options": {
         "colorMode": "value",
         "graphMode": "none",
         "textMode": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        }
+        "reduceOptions": { "calcs": ["lastNotNull"] }
       },
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
+          "color": { "fixedColor": "#6ed0ff", "mode": "fixed" }
         }
       }
     },
@@ -132,48 +99,19 @@
       "id": 2,
       "title": "Distance",
       "type": "stat",
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 4,
-        "y": 0
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "veloai"
-      },
-      "targets": [
-        {
-          "rawSql": "SELECT ROUND((COALESCE(SUM(distance_m), 0) / 1000.0)::numeric, 1) AS \"Distance\" FROM activities WHERE $__timeFilter(date);",
-          "format": "table",
-          "refId": "A"
-        }
-      ],
+      "gridPos": { "h": 3, "w": 3, "x": 2, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "veloai" },
+      "targets": [{ "rawSql": "SELECT ROUND((COALESCE(SUM(distance_m), 0) / 1000.0)::numeric, 1) AS \"Distance\" FROM activities WHERE $__timeFilter(date);", "format": "table", "refId": "A" }],
       "options": {
         "colorMode": "value",
         "graphMode": "none",
         "textMode": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        }
+        "reduceOptions": { "calcs": ["lastNotNull"] }
       },
       "fieldConfig": {
         "defaults": {
           "unit": "lengthkm",
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
+          "color": { "fixedColor": "#33658a", "mode": "fixed" }
         }
       }
     },
@@ -181,48 +119,19 @@
       "id": 3,
       "title": "Elevation",
       "type": "stat",
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 8,
-        "y": 0
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "veloai"
-      },
-      "targets": [
-        {
-          "rawSql": "SELECT ROUND(COALESCE(SUM(elevation_m), 0)::numeric, 0) AS \"Elevation\" FROM activities WHERE $__timeFilter(date);",
-          "format": "table",
-          "refId": "A"
-        }
-      ],
+      "gridPos": { "h": 3, "w": 3, "x": 5, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "veloai" },
+      "targets": [{ "rawSql": "SELECT ROUND(COALESCE(SUM(elevation_m), 0)::numeric, 0) AS \"Elevation\" FROM activities WHERE $__timeFilter(date);", "format": "table", "refId": "A" }],
       "options": {
         "colorMode": "value",
         "graphMode": "none",
         "textMode": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        }
+        "reduceOptions": { "calcs": ["lastNotNull"] }
       },
       "fieldConfig": {
         "defaults": {
           "unit": "lengthm",
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
+          "color": { "fixedColor": "#ff9830", "mode": "fixed" }
         }
       }
     },
@@ -230,48 +139,19 @@
       "id": 4,
       "title": "Duration",
       "type": "stat",
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 12,
-        "y": 0
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "veloai"
-      },
-      "targets": [
-        {
-          "rawSql": "SELECT COALESCE(SUM(duration_s), 0) AS \"Duration\" FROM activities WHERE $__timeFilter(date);",
-          "format": "table",
-          "refId": "A"
-        }
-      ],
+      "gridPos": { "h": 3, "w": 3, "x": 8, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "veloai" },
+      "targets": [{ "rawSql": "SELECT COALESCE(SUM(duration_s), 0) AS \"Duration\" FROM activities WHERE $__timeFilter(date);", "format": "table", "refId": "A" }],
       "options": {
         "colorMode": "value",
         "graphMode": "none",
         "textMode": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        }
+        "reduceOptions": { "calcs": ["lastNotNull"] }
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "dtdhms",
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
+          "unit": "s",
+          "color": { "fixedColor": "#6ed0ff", "mode": "fixed" }
         }
       }
     },
@@ -279,393 +159,106 @@
       "id": 5,
       "title": "Calories",
       "type": "stat",
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 16,
-        "y": 0
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "veloai"
-      },
-      "targets": [
-        {
-          "rawSql": "SELECT COALESCE(SUM(calories), 0) AS \"Calories\" FROM activities WHERE $__timeFilter(date) AND calories IS NOT NULL;",
-          "format": "table",
-          "refId": "A"
-        }
-      ],
+      "gridPos": { "h": 3, "w": 3, "x": 11, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "veloai" },
+      "targets": [{ "rawSql": "SELECT COALESCE(SUM(calories), 0) AS \"Calories\" FROM activities WHERE $__timeFilter(date) AND calories IS NOT NULL;", "format": "table", "refId": "A" }],
       "options": {
         "colorMode": "value",
         "graphMode": "none",
         "textMode": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        }
+        "reduceOptions": { "calcs": ["lastNotNull"] }
       },
       "fieldConfig": {
         "defaults": {
           "unit": "kcal",
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
+          "color": { "fixedColor": "#F2495C", "mode": "fixed" }
         }
       }
     },
     {
       "id": 6,
-      "title": "Form / TSB",
+      "title": "TSS",
       "type": "stat",
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 20,
-        "y": 0
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "veloai"
-      },
-      "targets": [
-        {
-          "rawSql": "SELECT date AS \"time\", tsb AS \"TSB\" FROM athlete_stats ORDER BY date DESC LIMIT 7;",
-          "format": "table",
-          "refId": "A"
-        }
-      ],
+      "gridPos": { "h": 3, "w": 3, "x": 14, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "veloai" },
+      "targets": [{ "rawSql": "SELECT ROUND(COALESCE(SUM(tss), 0)::numeric, 0) AS \"TSS\" FROM activities WHERE $__timeFilter(date);", "format": "table", "refId": "A" }],
       "options": {
         "colorMode": "value",
-        "graphMode": "area",
+        "graphMode": "none",
         "textMode": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "/TSB/"
-        }
+        "reduceOptions": { "calcs": ["lastNotNull"] }
       },
       "fieldConfig": {
         "defaults": {
-          "decimals": 0,
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "orange",
-                "value": -10
-              },
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "blue",
-                "value": 15
-              }
-            ]
-          },
-          "mappings": [
-            {
-              "type": "range",
-              "options": {
-                "from": 15,
-                "to": 999,
-                "result": {
-                  "text": "Fresh",
-                  "index": 0
-                }
-              }
-            },
-            {
-              "type": "range",
-              "options": {
-                "from": 0,
-                "to": 15,
-                "result": {
-                  "text": "Optimal",
-                  "index": 1
-                }
-              }
-            },
-            {
-              "type": "range",
-              "options": {
-                "from": -10,
-                "to": 0,
-                "result": {
-                  "text": "Tired",
-                  "index": 2
-                }
-              }
-            },
-            {
-              "type": "range",
-              "options": {
-                "from": -999,
-                "to": -10,
-                "result": {
-                  "text": "Overreached",
-                  "index": 3
-                }
-              }
-            }
-          ]
+          "color": { "fixedColor": "#8b5cf6", "mode": "fixed" }
         }
       }
     },
     {
       "id": 7,
-      "title": "Dist vs Prev Period",
+      "title": "Avg Power",
       "type": "stat",
-      "gridPos": {
-        "h": 3,
-        "w": 6,
-        "x": 0,
-        "y": 4
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "veloai"
-      },
-      "targets": [
-        {
-          "rawSql": "SELECT ROUND((COALESCE(curr.dist, 0) - COALESCE(prev.dist, 0))::numeric, 1) AS \"Delta\" FROM (SELECT SUM(distance_m)/1000.0 AS dist FROM activities WHERE $__timeFilter(date)) curr, (SELECT SUM(distance_m)/1000.0 AS dist FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz) prev;",
-          "format": "table",
-          "refId": "A"
-        }
-      ],
+      "gridPos": { "h": 3, "w": 2, "x": 17, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "veloai" },
+      "targets": [{ "rawSql": "SELECT ROUND(AVG(avg_power)::numeric, 0) AS \"Power\" FROM activities WHERE $__timeFilter(date) AND avg_power > 0;", "format": "table", "refId": "A" }],
       "options": {
         "colorMode": "value",
         "graphMode": "none",
         "textMode": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        }
+        "reduceOptions": { "calcs": ["lastNotNull"] }
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "lengthkm",
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          }
+          "unit": "watt",
+          "color": { "fixedColor": "#8b5cf6", "mode": "fixed" }
         }
       }
     },
     {
       "id": 8,
-      "title": "Avg per Ride",
+      "title": "Avg Speed",
       "type": "stat",
-      "gridPos": {
-        "h": 3,
-        "w": 6,
-        "x": 6,
-        "y": 4
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "veloai"
-      },
-      "targets": [
-        {
-          "rawSql": "SELECT ROUND((COALESCE(SUM(distance_m), 0) / GREATEST(COUNT(*), 1) / 1000.0)::numeric, 1) AS \"Avg\" FROM activities WHERE $__timeFilter(date);",
-          "format": "table",
-          "refId": "A"
-        }
-      ],
+      "gridPos": { "h": 3, "w": 3, "x": 19, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "veloai" },
+      "targets": [{ "rawSql": "SELECT ROUND(AVG(avg_speed_kmh)::numeric, 1) AS \"Speed\" FROM activities WHERE $__timeFilter(date) AND avg_speed_kmh > 0 AND distance_m > 5000;", "format": "table", "refId": "A" }],
       "options": {
         "colorMode": "value",
         "graphMode": "none",
         "textMode": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        }
+        "reduceOptions": { "calcs": ["lastNotNull"] }
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "lengthkm",
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
+          "unit": "velocitykmh",
+          "color": { "fixedColor": "#73bf69", "mode": "fixed" }
         }
       }
     },
     {
       "id": 9,
-      "title": "Weekly Streak",
+      "title": "Avg HR",
       "type": "stat",
-      "gridPos": {
-        "h": 3,
-        "w": 6,
-        "x": 12,
-        "y": 4
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "veloai"
-      },
-      "targets": [
-        {
-          "rawSql": "WITH weeks AS (SELECT DISTINCT date_trunc('week', date)::date AS week_start FROM activities WHERE date IS NOT NULL AND sport_type IN ('cycling_outdoor', 'cycling_indoor', 'zwift', 'ebike')), latest AS (SELECT MAX(week_start) AS start_from FROM weeks), numbered AS (SELECT week_start, ROW_NUMBER() OVER (ORDER BY week_start DESC) AS rn, ((SELECT start_from FROM latest) - ((ROW_NUMBER() OVER (ORDER BY week_start DESC) - 1) * 7)::int) AS expected FROM weeks) SELECT COUNT(*) AS \"Weeks\" FROM numbered WHERE week_start = expected;",
-          "format": "table",
-          "refId": "A"
-        }
-      ],
+      "gridPos": { "h": 3, "w": 2, "x": 22, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "veloai" },
+      "targets": [{ "rawSql": "SELECT ROUND(AVG(avg_hr)::numeric, 0) AS \"HR\" FROM activities WHERE $__timeFilter(date) AND avg_hr > 0;", "format": "table", "refId": "A" }],
       "options": {
         "colorMode": "value",
         "graphMode": "none",
         "textMode": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        }
+        "reduceOptions": { "calcs": ["lastNotNull"] }
       },
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "fixedColor": "#6ed0ff",
-            "mode": "fixed"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#6ed0ff",
-                "value": null
-              }
-            ]
-          }
+          "color": { "fixedColor": "#F2495C", "mode": "fixed" }
         }
       }
-    },
-    {
-      "id": 10,
-      "title": "Days Since Ride",
-      "type": "stat",
-      "gridPos": {
-        "h": 3,
-        "w": 6,
-        "x": 18,
-        "y": 4
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "veloai"
-      },
-      "targets": [
-        {
-          "rawSql": "SELECT CURRENT_DATE - MAX(date::date) AS \"Days\" FROM activities WHERE sport_type IN ('cycling_outdoor', 'cycling_indoor', 'zwift', 'ebike');",
-          "format": "table",
-          "refId": "A"
-        }
-      ],
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        }
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 4
-              },
-              {
-                "color": "red",
-                "value": 7
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": 100,
-      "type": "row",
-      "title": "Volume",
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 7
-      },
-      "panels": []
     },
     {
       "id": 11,
       "title": "Distance",
       "type": "timeseries",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 8
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "veloai"
-      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 3 },
+      "datasource": { "type": "postgres", "uid": "veloai" },
       "targets": [
         {
           "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.distance_m) / 1000.0, 0) AS \"Outdoor (km)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'cycling_outdoor' GROUP BY gs ORDER BY gs;",
@@ -693,10 +286,7 @@
           "custom": {
             "drawStyle": "bars",
             "fillOpacity": 80,
-            "stacking": {
-              "mode": "normal",
-              "group": "A"
-            },
+            "stacking": { "mode": "normal", "group": "A" },
             "barWidthFactor": 0.6
           }
         },
@@ -724,16 +314,8 @@
       "id": 12,
       "title": "Elevation",
       "type": "timeseries",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 8
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "veloai"
-      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 3 },
+      "datasource": { "type": "postgres", "uid": "veloai" },
       "targets": [
         {
           "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.elevation_m), 0) AS \"Outdoor (m)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'cycling_outdoor' GROUP BY gs ORDER BY gs;",
@@ -756,10 +338,7 @@
           "custom": {
             "drawStyle": "bars",
             "fillOpacity": 80,
-            "stacking": {
-              "mode": "normal",
-              "group": "A"
-            },
+            "stacking": { "mode": "normal", "group": "A" },
             "barWidthFactor": 0.6
           }
         },
@@ -780,157 +359,680 @@
       }
     },
     {
-      "id": 101,
-      "type": "row",
-      "title": "Training Load",
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 16
-      },
-      "panels": []
-    },
-    {
       "id": 13,
-      "title": "TSS",
+      "title": "Duration",
       "type": "timeseries",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 17
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "veloai"
-      },
-      "targets": [
-        {
-          "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.tss), 0) AS \"TSS\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs GROUP BY gs ORDER BY gs;",
-          "format": "time_series",
-          "refId": "A"
-        }
-      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 11 },
+      "datasource": { "type": "postgres", "uid": "veloai" },
+      "targets": [{ "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.duration_s) / 3600.0, 0) AS \"Hours\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs GROUP BY gs ORDER BY gs;", "format": "time_series", "refId": "A" }],
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "fixedColor": "#8b5cf6",
-            "mode": "fixed"
-          },
+          "color": { "fixedColor": "#6ed0ff", "mode": "fixed" },
           "custom": {
             "drawStyle": "bars",
             "fillOpacity": 80,
             "barWidthFactor": 0.6
           }
-        },
-        "overrides": []
+        }
       }
     },
     {
       "id": 14,
-      "title": "CTL / ATL / TSB",
+      "title": "Calories",
       "type": "timeseries",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 17
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "veloai"
-      },
-      "targets": [
-        {
-          "rawSql": "SELECT date AS \"time\", ctl AS \"Fitness (CTL)\", atl AS \"Fatigue (ATL)\", tsb AS \"Form (TSB)\" FROM athlete_stats WHERE $__timeFilter(date) ORDER BY date;",
-          "format": "time_series",
-          "refId": "A"
-        }
-      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 11 },
+      "datasource": { "type": "postgres", "uid": "veloai" },
+      "targets": [{ "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.calories), 0) AS \"Calories\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.calories IS NOT NULL GROUP BY gs ORDER BY gs;", "format": "time_series", "refId": "A" }],
       "fieldConfig": {
         "defaults": {
+          "color": { "fixedColor": "#F2495C", "mode": "fixed" },
           "custom": {
-            "drawStyle": "line",
-            "lineWidth": 2,
-            "fillOpacity": 0
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "barWidthFactor": 0.6
+          }
+        }
+      }
+    },
+    {
+      "id": 15,
+      "title": "Avg Power",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 19 },
+      "datasource": { "type": "postgres", "uid": "veloai" },
+      "targets": [{ "rawSql": "SELECT gs AS \"time\", COALESCE(ROUND(AVG(a.avg_power)::numeric, 0), 0) AS \"Avg Power (W)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.avg_power > 0 GROUP BY gs ORDER BY gs;", "format": "time_series", "refId": "A" }],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "#8b5cf6", "mode": "fixed" },
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "barWidthFactor": 0.6
+          }
+        }
+      }
+    },
+    {
+      "id": 16,
+      "title": "Avg Speed",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 19 },
+      "datasource": { "type": "postgres", "uid": "veloai" },
+      "targets": [{ "rawSql": "SELECT gs AS \"time\", COALESCE(ROUND(AVG(a.avg_speed_kmh)::numeric, 1), 0) AS \"Avg Speed (km/h)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.avg_speed_kmh > 0 AND a.distance_m > 5000 GROUP BY gs ORDER BY gs;", "format": "time_series", "refId": "A" }],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "#73bf69", "mode": "fixed" },
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "barWidthFactor": 0.6
+          }
+        }
+      }
+    },
+    {
+      "id": 17,
+      "title": "Avg HR",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 27 },
+      "datasource": { "type": "postgres", "uid": "veloai" },
+      "targets": [{ "rawSql": "SELECT gs AS \"time\", COALESCE(ROUND(AVG(a.avg_hr)::numeric, 0), 0) AS \"Avg HR (bpm)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.avg_hr > 0 GROUP BY gs ORDER BY gs;", "format": "time_series", "refId": "A" }],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "#F2495C", "mode": "fixed" },
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "barWidthFactor": 0.6
+          }
+        }
+      }
+    },
+    {
+      "id": 18,
+      "title": "TSS",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 27 },
+      "datasource": { "type": "postgres", "uid": "veloai" },
+      "targets": [{ "rawSql": "SELECT gs AS \"time\", COALESCE(ROUND(SUM(a.tss)::numeric, 0), 0) AS \"TSS\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.tss IS NOT NULL GROUP BY gs ORDER BY gs;", "format": "time_series", "refId": "A" }],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "#8b5cf6", "mode": "fixed" },
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "barWidthFactor": 0.6
+          }
+        }
+      }
+    },
+    {
+      "id": 200,
+      "type": "row",
+      "title": "Fitness",
+      "collapsed": true,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 35 },
+      "panels": [
+        {
+          "id": 201,
+          "title": "CTL / ATL / TSB",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 36 },
+          "datasource": { "type": "postgres", "uid": "veloai" },
+          "targets": [
+            {
+              "rawSql": "SELECT date AS \"time\", ctl AS \"Fitness (CTL)\", atl AS \"Fatigue (ATL)\", tsb AS \"Form (TSB)\" FROM athlete_stats WHERE $__timeFilter(date) ORDER BY date;",
+              "format": "time_series",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2,
+                "fillOpacity": 0
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Fitness (CTL)"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "#6ed0ff",
+                      "mode": "fixed"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Fatigue (ATL)"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "#ff9830",
+                      "mode": "fixed"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Form (TSB)"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "#73bf69",
+                      "mode": "fixed"
+                    }
+                  },
+                  {
+                    "id": "custom.lineStyle",
+                    "value": {
+                      "fill": "dash",
+                      "dash": [6, 4]
+                    }
+                  },
+                  {
+                    "id": "custom.fillOpacity",
+                    "value": 10
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": 102,
+      "type": "row",
+      "title": "Outdoor Records & Progress",
+      "collapsed": true,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 36 },
+      "panels": [
+        {
+          "id": 202,
+          "title": "Longest Ride (Period)",
+          "type": "stat",
+          "gridPos": {
+            "h": 4,
+            "w": 6,
+            "x": 0,
+            "y": 37
+          },
+          "datasource": {
+            "type": "postgres",
+            "uid": "veloai"
+          },
+          "targets": [
+            {
+              "rawSql": "SELECT ROUND((distance_m / 1000.0)::numeric, 1) AS \"Longest\" FROM activities WHERE $__timeFilter(date) AND distance_m > 0 AND is_indoor IS NOT TRUE ORDER BY distance_m DESC LIMIT 1;",
+              "format": "table",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "auto",
+            "reduceOptions": {
+              "calcs": ["lastNotNull"]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "lengthkm",
+              "color": {
+                "mode": "thresholds"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            }
           }
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Fitness (CTL)"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#6ed0ff",
-                  "mode": "fixed"
-                }
-              }
-            ]
+        {
+          "id": 203,
+          "title": "Most Elevation (Period)",
+          "type": "stat",
+          "gridPos": {
+            "h": 4,
+            "w": 6,
+            "x": 6,
+            "y": 37
           },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Fatigue (ATL)"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#ff9830",
-                  "mode": "fixed"
-                }
-              }
-            ]
+          "datasource": {
+            "type": "postgres",
+            "uid": "veloai"
           },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Form (TSB)"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#73bf69",
-                  "mode": "fixed"
-                }
+          "targets": [
+            {
+              "rawSql": "SELECT ROUND(MAX(elevation_m)::numeric, 0) AS \"Most Elev\" FROM activities WHERE $__timeFilter(date) AND elevation_m > 0 AND is_indoor IS NOT TRUE;",
+              "format": "table",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "auto",
+            "reduceOptions": {
+              "calcs": ["lastNotNull"]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "lengthm",
+              "color": {
+                "mode": "thresholds"
               },
-              {
-                "id": "custom.lineStyle",
-                "value": {
-                  "fill": "dash",
-                  "dash": [
-                    6,
-                    4
-                  ]
-                }
-              },
-              {
-                "id": "custom.fillOpacity",
-                "value": 10
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
               }
-            ]
+            }
           }
-        ]
-      }
+        },
+        {
+          "id": 204,
+          "title": "Fastest Speed (Period)",
+          "type": "stat",
+          "gridPos": {
+            "h": 4,
+            "w": 6,
+            "x": 12,
+            "y": 37
+          },
+          "datasource": {
+            "type": "postgres",
+            "uid": "veloai"
+          },
+          "targets": [
+            {
+              "rawSql": "SELECT ROUND(MAX(avg_speed_kmh)::numeric, 1) AS \"Fastest\" FROM activities WHERE $__timeFilter(date) AND distance_m > 5000 AND is_indoor IS NOT TRUE;",
+              "format": "table",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "auto",
+            "reduceOptions": {
+              "calcs": ["lastNotNull"]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "velocitykmh",
+              "color": {
+                "mode": "thresholds"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": 205,
+          "title": "Best Power (Period)",
+          "type": "stat",
+          "gridPos": {
+            "h": 4,
+            "w": 6,
+            "x": 18,
+            "y": 37
+          },
+          "datasource": {
+            "type": "postgres",
+            "uid": "veloai"
+          },
+          "targets": [
+            {
+              "rawSql": "SELECT MAX(avg_power) AS \"Best Power\" FROM activities WHERE $__timeFilter(date) AND duration_s > 1200 AND avg_power IS NOT NULL AND is_indoor IS NOT TRUE;",
+              "format": "table",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "auto",
+            "reduceOptions": {
+              "calcs": ["lastNotNull"]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "watt",
+              "color": {
+                "mode": "thresholds"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": 206,
+          "title": "Longest Ride (All Time)",
+          "type": "stat",
+          "gridPos": {
+            "h": 4,
+            "w": 6,
+            "x": 0,
+            "y": 41
+          },
+          "datasource": {
+            "type": "postgres",
+            "uid": "veloai"
+          },
+          "targets": [
+            {
+              "rawSql": "SELECT ROUND((distance_m / 1000.0)::numeric, 1) AS \"Longest\" FROM activities WHERE distance_m > 0 AND is_indoor IS NOT TRUE ORDER BY distance_m DESC LIMIT 1;",
+              "format": "table",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "auto",
+            "reduceOptions": {
+              "calcs": ["lastNotNull"]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "lengthkm",
+              "color": {
+                "mode": "thresholds"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "#6ed0ff",
+                    "value": null
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": 207,
+          "title": "Most Elevation (All Time)",
+          "type": "stat",
+          "gridPos": {
+            "h": 4,
+            "w": 6,
+            "x": 6,
+            "y": 41
+          },
+          "datasource": {
+            "type": "postgres",
+            "uid": "veloai"
+          },
+          "targets": [
+            {
+              "rawSql": "SELECT ROUND(MAX(elevation_m)::numeric, 0) AS \"Most Elev\" FROM activities WHERE elevation_m > 0 AND is_indoor IS NOT TRUE;",
+              "format": "table",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "auto",
+            "reduceOptions": {
+              "calcs": ["lastNotNull"]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "lengthm",
+              "color": {
+                "mode": "thresholds"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "#6ed0ff",
+                    "value": null
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": 208,
+          "title": "Fastest Speed (All Time)",
+          "type": "stat",
+          "gridPos": {
+            "h": 4,
+            "w": 6,
+            "x": 12,
+            "y": 41
+          },
+          "datasource": {
+            "type": "postgres",
+            "uid": "veloai"
+          },
+          "targets": [
+            {
+              "rawSql": "SELECT ROUND(MAX(avg_speed_kmh)::numeric, 1) AS \"Fastest\" FROM activities WHERE distance_m > 5000 AND is_indoor IS NOT TRUE;",
+              "format": "table",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "auto",
+            "reduceOptions": {
+              "calcs": ["lastNotNull"]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "velocitykmh",
+              "color": {
+                "mode": "thresholds"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "#6ed0ff",
+                    "value": null
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": 209,
+          "title": "Best Power (All Time)",
+          "type": "stat",
+          "gridPos": {
+            "h": 4,
+            "w": 6,
+            "x": 18,
+            "y": 41
+          },
+          "datasource": {
+            "type": "postgres",
+            "uid": "veloai"
+          },
+          "targets": [
+            {
+              "rawSql": "SELECT MAX(avg_power) AS \"Best Power\" FROM activities WHERE duration_s > 1200 AND avg_power IS NOT NULL AND is_indoor IS NOT TRUE;",
+              "format": "table",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "auto",
+            "reduceOptions": {
+              "calcs": ["lastNotNull"]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "watt",
+              "color": {
+                "mode": "thresholds"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "#6ed0ff",
+                    "value": null
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": 210,
+          "title": "Power Progression",
+          "type": "timeseries",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 45
+          },
+          "datasource": {
+            "type": "postgres",
+            "uid": "veloai"
+          },
+          "targets": [
+            {
+              "rawSql": "SELECT date::date AS \"time\", ROUND((avg_power * 1.05)::numeric, 0) AS \"Est 20min Power (W)\" FROM activities WHERE avg_power IS NOT NULL AND avg_power > 0 AND duration_s > 1200 AND is_indoor IS NOT TRUE ORDER BY date;",
+              "format": "time_series",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "fixedColor": "#ff9830",
+                "mode": "fixed"
+              },
+              "custom": {
+                "drawStyle": "points",
+                "pointSize": 5
+              }
+            },
+            "overrides": []
+          },
+          "transformations": [
+            {
+              "id": "regression",
+              "options": {
+                "modelType": "linear"
+              }
+            }
+          ]
+        },
+        {
+          "id": 211,
+          "title": "Speed Progression",
+          "type": "timeseries",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 45
+          },
+          "datasource": {
+            "type": "postgres",
+            "uid": "veloai"
+          },
+          "targets": [
+            {
+              "rawSql": "SELECT date::date AS \"time\", ROUND(avg_speed_kmh::numeric, 1) AS \"Avg Speed (km/h)\" FROM activities WHERE avg_speed_kmh > 0 AND distance_m > 5000 AND is_indoor IS NOT TRUE ORDER BY date;",
+              "format": "time_series",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "fixedColor": "#73bf69",
+                "mode": "fixed"
+              },
+              "custom": {
+                "drawStyle": "points",
+                "pointSize": 5
+              }
+            },
+            "overrides": []
+          },
+          "transformations": [
+            {
+              "id": "regression",
+              "options": {
+                "modelType": "linear"
+              }
+            }
+          ]
+        }
+      ]
     },
     {
       "id": 105,
       "type": "row",
       "title": "Ride Map",
       "collapsed": true,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 25
-      },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 37 },
       "panels": [
         {
           "id": 30,
@@ -940,7 +1042,7 @@
             "h": 14,
             "w": 24,
             "x": 0,
-            "y": 26
+            "y": 38
           },
           "datasource": {
             "type": "postgres",
@@ -992,508 +1094,11 @@
       ]
     },
     {
-      "id": 102,
-      "type": "row",
-      "title": "Outdoor Records & Progress",
-      "collapsed": true,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 26
-      },
-      "panels": [
-        {
-          "id": 15,
-          "title": "Longest Ride (Period)",
-          "type": "stat",
-          "gridPos": {
-            "h": 4,
-            "w": 6,
-            "x": 0,
-            "y": 27
-          },
-          "datasource": {
-            "type": "postgres",
-            "uid": "veloai"
-          },
-          "targets": [
-            {
-              "rawSql": "SELECT ROUND((distance_m / 1000.0)::numeric, 1) AS \"Longest\" FROM activities WHERE $__timeFilter(date) AND distance_m > 0 AND is_indoor IS NOT TRUE ORDER BY distance_m DESC LIMIT 1;",
-              "format": "table",
-              "refId": "A"
-            }
-          ],
-          "options": {
-            "colorMode": "value",
-            "graphMode": "none",
-            "textMode": "auto",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ]
-            }
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "lengthkm",
-              "color": {
-                "mode": "thresholds"
-              },
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  }
-                ]
-              }
-            }
-          }
-        },
-        {
-          "id": 16,
-          "title": "Most Elevation (Period)",
-          "type": "stat",
-          "gridPos": {
-            "h": 4,
-            "w": 6,
-            "x": 6,
-            "y": 27
-          },
-          "datasource": {
-            "type": "postgres",
-            "uid": "veloai"
-          },
-          "targets": [
-            {
-              "rawSql": "SELECT ROUND(MAX(elevation_m)::numeric, 0) AS \"Most Elev\" FROM activities WHERE $__timeFilter(date) AND elevation_m > 0 AND is_indoor IS NOT TRUE;",
-              "format": "table",
-              "refId": "A"
-            }
-          ],
-          "options": {
-            "colorMode": "value",
-            "graphMode": "none",
-            "textMode": "auto",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ]
-            }
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "lengthm",
-              "color": {
-                "mode": "thresholds"
-              },
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  }
-                ]
-              }
-            }
-          }
-        },
-        {
-          "id": 17,
-          "title": "Fastest Speed (Period)",
-          "type": "stat",
-          "gridPos": {
-            "h": 4,
-            "w": 6,
-            "x": 12,
-            "y": 27
-          },
-          "datasource": {
-            "type": "postgres",
-            "uid": "veloai"
-          },
-          "targets": [
-            {
-              "rawSql": "SELECT ROUND(MAX(avg_speed_kmh)::numeric, 1) AS \"Fastest\" FROM activities WHERE $__timeFilter(date) AND distance_m > 5000 AND is_indoor IS NOT TRUE;",
-              "format": "table",
-              "refId": "A"
-            }
-          ],
-          "options": {
-            "colorMode": "value",
-            "graphMode": "none",
-            "textMode": "auto",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ]
-            }
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "velocitykmh",
-              "color": {
-                "mode": "thresholds"
-              },
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  }
-                ]
-              }
-            }
-          }
-        },
-        {
-          "id": 18,
-          "title": "Best Power (Period)",
-          "type": "stat",
-          "gridPos": {
-            "h": 4,
-            "w": 6,
-            "x": 18,
-            "y": 27
-          },
-          "datasource": {
-            "type": "postgres",
-            "uid": "veloai"
-          },
-          "targets": [
-            {
-              "rawSql": "SELECT MAX(avg_power) AS \"Best Power\" FROM activities WHERE $__timeFilter(date) AND duration_s > 1200 AND avg_power IS NOT NULL AND is_indoor IS NOT TRUE;",
-              "format": "table",
-              "refId": "A"
-            }
-          ],
-          "options": {
-            "colorMode": "value",
-            "graphMode": "none",
-            "textMode": "auto",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ]
-            }
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "watt",
-              "color": {
-                "mode": "thresholds"
-              },
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  }
-                ]
-              }
-            }
-          }
-        },
-        {
-          "id": 25,
-          "title": "Longest Ride (All Time)",
-          "type": "stat",
-          "gridPos": {
-            "h": 4,
-            "w": 6,
-            "x": 0,
-            "y": 31
-          },
-          "datasource": {
-            "type": "postgres",
-            "uid": "veloai"
-          },
-          "targets": [
-            {
-              "rawSql": "SELECT ROUND((distance_m / 1000.0)::numeric, 1) AS \"Longest\" FROM activities WHERE distance_m > 0 AND is_indoor IS NOT TRUE ORDER BY distance_m DESC LIMIT 1;",
-              "format": "table",
-              "refId": "A"
-            }
-          ],
-          "options": {
-            "colorMode": "value",
-            "graphMode": "none",
-            "textMode": "auto",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ]
-            }
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "lengthkm",
-              "color": {
-                "mode": "thresholds"
-              },
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "#6ed0ff",
-                    "value": null
-                  }
-                ]
-              }
-            }
-          }
-        },
-        {
-          "id": 26,
-          "title": "Most Elevation (All Time)",
-          "type": "stat",
-          "gridPos": {
-            "h": 4,
-            "w": 6,
-            "x": 6,
-            "y": 31
-          },
-          "datasource": {
-            "type": "postgres",
-            "uid": "veloai"
-          },
-          "targets": [
-            {
-              "rawSql": "SELECT ROUND(MAX(elevation_m)::numeric, 0) AS \"Most Elev\" FROM activities WHERE elevation_m > 0 AND is_indoor IS NOT TRUE;",
-              "format": "table",
-              "refId": "A"
-            }
-          ],
-          "options": {
-            "colorMode": "value",
-            "graphMode": "none",
-            "textMode": "auto",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ]
-            }
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "lengthm",
-              "color": {
-                "mode": "thresholds"
-              },
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "#6ed0ff",
-                    "value": null
-                  }
-                ]
-              }
-            }
-          }
-        },
-        {
-          "id": 27,
-          "title": "Fastest Speed (All Time)",
-          "type": "stat",
-          "gridPos": {
-            "h": 4,
-            "w": 6,
-            "x": 12,
-            "y": 31
-          },
-          "datasource": {
-            "type": "postgres",
-            "uid": "veloai"
-          },
-          "targets": [
-            {
-              "rawSql": "SELECT ROUND(MAX(avg_speed_kmh)::numeric, 1) AS \"Fastest\" FROM activities WHERE distance_m > 5000 AND is_indoor IS NOT TRUE;",
-              "format": "table",
-              "refId": "A"
-            }
-          ],
-          "options": {
-            "colorMode": "value",
-            "graphMode": "none",
-            "textMode": "auto",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ]
-            }
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "velocitykmh",
-              "color": {
-                "mode": "thresholds"
-              },
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "#6ed0ff",
-                    "value": null
-                  }
-                ]
-              }
-            }
-          }
-        },
-        {
-          "id": 28,
-          "title": "Best Power (All Time)",
-          "type": "stat",
-          "gridPos": {
-            "h": 4,
-            "w": 6,
-            "x": 18,
-            "y": 31
-          },
-          "datasource": {
-            "type": "postgres",
-            "uid": "veloai"
-          },
-          "targets": [
-            {
-              "rawSql": "SELECT MAX(avg_power) AS \"Best Power\" FROM activities WHERE duration_s > 1200 AND avg_power IS NOT NULL AND is_indoor IS NOT TRUE;",
-              "format": "table",
-              "refId": "A"
-            }
-          ],
-          "options": {
-            "colorMode": "value",
-            "graphMode": "none",
-            "textMode": "auto",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ]
-            }
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "watt",
-              "color": {
-                "mode": "thresholds"
-              },
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "#6ed0ff",
-                    "value": null
-                  }
-                ]
-              }
-            }
-          }
-        },
-        {
-          "id": 40,
-          "title": "Power Progression",
-          "type": "timeseries",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 35
-          },
-          "datasource": {
-            "type": "postgres",
-            "uid": "veloai"
-          },
-          "targets": [
-            {
-              "rawSql": "SELECT date::date AS \"time\", ROUND((avg_power * 1.05)::numeric, 0) AS \"Est 20min Power (W)\" FROM activities WHERE avg_power IS NOT NULL AND avg_power > 0 AND duration_s > 1200 AND is_indoor IS NOT TRUE ORDER BY date;",
-              "format": "time_series",
-              "refId": "A"
-            }
-          ],
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "fixedColor": "#ff9830",
-                "mode": "fixed"
-              },
-              "custom": {
-                "drawStyle": "points",
-                "pointSize": 5
-              }
-            },
-            "overrides": []
-          },
-          "transformations": [
-            {
-              "id": "regression",
-              "options": {
-                "modelType": "linear"
-              }
-            }
-          ]
-        },
-        {
-          "id": 41,
-          "title": "Speed Progression",
-          "type": "timeseries",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 35
-          },
-          "datasource": {
-            "type": "postgres",
-            "uid": "veloai"
-          },
-          "targets": [
-            {
-              "rawSql": "SELECT date::date AS \"time\", ROUND(avg_speed_kmh::numeric, 1) AS \"Avg Speed (km/h)\" FROM activities WHERE avg_speed_kmh > 0 AND distance_m > 5000 AND is_indoor IS NOT TRUE ORDER BY date;",
-              "format": "time_series",
-              "refId": "A"
-            }
-          ],
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "fixedColor": "#73bf69",
-                "mode": "fixed"
-              },
-              "custom": {
-                "drawStyle": "points",
-                "pointSize": 5
-              }
-            },
-            "overrides": []
-          },
-          "transformations": [
-            {
-              "id": "regression",
-              "options": {
-                "modelType": "linear"
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
       "id": 103,
       "type": "row",
       "title": "Year in Review",
       "collapsed": true,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 31
-      },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 38 },
       "panels": [
         {
           "id": 42,
@@ -1503,7 +1108,7 @@
             "h": 4,
             "w": 6,
             "x": 0,
-            "y": 32
+            "y": 39
           },
           "datasource": {
             "type": "postgres",
@@ -1521,9 +1126,7 @@
             "graphMode": "none",
             "textMode": "auto",
             "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ]
+              "calcs": ["lastNotNull"]
             }
           },
           "fieldConfig": {
@@ -1552,7 +1155,7 @@
             "h": 4,
             "w": 6,
             "x": 6,
-            "y": 32
+            "y": 39
           },
           "datasource": {
             "type": "postgres",
@@ -1570,9 +1173,7 @@
             "graphMode": "none",
             "textMode": "auto",
             "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ]
+              "calcs": ["lastNotNull"]
             }
           },
           "fieldConfig": {
@@ -1601,7 +1202,7 @@
             "h": 4,
             "w": 6,
             "x": 12,
-            "y": 32
+            "y": 39
           },
           "datasource": {
             "type": "postgres",
@@ -1619,9 +1220,7 @@
             "graphMode": "none",
             "textMode": "auto",
             "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ]
+              "calcs": ["lastNotNull"]
             }
           },
           "fieldConfig": {
@@ -1649,7 +1248,7 @@
             "h": 4,
             "w": 6,
             "x": 18,
-            "y": 32
+            "y": 39
           },
           "datasource": {
             "type": "postgres",
@@ -1667,9 +1266,7 @@
             "graphMode": "none",
             "textMode": "auto",
             "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ]
+              "calcs": ["lastNotNull"]
             }
           },
           "fieldConfig": {
@@ -1698,7 +1295,7 @@
             "h": 8,
             "w": 24,
             "x": 0,
-            "y": 36
+            "y": 43
           },
           "datasource": {
             "type": "postgres",
@@ -1725,132 +1322,128 @@
       "id": 104,
       "type": "row",
       "title": "Activities",
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 40
-      },
-      "panels": []
-    },
-    {
-      "id": 20,
-      "title": "Activities",
-      "type": "table",
-      "gridPos": {
-        "h": 10,
-        "w": 24,
-        "x": 0,
-        "y": 41
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "veloai"
-      },
-      "targets": [
+      "collapsed": true,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 39 },
+      "panels": [
         {
-          "rawSql": "SELECT id, name AS \"Name\", TO_CHAR(date, 'YYYY-MM-DD') AS \"Date\", ROUND((distance_m / 1000.0)::numeric, 1) AS \"Distance (km)\", ROUND(elevation_m::numeric, 0) AS \"Elevation (m)\", TO_CHAR(duration_s * interval '1 second', 'HH24:MI') AS \"Duration\", COALESCE(avg_hr::text, '—') AS \"Avg HR\", COALESCE(avg_power::text, '—') AS \"Avg Power\", COALESCE(ROUND(tss::numeric, 0)::text, '—') AS \"TSS\", CASE sport_type WHEN 'cycling_outdoor' THEN 'Outdoor' WHEN 'cycling_indoor' THEN 'Indoor' WHEN 'zwift' THEN 'Zwift' WHEN 'strength' THEN 'Strength' ELSE COALESCE(sport_type, '—') END AS \"Type\", COALESCE(device, '—') AS \"Device\", EXTRACT(EPOCH FROM date - interval '1 hour')::bigint * 1000 AS from_ts, EXTRACT(EPOCH FROM date + duration_s * interval '1 second' + interval '1 hour')::bigint * 1000 AS to_ts FROM activities WHERE $__timeFilter(date) ORDER BY date DESC LIMIT 50;",
-          "format": "table",
-          "refId": "A"
-        }
-      ],
-      "options": {
-        "showHeader": true
-      },
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "id"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
+          "id": 20,
+          "title": "Activities",
+          "type": "table",
+          "gridPos": {
+            "h": 10,
+            "w": 24,
+            "x": 0,
+            "y": 40
           },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "from_ts"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
+          "datasource": {
+            "type": "postgres",
+            "uid": "veloai"
           },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "to_ts"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
+          "targets": [
+            {
+              "rawSql": "SELECT id, name AS \"Name\", TO_CHAR(date, 'YYYY-MM-DD') AS \"Date\", ROUND((distance_m / 1000.0)::numeric, 1) AS \"Distance (km)\", ROUND(elevation_m::numeric, 0) AS \"Elevation (m)\", TO_CHAR(duration_s * interval '1 second', 'HH24:MI') AS \"Duration\", COALESCE(avg_hr::text, '\u2014') AS \"Avg HR\", COALESCE(avg_power::text, '\u2014') AS \"Avg Power\", COALESCE(ROUND(tss::numeric, 0)::text, '\u2014') AS \"TSS\", CASE sport_type WHEN 'cycling_outdoor' THEN 'Outdoor' WHEN 'cycling_indoor' THEN 'Indoor' WHEN 'zwift' THEN 'Zwift' WHEN 'strength' THEN 'Strength' ELSE COALESCE(sport_type, '\u2014') END AS \"Type\", COALESCE(device, '\u2014') AS \"Device\", EXTRACT(EPOCH FROM date - interval '1 hour')::bigint * 1000 AS from_ts, EXTRACT(EPOCH FROM date + duration_s * interval '1 second' + interval '1 hour')::bigint * 1000 AS to_ts FROM activities WHERE $__timeFilter(date) ORDER BY date DESC LIMIT 50;",
+              "format": "table",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "showHeader": true
           },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Name"
-            },
-            "properties": [
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": [
               {
-                "id": "links",
-                "value": [
+                "matcher": {
+                  "id": "byName",
+                  "options": "id"
+                },
+                "properties": [
                   {
-                    "title": "View Activity",
-                    "url": "/d/veloai-activity/activity-detail?var-activity_id=${__data.fields.id}&from=${__data.fields.from_ts}&to=${__data.fields.to_ts}"
+                    "id": "custom.hidden",
+                    "value": true
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "from_ts"
+                },
+                "properties": [
+                  {
+                    "id": "custom.hidden",
+                    "value": true
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "to_ts"
+                },
+                "properties": [
+                  {
+                    "id": "custom.hidden",
+                    "value": true
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Name"
+                },
+                "properties": [
+                  {
+                    "id": "links",
+                    "value": [
+                      {
+                        "title": "View Activity",
+                        "url": "/d/veloai-activity/activity-detail?var-activity_id=${__data.fields.id}&from=${__data.fields.from_ts}&to=${__data.fields.to_ts}"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "TSS"
+                },
+                "properties": [
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-background",
+                      "mode": "basic"
+                    }
+                  },
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "green",
+                          "value": null
+                        },
+                        {
+                          "color": "yellow",
+                          "value": 50
+                        },
+                        {
+                          "color": "red",
+                          "value": 100
+                        }
+                      ]
+                    }
                   }
                 ]
               }
             ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "TSS"
-            },
-            "properties": [
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-background",
-                  "mode": "basic"
-                }
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": null
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 50
-                    },
-                    {
-                      "color": "red",
-                      "value": 100
-                    }
-                  ]
-                }
-              }
-            ]
           }
-        ]
-      }
+        }
+      ]
     }
   ]
 }
