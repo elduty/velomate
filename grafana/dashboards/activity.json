@@ -33,14 +33,17 @@
     "list": [
       {
         "name": "activity_id",
-        "type": "textbox",
-        "label": "Activity ID",
-        "hide": 2,
-        "current": {
-          "value": "0"
+        "type": "query",
+        "label": "Activity",
+        "datasource": {
+          "type": "postgres",
+          "uid": "veloai"
         },
-        "options": [],
-        "query": "0"
+        "query": "SELECT id AS __value, name || ' (' || TO_CHAR(date, 'YYYY-MM-DD') || ')' AS __text FROM activities ORDER BY date DESC LIMIT 50",
+        "refresh": 2,
+        "sort": 0,
+        "current": {},
+        "options": []
       },
       {
         "name": "map_metric",
@@ -68,20 +71,6 @@
             "selected": false
           }
         ]
-      },
-      {
-        "name": "activity_picker",
-        "type": "query",
-        "label": "Activity",
-        "datasource": {
-          "type": "postgres",
-          "uid": "veloai"
-        },
-        "query": "SELECT id AS __value, name || ' (' || TO_CHAR(date, 'YYYY-MM-DD') || ')' AS __text FROM activities ORDER BY date DESC LIMIT 50",
-        "refresh": 2,
-        "sort": 0,
-        "current": {},
-        "options": []
       }
     ]
   },

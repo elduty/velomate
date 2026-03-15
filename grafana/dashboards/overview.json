@@ -75,7 +75,7 @@
         "name": "sport_type",
         "type": "custom",
         "label": "Sport",
-        "query": "All : All, Outdoor : cycling_outdoor, Indoor : cycling_indoor, Zwift : zwift",
+        "query": "All : All, Outdoor : cycling_outdoor, Indoor : cycling_indoor, Zwift : zwift, E-Bike : ebike, Running : running, Strength : strength, Other : other",
         "current": {
           "text": "All",
           "value": "All"
@@ -99,6 +99,26 @@
           {
             "text": "Zwift",
             "value": "zwift",
+            "selected": false
+          },
+          {
+            "text": "E-Bike",
+            "value": "ebike",
+            "selected": false
+          },
+          {
+            "text": "Running",
+            "value": "running",
+            "selected": false
+          },
+          {
+            "text": "Strength",
+            "value": "strength",
+            "selected": false
+          },
+          {
+            "text": "Other",
+            "value": "other",
             "selected": false
           }
         ]
@@ -334,6 +354,7 @@
       },
       "fieldConfig": {
         "defaults": {
+          "unit": "kcal",
           "color": {
             "mode": "thresholds"
           },

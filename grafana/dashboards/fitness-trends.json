@@ -323,51 +323,6 @@
           "placement": "bottom"
         }
       }
-    },
-    {
-      "id": 5,
-      "title": "Resting Heart Rate",
-      "type": "timeseries",
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 14
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "veloai"
-      },
-      "targets": [
-        {
-          "rawSql": "SELECT date AS time, resting_hr AS \"Resting HR\" FROM athlete_stats WHERE $__timeFilter(date) AND resting_hr IS NOT NULL ORDER BY date;",
-          "format": "time_series",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "bpm",
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 15,
-            "showPoints": "auto"
-          },
-          "color": {
-            "fixedColor": "red",
-            "mode": "fixed"
-          }
-        }
-      },
-      "options": {
-        "tooltip": {
-          "mode": "single"
-        },
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        }
-      }
     }
   ],
   "schemaVersion": 39,
