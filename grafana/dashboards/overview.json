@@ -9,8 +9,8 @@
   "schemaVersion": 39,
   "version": 1,
   "time": {
-    "from": "now-30d/d",
-    "to": "now/d"
+    "from": "now-7d",
+    "to": "now"
   },
   "refresh": "5m",
   "links": [
