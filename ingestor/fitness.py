@@ -163,9 +163,10 @@ def recalculate_fitness(conn):
         daily_distance[date] = daily_distance.get(date, 0) + (distance_m or 0)
         daily_elevation[date] = daily_elevation.get(date, 0) + (elevation_m or 0)
 
-    # Walk from first to last date
+    # Walk from first activity to today (rest days still decay CTL/ATL)
+    from datetime import date as date_type
     first_date = min(daily_tss.keys())
-    last_date = max(daily_tss.keys())
+    last_date = max(max(daily_tss.keys()), date_type.today())
 
     ctl = 0.0
     atl = 0.0
