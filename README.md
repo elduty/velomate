@@ -69,7 +69,7 @@ Any device → Strava → [Ingestor] → PostgreSQL → Grafana dashboards
                                         ↑
                             VeloAI CLI (route planning + recommendations)
                                         ↓
-                              Valhalla → GPX → Komoot
+                              Valhalla → GPX file
 ```
 
 Three Docker Compose services:
@@ -121,7 +121,7 @@ On first run, the ingestor backfills the last 12 months of Strava activities.
 ```bash
 pip install -r requirements.txt
 cp config.example.yaml ~/.config/veloai/config.yaml
-# Edit with your home coordinates, DB host, and Komoot credentials
+# Edit with your home coordinates, DB host, and Strava credentials
 ```
 
 Credentials support three methods: direct values, environment variables, or shell commands (`password_cmd`) for secret managers like Keychain, 1Password, or Vault.

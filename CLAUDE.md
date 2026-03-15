@@ -12,7 +12,7 @@ Obsidian vault: `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/Persona
 
 ## What This Is
 
-VeloAI is a self-hosted cycling data platform (inspired by TeslaMate). Any device that syncs to Strava works (Karoo, Garmin, Wahoo, Apple Watch, Zwift). The ingestor polls Strava, stores activities + per-second telemetry in PostgreSQL, calculates fitness metrics (CTL/ATL/TSB via EMA) locally (no Strava Premium needed), and serves Grafana dashboards. A CLI generates ride recommendations and creates Valhalla GPX routes that upload to Komoot.
+VeloAI is a self-hosted cycling data platform (inspired by TeslaMate). Any device that syncs to Strava works (Karoo, Garmin, Wahoo, Apple Watch, Zwift). The ingestor polls Strava, stores activities + per-second telemetry in PostgreSQL, calculates fitness metrics (CTL/ATL/TSB via EMA) locally (no Strava Premium needed), and serves Grafana dashboards. A CLI generates ride recommendations and creates Valhalla GPX routes.
 
 ## Architecture
 
@@ -24,7 +24,7 @@ Three Docker Compose services on a server:
 
 Separate from Docker:
 
-- **veloai CLI** (`veloai/`) — runs on local machine, connects to server DB, merges fitness + Komoot routes + Open-Meteo weather into ride recommendations
+- **veloai CLI** (`veloai/`) — runs on local machine, connects to server DB, generates ride recommendations + Valhalla GPX routes with smart waypoint selection
 
 ## Key Commands
 
@@ -76,10 +76,8 @@ python3 -m veloai.cli
 
 ## Known Limitations
 
-- Komoot only exposes recorded rides, not saved/planned routes — route suggestions are limited to past activities
-- All Komoot rides default to name "Ride" — dedup uses distance/elevation buckets (fragile)
-- komPYoot is an unofficial Komoot API wrapper — may break if Komoot changes their internal API
-- Valhalla route generator creates loops mathematically — doesn't consider preferred roads or scenic preferences yet
+- Komoot highlights API (vector tiles) is unofficial — may change if Komoot updates their tile server
+- Overpass API has strict rate limits — multiple route intelligence queries in sequence can trigger 429 errors
 
 ## Roadmap
 
