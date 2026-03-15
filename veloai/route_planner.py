@@ -398,13 +398,16 @@ def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
     except Exception as e:
         print(f"  [preview] Skipped: {e}", file=sys.stderr)
 
-    # Upload to Komoot (optional)
+    # Upload to Komoot (opt-in, requires credentials)
     komoot_url = None
     if upload:
-        print(f"  Uploading to Komoot...", file=sys.stderr)
-        komoot_url = _upload_to_komoot(gpx_path, surface, route_name)
-    else:
-        print(f"  Skipping Komoot upload (--no-upload)", file=sys.stderr)
+        from veloai.config import load as _load_cfg
+        _cfg = _load_cfg()
+        if _cfg["komoot"].get("email") and _cfg["komoot"].get("password"):
+            print(f"  Uploading to Komoot...", file=sys.stderr)
+            komoot_url = _upload_to_komoot(gpx_path, surface, route_name)
+        else:
+            print(f"  Komoot credentials not configured — skipping upload", file=sys.stderr)
 
     # Build output
     lines = []
@@ -509,14 +512,8 @@ def plan(duration_str: str, surface: str = "gravel", loop: bool = True,
     if fitness_note:
         lines.append(f"  💪 {fitness_note}")
 
+    lines.append(f"  💾 GPX: {gpx_path}")
     if komoot_url:
         lines.append(f"  🔗 {komoot_url}")
-        lines.append(f"  Uploaded to Komoot — change to 'Planned' in the app if needed")
-    else:
-        lines.append(f"  💾 GPX saved: {gpx_path}")
-        if not upload:
-            lines.append(f"  Preview only — use --no-upload to skip, or remove flag to upload")
-        else:
-            lines.append(f"  Import manually: Komoot → + → Import GPX")
 
     return "\n".join(lines)
