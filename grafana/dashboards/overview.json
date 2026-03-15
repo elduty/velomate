@@ -641,6 +641,11 @@
           "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.elevation_m), 0) AS \"E-Bike (m)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'ebike' GROUP BY gs ORDER BY gs;",
           "format": "time_series",
           "refId": "C"
+        },
+        {
+          "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.elevation_m), 0) AS \"Indoor (m)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'cycling_indoor' GROUP BY gs ORDER BY gs;",
+          "format": "time_series",
+          "refId": "D"
         }
       ],
       "fieldConfig": {
@@ -700,6 +705,21 @@
                 }
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Indoor (m)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#8b5cf6",
+                  "mode": "fixed"
+                }
+              }
+            ]
           }
         ]
       }
@@ -720,23 +740,100 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.duration_s) / 3600.0, 0) AS \"Hours\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs GROUP BY gs ORDER BY gs;",
+          "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.duration_s / 3600.0), 0) AS \"Outdoor (h)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'cycling_outdoor'  GROUP BY gs ORDER BY gs;",
           "format": "time_series",
           "refId": "A"
+        },
+        {
+          "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.duration_s / 3600.0), 0) AS \"Zwift (h)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'zwift'  GROUP BY gs ORDER BY gs;",
+          "format": "time_series",
+          "refId": "B"
+        },
+        {
+          "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.duration_s / 3600.0), 0) AS \"E-Bike (h)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'ebike'  GROUP BY gs ORDER BY gs;",
+          "format": "time_series",
+          "refId": "C"
+        },
+        {
+          "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.duration_s / 3600.0), 0) AS \"Indoor (h)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'cycling_indoor'  GROUP BY gs ORDER BY gs;",
+          "format": "time_series",
+          "refId": "D"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "fixedColor": "#6ed0ff",
-            "mode": "fixed"
-          },
           "custom": {
             "drawStyle": "bars",
             "fillOpacity": 80,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
             "barWidthFactor": 0.6
           }
-        }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Outdoor (h)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#33658a",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Zwift (h)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#fc4c02",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "E-Bike (h)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#73bf69",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Indoor (h)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#8b5cf6",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
       }
     },
     {
@@ -755,23 +852,100 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.calories), 0) AS \"Calories\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.calories IS NOT NULL GROUP BY gs ORDER BY gs;",
+          "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.calories), 0) AS \"Outdoor (kcal)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'cycling_outdoor' AND a.calories IS NOT NULL GROUP BY gs ORDER BY gs;",
           "format": "time_series",
           "refId": "A"
+        },
+        {
+          "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.calories), 0) AS \"Zwift (kcal)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'zwift' AND a.calories IS NOT NULL GROUP BY gs ORDER BY gs;",
+          "format": "time_series",
+          "refId": "B"
+        },
+        {
+          "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.calories), 0) AS \"E-Bike (kcal)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'ebike' AND a.calories IS NOT NULL GROUP BY gs ORDER BY gs;",
+          "format": "time_series",
+          "refId": "C"
+        },
+        {
+          "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.calories), 0) AS \"Indoor (kcal)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'cycling_indoor' AND a.calories IS NOT NULL GROUP BY gs ORDER BY gs;",
+          "format": "time_series",
+          "refId": "D"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "fixedColor": "#F2495C",
-            "mode": "fixed"
-          },
           "custom": {
             "drawStyle": "bars",
             "fillOpacity": 80,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
             "barWidthFactor": 0.6
           }
-        }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Outdoor (kcal)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#33658a",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Zwift (kcal)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#fc4c02",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "E-Bike (kcal)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#73bf69",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Indoor (kcal)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#8b5cf6",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
       }
     },
     {
@@ -790,23 +964,100 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT gs AS \"time\", COALESCE(ROUND(AVG(a.avg_power)::numeric, 0), 0) AS \"Avg Power (W)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.avg_power > 0 GROUP BY gs ORDER BY gs;",
+          "rawSql": "SELECT gs AS \"time\", COALESCE(ROUND(AVG(a.avg_power)::numeric, 0), 0) AS \"Outdoor (W)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'cycling_outdoor' AND a.avg_power > 0 GROUP BY gs ORDER BY gs;",
           "format": "time_series",
           "refId": "A"
+        },
+        {
+          "rawSql": "SELECT gs AS \"time\", COALESCE(ROUND(AVG(a.avg_power)::numeric, 0), 0) AS \"Zwift (W)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'zwift' AND a.avg_power > 0 GROUP BY gs ORDER BY gs;",
+          "format": "time_series",
+          "refId": "B"
+        },
+        {
+          "rawSql": "SELECT gs AS \"time\", COALESCE(ROUND(AVG(a.avg_power)::numeric, 0), 0) AS \"E-Bike (W)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'ebike' AND a.avg_power > 0 GROUP BY gs ORDER BY gs;",
+          "format": "time_series",
+          "refId": "C"
+        },
+        {
+          "rawSql": "SELECT gs AS \"time\", COALESCE(ROUND(AVG(a.avg_power)::numeric, 0), 0) AS \"Indoor (W)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'cycling_indoor' AND a.avg_power > 0 GROUP BY gs ORDER BY gs;",
+          "format": "time_series",
+          "refId": "D"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "fixedColor": "#8b5cf6",
-            "mode": "fixed"
-          },
           "custom": {
             "drawStyle": "bars",
             "fillOpacity": 80,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
             "barWidthFactor": 0.6
           }
-        }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Outdoor (W)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#33658a",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Zwift (W)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#fc4c02",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "E-Bike (W)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#73bf69",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Indoor (W)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#8b5cf6",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
       }
     },
     {
@@ -825,23 +1076,100 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT gs AS \"time\", COALESCE(ROUND(AVG(a.avg_speed_kmh)::numeric, 1), 0) AS \"Avg Speed (km/h)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.avg_speed_kmh > 0 AND a.distance_m > 5000 GROUP BY gs ORDER BY gs;",
+          "rawSql": "SELECT gs AS \"time\", COALESCE(ROUND(AVG(a.avg_speed_kmh)::numeric, 1), 0) AS \"Outdoor (km/h)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'cycling_outdoor' AND a.avg_speed_kmh > 0 AND a.distance_m > 5000 GROUP BY gs ORDER BY gs;",
           "format": "time_series",
           "refId": "A"
+        },
+        {
+          "rawSql": "SELECT gs AS \"time\", COALESCE(ROUND(AVG(a.avg_speed_kmh)::numeric, 1), 0) AS \"Zwift (km/h)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'zwift' AND a.avg_speed_kmh > 0 AND a.distance_m > 5000 GROUP BY gs ORDER BY gs;",
+          "format": "time_series",
+          "refId": "B"
+        },
+        {
+          "rawSql": "SELECT gs AS \"time\", COALESCE(ROUND(AVG(a.avg_speed_kmh)::numeric, 1), 0) AS \"E-Bike (km/h)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'ebike' AND a.avg_speed_kmh > 0 AND a.distance_m > 5000 GROUP BY gs ORDER BY gs;",
+          "format": "time_series",
+          "refId": "C"
+        },
+        {
+          "rawSql": "SELECT gs AS \"time\", COALESCE(ROUND(AVG(a.avg_speed_kmh)::numeric, 1), 0) AS \"Indoor (km/h)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'cycling_indoor' AND a.avg_speed_kmh > 0 AND a.distance_m > 5000 GROUP BY gs ORDER BY gs;",
+          "format": "time_series",
+          "refId": "D"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "fixedColor": "#73bf69",
-            "mode": "fixed"
-          },
           "custom": {
             "drawStyle": "bars",
             "fillOpacity": 80,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
             "barWidthFactor": 0.6
           }
-        }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Outdoor (km/h)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#33658a",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Zwift (km/h)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#fc4c02",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "E-Bike (km/h)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#73bf69",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Indoor (km/h)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#8b5cf6",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
       }
     },
     {
@@ -860,23 +1188,100 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT gs AS \"time\", COALESCE(ROUND(AVG(a.avg_hr)::numeric, 0), 0) AS \"Avg HR (bpm)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.avg_hr > 0 GROUP BY gs ORDER BY gs;",
+          "rawSql": "SELECT gs AS \"time\", COALESCE(ROUND(AVG(a.avg_hr)::numeric, 0), 0) AS \"Outdoor (bpm)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'cycling_outdoor' AND a.avg_hr > 0 GROUP BY gs ORDER BY gs;",
           "format": "time_series",
           "refId": "A"
+        },
+        {
+          "rawSql": "SELECT gs AS \"time\", COALESCE(ROUND(AVG(a.avg_hr)::numeric, 0), 0) AS \"Zwift (bpm)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'zwift' AND a.avg_hr > 0 GROUP BY gs ORDER BY gs;",
+          "format": "time_series",
+          "refId": "B"
+        },
+        {
+          "rawSql": "SELECT gs AS \"time\", COALESCE(ROUND(AVG(a.avg_hr)::numeric, 0), 0) AS \"E-Bike (bpm)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'ebike' AND a.avg_hr > 0 GROUP BY gs ORDER BY gs;",
+          "format": "time_series",
+          "refId": "C"
+        },
+        {
+          "rawSql": "SELECT gs AS \"time\", COALESCE(ROUND(AVG(a.avg_hr)::numeric, 0), 0) AS \"Indoor (bpm)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'cycling_indoor' AND a.avg_hr > 0 GROUP BY gs ORDER BY gs;",
+          "format": "time_series",
+          "refId": "D"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "fixedColor": "#F2495C",
-            "mode": "fixed"
-          },
           "custom": {
             "drawStyle": "bars",
             "fillOpacity": 80,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
             "barWidthFactor": 0.6
           }
-        }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Outdoor (bpm)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#33658a",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Zwift (bpm)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#fc4c02",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "E-Bike (bpm)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#73bf69",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Indoor (bpm)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#8b5cf6",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
       }
     },
     {
@@ -895,23 +1300,100 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT gs AS \"time\", COALESCE(ROUND(SUM(a.tss)::numeric, 0), 0) AS \"TSS\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.tss IS NOT NULL GROUP BY gs ORDER BY gs;",
+          "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.tss), 0) AS \"Outdoor\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'cycling_outdoor' AND a.tss IS NOT NULL GROUP BY gs ORDER BY gs;",
           "format": "time_series",
           "refId": "A"
+        },
+        {
+          "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.tss), 0) AS \"Zwift\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'zwift' AND a.tss IS NOT NULL GROUP BY gs ORDER BY gs;",
+          "format": "time_series",
+          "refId": "B"
+        },
+        {
+          "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.tss), 0) AS \"E-Bike\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'ebike' AND a.tss IS NOT NULL GROUP BY gs ORDER BY gs;",
+          "format": "time_series",
+          "refId": "C"
+        },
+        {
+          "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.tss), 0) AS \"Indoor\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'cycling_indoor' AND a.tss IS NOT NULL GROUP BY gs ORDER BY gs;",
+          "format": "time_series",
+          "refId": "D"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "fixedColor": "#8b5cf6",
-            "mode": "fixed"
-          },
           "custom": {
             "drawStyle": "bars",
             "fillOpacity": 80,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
             "barWidthFactor": 0.6
           }
-        }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Outdoor"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#33658a",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Zwift"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#fc4c02",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "E-Bike"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#73bf69",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Indoor"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#8b5cf6",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
       }
     },
     {
