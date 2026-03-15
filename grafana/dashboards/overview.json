@@ -1361,7 +1361,7 @@
           "type": "stat",
           "gridPos": {
             "h": 3,
-            "w": 24,
+            "w": 12,
             "x": 0,
             "y": 46
           },
@@ -1458,6 +1458,47 @@
                   }
                 }
               ]
+            }
+          }
+        },
+        {
+          "id": 223,
+          "title": "Est. FTP",
+          "type": "stat",
+          "gridPos": {
+            "h": 3,
+            "w": 12,
+            "x": 12,
+            "y": 46
+          },
+          "datasource": {
+            "type": "postgres",
+            "uid": "veloai"
+          },
+          "targets": [
+            {
+              "rawSql": "WITH best20 AS (SELECT ROUND(MAX(avg_20min) * 0.95) AS ftp FROM (SELECT AVG(s.power) OVER (PARTITION BY s.activity_id ORDER BY s.time_offset RANGE BETWEEN 1199 PRECEDING AND CURRENT ROW) AS avg_20min FROM activity_streams s JOIN activities a ON a.id = s.activity_id WHERE a.date >= CURRENT_DATE - interval '90 days' AND s.power IS NOT NULL AND s.power > 0) sub WHERE avg_20min IS NOT NULL) SELECT COALESCE((SELECT ftp FROM best20 WHERE ftp > 0), (SELECT ROUND(percentile_cont(0.95) WITHIN GROUP (ORDER BY avg_power)::numeric, 0) FROM activities WHERE avg_power IS NOT NULL AND avg_power > 0)) AS \"FTP\";",
+              "format": "table",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "watt",
+              "color": {
+                "fixedColor": "#8b5cf6",
+                "mode": "fixed"
+              }
             }
           }
         },
