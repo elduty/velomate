@@ -305,8 +305,10 @@ def preview(coords: list, name: str, waypoints: list | None = None,
         import re
         import unicodedata
         normalized = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode()
-        slug = re.sub(r"[^a-z0-9]+", "-", normalized.lower()).strip("-")
-        slug = slug[:60]
+        # Strip leading "VeloAI" prefix to avoid double "veloai-veloai-"
+        clean = re.sub(r"(?i)^veloai[\s\-_]*", "", normalized).strip()
+        slug = re.sub(r"[^a-z0-9]+", "-", clean.lower()).strip("-")
+        slug = slug[:80]
         filename = f"veloai-{slug}.html"
         path = os.path.join(output_dir, filename)
         os.makedirs(output_dir, exist_ok=True)
