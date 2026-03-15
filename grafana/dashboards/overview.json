@@ -40,6 +40,12 @@
       "type": "link",
       "icon": "dashboard",
       "keepTime": true
+    },
+    {
+      "title": "Year in Review",
+      "url": "/d/veloai-year-review/year-in-review",
+      "type": "link",
+      "icon": "dashboard"
     }
   ],
   "templating": {
