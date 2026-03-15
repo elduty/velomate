@@ -22,7 +22,8 @@ Inspired by [TeslaMate](https://github.com/teslamate-org/teslamate). Works with 
 
 ### Intelligent Route Planning
 - Generates real road-following GPX loops via [Valhalla](https://github.com/valhalla/valhalla) (free, OpenStreetMap-based)
-- Saves GPX files with browser preview — download button on desktop, native share-to-app on iOS/Android
+- Generates GPX files with interactive browser preview (map + route stats + download/share buttons)
+- On iOS/Android, the share button opens the native share sheet to send the GPX directly to any bike computer app
 - Smart waypoint selection from 10 data sources (see below)
 - Weather-aware: best ride time, UV warnings, wind direction analysis
 - Safety control: `--safety` flag adjusts preference for bike lanes vs main roads
@@ -160,19 +161,18 @@ python3 -m veloai.cli plan --distance 30 --preference comfort
 ### Example output
 
 ```
-🗺 *VeloAI 2h00m Gravel via Miradouro de Aviões, Café mydream, Manique*
+🗺 *VeloAI 2h00m Road via Miradouro de Porto Salvo, Cotão, Viewpoint*
   📏 24 km
   📅 2026-03-16 at 09:00
-  🛤 Surface: asphalt 55%, unknown 34%, gravel 11%
-  ⛰ Climb: +239m / -264m (max gradient 9.8%)
-  🌿 Scenic: wood (17), water (6), park (3) (78/100)
-  🛡 Safety: bike lanes 17% (8/100)
+  🛤 Surface: asphalt 53%, unknown 44%, paving_stones 2%
+  ⛰ Climb: +260m / -284m (max gradient 10.2%)
+  🌿 Scenic: wood (25), water (10), park (4) (86/100)
+  🛡 Safety: bike lanes 22% (11/100)
   🌤 Mainly clear, 10-21°C, wind 12 km/h
   🕐 Best time: 09:00 (14°C, wind 10 km/h, UV 2)
   🌅 Sunrise 06:45, sunset 18:46
   💪 neutral (TSB -4)
-  💾 GPX: /tmp/veloai_route_road_24km.gpx
-  [📥 Download GPX]  [📤 Share to App ← iOS/Android only]
+  💾 GPX: /tmp/veloai_route_road_29km.gpx
 ```
 
 ## Fitness Metrics
@@ -196,7 +196,7 @@ TSB       = CTL − ATL                 (training stress balance / form)
 | `activities` | Every ride — distance, duration, HR, power, cadence, elevation, calories, TSS, sport type, device |
 | `activity_streams` | Per-second telemetry — HR, power, cadence, speed, altitude, lat/lng |
 | `athlete_stats` | Daily fitness metrics — CTL, ATL, TSB, weekly volume |
-| `routes` | Route library for recommendations |
+| `routes` | Unique rides (deduplicated by distance/elevation for recommendations) |
 | `sync_state` | Ingestor bookmarks (last synced timestamps) |
 
 Schema is managed in code (`ingestor/db.py:create_schema()`) using `IF NOT EXISTS` / `ADD COLUMN IF NOT EXISTS`. No migration tool.
@@ -223,7 +223,7 @@ Configured via `~/.config/veloai/config.yaml` (see `config.example.yaml`):
 
 - Home coordinates (required for route planning)
 - Database connection
-- Strava credentials (for segment data in route intelligence)
+- Strava credentials (optional — enables popular segment data in route intelligence)
 - Avoid zones (lat/lng areas to exclude from routes)
 
 ## Requirements

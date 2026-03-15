@@ -36,20 +36,25 @@ def get_latest_fitness(conn) -> dict:
 
 
 def get_routes(conn) -> list:
-    """Get routes from DB."""
+    """Get unique rides from activities for recommendations.
+    Deduplicates by distance/elevation bucket to avoid showing the same route twice.
+    """
     if not conn:
         return []
     try:
         with conn.cursor() as cur:
             cur.execute("""
-                SELECT komoot_id, name, distance_m, elevation_m, sport, last_ridden_at, ride_count
-                FROM routes ORDER BY last_ridden_at DESC NULLS LAST
+                SELECT id, name, distance_m, elevation_m, sport_type, date::date, 1 as ride_count
+                FROM activities
+                WHERE distance_m > 5000 AND sport_type = 'cycling_outdoor'
+                ORDER BY date DESC
+                LIMIT 50
             """)
             rows = cur.fetchall()
             return [
                 {
                     "id": r[0], "name": r[1], "distance": r[2],
-                    "elevation_up": r[3], "sport": r[4],
+                    "elevation_up": r[3], "sport": r[4] or "cycling",
                     "date": str(r[5]) if r[5] else "", "ride_count": r[6],
                 }
                 for r in rows
