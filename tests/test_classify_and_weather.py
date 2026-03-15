@@ -61,40 +61,12 @@ class TestClassifyActivity:
         assert result["is_indoor"] is True
         assert result["sport_type"] == "cycling_indoor"
 
-    def test_run_strava_type(self):
-        result = classify_activity(
-            {"strava_type": "Run", "distance_m": 10000, "name": "Morning Run"}
-        )
-        assert result["is_indoor"] is False
-        assert result["sport_type"] == "running"
-
-    def test_swim_strava_type(self):
-        result = classify_activity(
-            {"strava_type": "Swim", "distance_m": 2000, "name": "Pool Session"}
-        )
-        assert result["sport_type"] == "swimming"
-
-    def test_weight_training_strava_type(self):
-        result = classify_activity(
-            {"strava_type": "WeightTraining", "distance_m": 0, "name": "Strength"}
-        )
-        assert result["is_indoor"] is True
-        assert result["sport_type"] == "strength"
-
     def test_ebike_strava_type(self):
         result = classify_activity(
             {"strava_type": "EBikeRide", "distance_m": 30000}
         )
         assert result["is_indoor"] is False
         assert result["sport_type"] == "ebike"
-
-    def test_training_ride_not_misclassified(self):
-        """Outdoor ride named 'Interval Training' should NOT be classified as strength."""
-        result = classify_activity(
-            {"strava_type": "Ride", "device": "karoo", "distance_m": 50000, "name": "Interval Training"}
-        )
-        assert result["is_indoor"] is False
-        assert result["sport_type"] == "cycling_outdoor"
 
     def test_none_values_no_crash(self):
         result = classify_activity(

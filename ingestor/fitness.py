@@ -33,7 +33,6 @@ def estimate_threshold_hr(conn) -> int:
             SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY max_hr)
             FROM activities
             WHERE max_hr IS NOT NULL AND max_hr > 0
-              AND sport_type IN ('cycling_outdoor', 'cycling_indoor', 'zwift', 'ebike')
         """)
         row = cur.fetchone()
         if row and row[0]:
@@ -53,8 +52,7 @@ def estimate_ftp(conn) -> int:
                 SELECT id FROM activities
                 WHERE date >= CURRENT_DATE - interval '90 days'
                   AND avg_power IS NOT NULL AND avg_power > 0
-                  AND sport_type IN ('cycling_outdoor', 'cycling_indoor', 'zwift', 'ebike')
-            ),
+                ),
             rolling AS (
                 SELECT
                     s.activity_id,
@@ -79,7 +77,6 @@ def estimate_ftp(conn) -> int:
             SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY avg_power)
             FROM activities
             WHERE avg_power IS NOT NULL AND avg_power > 0
-              AND sport_type IN ('cycling_outdoor', 'cycling_indoor', 'zwift', 'ebike')
         """)
         row = cur.fetchone()
         if row and row[0]:
@@ -130,7 +127,6 @@ def recalculate_fitness(conn):
             SELECT id, duration_s, avg_hr, avg_power
             FROM activities
             WHERE date IS NOT NULL
-              AND sport_type IN ('cycling_outdoor', 'cycling_indoor', 'zwift', 'ebike')
         """)
         activity_rows = cur.fetchall()
 
@@ -150,7 +146,6 @@ def recalculate_fitness(conn):
             SELECT date::date, COALESCE(tss, 0), distance_m, elevation_m
             FROM activities
             WHERE date IS NOT NULL
-              AND sport_type IN ('cycling_outdoor', 'cycling_indoor', 'zwift', 'ebike')
             ORDER BY date
         """)
         rows = cur.fetchall()

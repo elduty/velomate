@@ -93,49 +93,24 @@ def create_schema(conn):
 
 
 def classify_activity(data: dict) -> dict:
-    """Add is_indoor and sport_type fields based on Strava type, device, and name.
-    Uses Strava's activity type as the primary classifier, with device/name as fallback.
+    """Add is_indoor and sport_type fields. Only cycling activities are ingested.
+    Uses Strava type, device, trainer flag, and distance to classify.
     """
     strava_type = (data.get("strava_type") or "").lower()
     device = data.get("device", "")
     distance_m = data.get("distance_m") or 0
-    name = (data.get("name") or "").lower()
     trainer = data.get("trainer", False)
 
-    # Strava type-based classification (primary)
-    CYCLING_TYPES = {"ride", "virtualride", "ebikeride", "handcycle", "velomobile"}
-    NON_CYCLING_TYPES = {
-        "run": "running", "virtualrun": "running",
-        "walk": "walking", "hike": "hiking",
-        "swim": "swimming",
-        "weighttraining": "strength", "workout": "strength", "yoga": "strength",
-        "crossfit": "strength", "elliptical": "strength", "stairstepper": "strength",
-        "rowing": "rowing", "canoeing": "rowing", "kayaking": "rowing",
-        "alpineski": "other", "backcountryski": "other", "crosscountryski": "other",
-        "iceskate": "other", "inlineskate": "other", "skateboard": "other",
-        "snowboard": "other", "snowshoe": "other", "surfing": "other",
-        "rockclimbing": "other", "standuppaddling": "other",
-    }
-
-    if strava_type in NON_CYCLING_TYPES:
-        sport_type = NON_CYCLING_TYPES[strava_type]
-        is_indoor = trainer or strava_type.startswith("virtual") or distance_m == 0
-    elif strava_type in CYCLING_TYPES or strava_type == "":
-        # Cycling or unknown — use device/name/distance heuristics
-        if device == "zwift" or strava_type == "virtualride":
-            is_indoor, sport_type = True, "zwift"
-        elif trainer:
-            is_indoor, sport_type = True, "cycling_indoor"
-        elif strava_type == "ebikeride":
-            is_indoor, sport_type = False, "ebike"
-        elif distance_m > 0:
-            is_indoor, sport_type = False, "cycling_outdoor"
-        else:
-            is_indoor, sport_type = True, "cycling_indoor"
+    if device == "zwift" or strava_type == "virtualride":
+        is_indoor, sport_type = True, "zwift"
+    elif trainer:
+        is_indoor, sport_type = True, "cycling_indoor"
+    elif strava_type == "ebikeride":
+        is_indoor, sport_type = False, "ebike"
+    elif distance_m > 0:
+        is_indoor, sport_type = False, "cycling_outdoor"
     else:
-        # Unknown Strava type — fallback to distance heuristic
-        is_indoor = trainer or distance_m == 0
-        sport_type = "other"
+        is_indoor, sport_type = True, "cycling_indoor"
 
     return {**data, "is_indoor": is_indoor, "sport_type": sport_type}
 

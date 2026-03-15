@@ -268,8 +268,26 @@ def sync_activities(conn, after_epoch: int = None):
     activities = fetch_recent_activities(token, after_epoch)
     print(f"[strava] Fetched {len(activities)} activities since epoch {after_epoch}")
 
+    CYCLING_STRAVA_TYPES = {"Ride", "VirtualRide", "EBikeRide", "Handcycle", "Velomobile"}
+
     latest_epoch = after_epoch
     for raw in activities:
+        # Skip non-cycling activities
+        strava_type = raw.get("type", "")
+        if strava_type and strava_type not in CYCLING_STRAVA_TYPES:
+            print(f"  ⏭ Skipping {raw.get('name', '?')} ({strava_type})")
+            # Still track epoch so we don't re-fetch skipped activities
+            start = raw.get("start_date", "")
+            if start:
+                try:
+                    dt = datetime.fromisoformat(start.replace("Z", "+00:00"))
+                    epoch = int(dt.timestamp())
+                    if epoch > latest_epoch:
+                        latest_epoch = epoch
+                except (ValueError, TypeError):
+                    pass
+            continue
+
         data = _parse_activity(raw)
 
         # Fetch detailed activity for calories, HR, suffer_score
@@ -316,27 +334,23 @@ def backfill(conn, months: int = 12):
 
 
 def reclassify_activities(conn):
-    """Re-fetch Strava type for all activities and reclassify sport_type/is_indoor.
-    Uses the lightweight activity list endpoint (no detail/stream fetches).
-    """
+    """Re-fetch Strava type for all activities. Reclassify cycling, delete non-cycling."""
     from db import classify_activity
 
+    CYCLING_STRAVA_TYPES = {"Ride", "VirtualRide", "EBikeRide", "Handcycle", "Velomobile"}
     token = _get_token()
 
-    # Get all strava_ids from DB
     with conn.cursor() as cur:
         cur.execute("SELECT id, strava_id FROM activities WHERE strava_id IS NOT NULL ORDER BY date")
         db_activities = cur.fetchall()
 
-    print(f"[reclassify] {len(db_activities)} activities to reclassify")
+    print(f"[reclassify] {len(db_activities)} activities to check")
 
-    # Fetch activity list from Strava in batches (we only need the type field)
-    # Use the per-activity detail endpoint since the list endpoint doesn't return
-    # the type for activities fetched after the fact
     updated = 0
+    deleted = 0
     skipped = 0
     for db_id, strava_id in db_activities:
-        time.sleep(0.5)  # rate limit
+        time.sleep(0.5)
         try:
             resp = _request_with_retry(
                 requests.get,
@@ -355,36 +369,35 @@ def reclassify_activities(conn):
             continue
 
         strava_type = raw.get("type", "")
-        trainer = raw.get("trainer", False)
+        name = raw.get("name", "")
 
-        # Reclassify using current logic
-        # Build a minimal data dict for classify_activity
+        # Delete non-cycling activities
+        if strava_type and strava_type not in CYCLING_STRAVA_TYPES:
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM activities WHERE id = %s", (db_id,))
+            deleted += 1
+            print(f"  ✕ {name[:40]:40s} ({strava_type}) — deleted")
+            continue
+
+        # Reclassify cycling activities
+        trainer = raw.get("trainer", False)
         with conn.cursor() as cur:
-            cur.execute(
-                "SELECT name, distance_m, device FROM activities WHERE id = %s",
-                (db_id,),
-            )
+            cur.execute("SELECT name, distance_m, device FROM activities WHERE id = %s", (db_id,))
             row = cur.fetchone()
             if not row:
                 continue
 
-        data = {
-            "strava_type": strava_type,
-            "trainer": trainer,
-            "name": row[0],
-            "distance_m": row[1],
-            "device": row[2],
-        }
-        classified = classify_activity(data)
-        new_sport = classified["sport_type"]
-        new_indoor = classified["is_indoor"]
+        classified = classify_activity({
+            "strava_type": strava_type, "trainer": trainer,
+            "name": row[0], "distance_m": row[1], "device": row[2],
+        })
 
         with conn.cursor() as cur:
             cur.execute(
                 "UPDATE activities SET sport_type = %s, is_indoor = %s WHERE id = %s",
-                (new_sport, new_indoor, db_id),
+                (classified["sport_type"], classified["is_indoor"], db_id),
             )
         updated += 1
-        print(f"  → {row[0][:40]:40s} {strava_type:20s} → {new_sport} (indoor={new_indoor})")
+        print(f"  → {row[0][:40]:40s} {strava_type:20s} → {classified['sport_type']}")
 
-    print(f"[reclassify] Done: {updated} updated, {skipped} skipped")
+    print(f"[reclassify] Done: {updated} updated, {deleted} deleted, {skipped} skipped")

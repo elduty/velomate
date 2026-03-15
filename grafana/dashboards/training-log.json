@@ -473,7 +473,7 @@
         "name": "sport_type",
         "type": "custom",
         "label": "Sport",
-        "query": "All : All, Outdoor : cycling_outdoor, Indoor : cycling_indoor, Zwift : zwift, E-Bike : ebike, Running : running, Strength : strength, Other : other",
+        "query": "All : All, Outdoor : cycling_outdoor, Indoor : cycling_indoor, Zwift : zwift, E-Bike : ebike",
         "current": {
           "text": "All",
           "value": "All"
@@ -502,21 +502,6 @@
           {
             "text": "E-Bike",
             "value": "ebike",
-            "selected": false
-          },
-          {
-            "text": "Running",
-            "value": "running",
-            "selected": false
-          },
-          {
-            "text": "Strength",
-            "value": "strength",
-            "selected": false
-          },
-          {
-            "text": "Other",
-            "value": "other",
             "selected": false
           }
         ]

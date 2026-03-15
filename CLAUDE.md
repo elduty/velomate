@@ -65,7 +65,7 @@ python3 -m veloai.cli
 
 - **Schema lives in code**: `ingestor/db.py:create_schema()` is the source of truth for DDL. No migration tool — schema changes go there with `IF NOT EXISTS` / `ADD COLUMN IF NOT EXISTS`
 - **Dedup logic**: Two strategies in `ingestor/db.py` — `find_duplicate()` (time-window + duration) for cross-device like Zwift+Watch, `find_duplicate_by_distance()` (same-day ±10% distance) for matching duplicate Strava uploads
-- **Activity classification**: `classify_activity()` in `ingestor/db.py` uses Strava's `type` field as primary classifier (Run, Swim, Ride, WeightTraining, etc.), with device/trainer/distance as fallback. Sport types: `cycling_outdoor`, `cycling_indoor`, `zwift`, `ebike`, `running`, `swimming`, `strength`, `hiking`, `walking`, `rowing`, `other`
+- **Activity classification**: Only cycling activities are ingested (Ride, VirtualRide, EBikeRide filtered at Strava sync). `classify_activity()` in `ingestor/db.py` classifies into: `cycling_outdoor`, `cycling_indoor`, `zwift`, `ebike` based on device/trainer/distance
 - **Fitness TSS**: Power-based TSS preferred over HR-based; thresholds auto-estimated from 95th percentile of historical data
 - **Grafana dashboards**: Hand-edited JSON. The activity detail dashboard uses `__data.fields.id` variable to link from overview. Charts use `trend` panel type with distance-based x-axis
 
