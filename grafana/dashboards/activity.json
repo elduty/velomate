@@ -1717,7 +1717,7 @@
         "orientation": "vertical",
         "xField": "Duration",
         "showValue": "always",
-        "barWidth": 1.0,
+        "barWidth": 0.7,
         "stacking": "none",
         "groupWidth": 1.0
       },
