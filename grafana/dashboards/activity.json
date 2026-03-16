@@ -853,7 +853,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH ftp AS (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY avg_power) AS ftp_val FROM activities WHERE avg_power IS NOT NULL AND avg_power > 0), rolling AS (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 29 PRECEDING AND CURRENT ROW) AS rolling_30s FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) SELECT ROUND((POWER(AVG(POWER(rolling_30s, 4)), 0.25) / ftp.ftp_val)::numeric, 2) AS \"IF\" FROM rolling, ftp WHERE rolling_30s IS NOT NULL GROUP BY ftp.ftp_val;",
+          "rawSql": "WITH ftp AS (\n  SELECT COALESCE(\n    (SELECT ROUND(MAX(avg_20min) * 0.95) FROM (\n      SELECT AVG(s.power) OVER (PARTITION BY s.activity_id ORDER BY s.time_offset RANGE BETWEEN 1199 PRECEDING AND CURRENT ROW) AS avg_20min\n      FROM activity_streams s\n      JOIN activities a ON a.id = s.activity_id\n      WHERE a.date >= CURRENT_DATE - interval '90 days'\n        AND s.power IS NOT NULL AND s.power > 0\n    ) sub WHERE avg_20min IS NOT NULL),\n    (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY avg_power) FROM activities WHERE avg_power IS NOT NULL AND avg_power > 0)\n  ) AS ftp_val\n), rolling AS (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 29 PRECEDING AND CURRENT ROW) AS rolling_30s FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) SELECT ROUND((POWER(AVG(POWER(rolling_30s, 4)), 0.25) / ftp.ftp_val)::numeric, 2) AS \"IF\" FROM rolling, ftp WHERE rolling_30s IS NOT NULL GROUP BY ftp.ftp_val;",
           "format": "table",
           "refId": "A"
         }
