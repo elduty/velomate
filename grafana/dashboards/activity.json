@@ -835,7 +835,8 @@
           "unit": "watt"
         },
         "overrides": []
-      }
+      },
+      "description": "Normalized Power (NP)\nWhat the ride \"felt like\" in watts\n\n30s rolling average raised to 4th power,\nthen root-averaged. Accounts for surges \u2014\nhard efforts cost disproportionately more.\n\nNP > Avg Power = variable effort\nNP \u2248 Avg Power = steady effort"
     },
     {
       "id": 35,
@@ -889,7 +890,8 @@
           }
         },
         "overrides": []
-      }
+      },
+      "description": "Intensity Factor (IF)\nNP \u00f7 FTP \u2014 how hard was this ride?\n\n\ud83d\udd18 < 0.6 \u2014 Recovery\n\ud83d\udd35 0.6-0.7 \u2014 Easy endurance\n\ud83d\udfe2 0.7-0.85 \u2014 Tempo / group ride\n\ud83d\udfe1 0.85-0.95 \u2014 Threshold work\n\ud83d\udfe0 0.95-1.05 \u2014 Race effort\n\ud83d\udd34 > 1.05 \u2014 Short max effort"
     },
     {
       "id": 36,
@@ -943,7 +945,8 @@
           }
         },
         "overrides": []
-      }
+      },
+      "description": "Variability Index (VI)\nNP \u00f7 Avg Power \u2014 how steady was your pacing?\n\n\ud83d\udfe2 1.00-1.05 \u2014 Very smooth (TT, ERG mode)\n\ud83d\udfe1 1.05-1.15 \u2014 Normal (group ride, rolling terrain)\n\ud83d\udd34 > 1.15 \u2014 Very spiky (crits, stop-start)\n\nLower VI at same NP = more efficient pacing"
     },
     {
       "id": 1,
@@ -2005,7 +2008,8 @@
             "mode": "fixed"
           }
         }
-      }
+      },
+      "description": "Efficiency Factor (EF)\nNP \u00f7 Avg HR \u2014 aerobic efficiency\n\nHigher = fitter (more watts per heartbeat)\n\nTrack over months:\n\ud83d\udcc8 EF rising at same NP = fitness improving\n\ud83d\udcc9 EF dropping = fatigue, heat, or detraining\n\nCompare similar ride types and conditions"
     },
     {
       "id": 39,
@@ -2047,7 +2051,8 @@
             "mode": "fixed"
           }
         }
-      }
+      },
+      "description": "Work (kJ)\nTotal mechanical energy output\n\nAvg Power \u00d7 Duration \u00f7 1000\n\nRoughly equals calories burned:\n1 kJ \u2248 1 kcal (at ~25% human efficiency)\n\nUseful for fueling: match kJ with food intake"
     },
     {
       "id": 43,
