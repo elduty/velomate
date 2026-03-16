@@ -1767,7 +1767,8 @@
             ]
           }
         }
-      }
+      },
+      "description": "Training Stress Score\n\nHow much training load this period produced.\n\nCalculated from power (preferred) or heart rate.\n\n\u2022 < 150 \u2014 Easy week\n\n\u2022 150-300 \u2014 Moderate training\n\n\u2022 300-450 \u2014 Hard training\n\n\u2022 450+ \u2014 Very heavy load, watch recovery"
     },
     {
       "id": 7,
