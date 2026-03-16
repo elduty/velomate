@@ -270,172 +270,6 @@
       }
     },
     {
-      "id": 6,
-      "title": "TSS",
-      "type": "stat",
-      "gridPos": {
-        "h": 3,
-        "w": 6,
-        "x": 0,
-        "y": 3
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "veloai"
-      },
-      "targets": [
-        {
-          "rawSql": "SELECT ROUND(COALESCE(SUM(tss), 0)::numeric, 0) AS \"TSS\" FROM activities WHERE $__timeFilter(date);",
-          "format": "table",
-          "refId": "A"
-        }
-      ],
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        }
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "fixedColor": "#8b5cf6",
-            "mode": "fixed"
-          },
-          "noValue": "No data"
-        }
-      }
-    },
-    {
-      "id": 7,
-      "title": "Avg Power",
-      "type": "stat",
-      "gridPos": {
-        "h": 3,
-        "w": 6,
-        "x": 6,
-        "y": 3
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "veloai"
-      },
-      "targets": [
-        {
-          "rawSql": "SELECT ROUND(AVG(avg_power)::numeric, 0) AS \"Power\" FROM activities WHERE $__timeFilter(date) AND avg_power > 0;",
-          "format": "table",
-          "refId": "A"
-        }
-      ],
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        }
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "watt",
-          "color": {
-            "fixedColor": "#8b5cf6",
-            "mode": "fixed"
-          },
-          "noValue": "No data"
-        }
-      }
-    },
-    {
-      "id": 8,
-      "title": "Avg Speed",
-      "type": "stat",
-      "gridPos": {
-        "h": 3,
-        "w": 6,
-        "x": 12,
-        "y": 3
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "veloai"
-      },
-      "targets": [
-        {
-          "rawSql": "SELECT ROUND(AVG(avg_speed_kmh)::numeric, 1) AS \"Speed\" FROM activities WHERE $__timeFilter(date) AND avg_speed_kmh > 0 AND distance_m > 5000;",
-          "format": "table",
-          "refId": "A"
-        }
-      ],
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        }
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "velocitykmh",
-          "color": {
-            "fixedColor": "#73bf69",
-            "mode": "fixed"
-          },
-          "noValue": "No data"
-        }
-      }
-    },
-    {
-      "id": 9,
-      "title": "Avg HR",
-      "type": "stat",
-      "gridPos": {
-        "h": 3,
-        "w": 6,
-        "x": 18,
-        "y": 3
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "veloai"
-      },
-      "targets": [
-        {
-          "rawSql": "SELECT ROUND(AVG(avg_hr)::numeric, 0) AS \"HR\" FROM activities WHERE $__timeFilter(date) AND avg_hr > 0;",
-          "format": "table",
-          "refId": "A"
-        }
-      ],
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        }
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "fixedColor": "#F2495C",
-            "mode": "fixed"
-          },
-          "noValue": "No data"
-        }
-      }
-    },
-    {
       "id": 11,
       "title": "Distance",
       "type": "timeseries",
@@ -555,7 +389,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 14
+        "y": 22
       },
       "datasource": {
         "type": "postgres",
@@ -779,7 +613,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 30
+        "y": 14
       },
       "datasource": {
         "type": "postgres",
@@ -891,7 +725,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 22
+        "y": 30
       },
       "datasource": {
         "type": "postgres",
@@ -1003,7 +837,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 14
+        "y": 22
       },
       "datasource": {
         "type": "postgres",
@@ -1114,8 +948,8 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 12,
-        "y": 22
+        "x": 0,
+        "y": 38
       },
       "datasource": {
         "type": "postgres",
@@ -1226,8 +1060,8 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 0,
-        "y": 30
+        "x": 12,
+        "y": 38
       },
       "datasource": {
         "type": "postgres",
@@ -1340,7 +1174,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 45
+        "y": 53
       },
       "panels": [
         {
@@ -1351,7 +1185,7 @@
             "h": 3,
             "w": 6,
             "x": 0,
-            "y": 46
+            "y": 54
           },
           "datasource": {
             "type": "postgres",
@@ -1392,7 +1226,7 @@
             "h": 3,
             "w": 6,
             "x": 6,
-            "y": 46
+            "y": 54
           },
           "datasource": {
             "type": "postgres",
@@ -1433,7 +1267,7 @@
             "h": 3,
             "w": 6,
             "x": 12,
-            "y": 46
+            "y": 54
           },
           "datasource": {
             "type": "postgres",
@@ -1540,7 +1374,7 @@
             "h": 3,
             "w": 6,
             "x": 18,
-            "y": 46
+            "y": 54
           },
           "datasource": {
             "type": "postgres",
@@ -1582,7 +1416,7 @@
             "h": 8,
             "w": 24,
             "x": 0,
-            "y": 49
+            "y": 57
           },
           "datasource": {
             "type": "postgres",
@@ -1677,7 +1511,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 46
+        "y": 54
       },
       "panels": [
         {
@@ -1688,7 +1522,7 @@
             "h": 10,
             "w": 24,
             "x": 0,
-            "y": 47
+            "y": 55
           },
           "datasource": {
             "type": "postgres",
@@ -1766,7 +1600,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 48
+        "y": 56
       },
       "panels": [
         {
@@ -1777,7 +1611,7 @@
             "h": 14,
             "w": 24,
             "x": 0,
-            "y": 48
+            "y": 56
           },
           "datasource": {
             "type": "postgres",
@@ -1837,7 +1671,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 49
+        "y": 57
       },
       "panels": [
         {
@@ -1848,7 +1682,7 @@
             "h": 8,
             "w": 8,
             "x": 0,
-            "y": 50
+            "y": 58
           },
           "datasource": {
             "type": "postgres",
@@ -1891,7 +1725,7 @@
             "h": 8,
             "w": 8,
             "x": 8,
-            "y": 50
+            "y": 58
           },
           "datasource": {
             "type": "postgres",
@@ -1934,7 +1768,7 @@
             "h": 8,
             "w": 8,
             "x": 16,
-            "y": 50
+            "y": 58
           },
           "datasource": {
             "type": "postgres",
@@ -1973,7 +1807,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 47
+        "y": 55
       },
       "panels": [
         {
@@ -1984,7 +1818,7 @@
             "h": 10,
             "w": 24,
             "x": 0,
-            "y": 50
+            "y": 58
           },
           "datasource": {
             "type": "postgres",
@@ -2070,7 +1904,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 38
+        "y": 46
       },
       "panels": []
     },
@@ -2082,7 +1916,7 @@
         "h": 3,
         "w": 5,
         "x": 0,
-        "y": 39
+        "y": 47
       },
       "datasource": {
         "type": "postgres",
@@ -2135,7 +1969,7 @@
         "h": 3,
         "w": 5,
         "x": 5,
-        "y": 39
+        "y": 47
       },
       "datasource": {
         "type": "postgres",
@@ -2189,7 +2023,7 @@
         "h": 3,
         "w": 5,
         "x": 10,
-        "y": 39
+        "y": 47
       },
       "datasource": {
         "type": "postgres",
@@ -2243,7 +2077,7 @@
         "h": 3,
         "w": 5,
         "x": 15,
-        "y": 39
+        "y": 47
       },
       "datasource": {
         "type": "postgres",
@@ -2297,7 +2131,7 @@
         "h": 3,
         "w": 4,
         "x": 20,
-        "y": 39
+        "y": 47
       },
       "datasource": {
         "type": "postgres",
@@ -2351,7 +2185,7 @@
         "h": 3,
         "w": 6,
         "x": 0,
-        "y": 42
+        "y": 50
       },
       "datasource": {
         "type": "postgres",
@@ -2404,7 +2238,7 @@
         "h": 3,
         "w": 6,
         "x": 6,
-        "y": 42
+        "y": 50
       },
       "datasource": {
         "type": "postgres",
@@ -2458,7 +2292,7 @@
         "h": 3,
         "w": 6,
         "x": 12,
-        "y": 42
+        "y": 50
       },
       "datasource": {
         "type": "postgres",
@@ -2512,7 +2346,7 @@
         "h": 3,
         "w": 6,
         "x": 18,
-        "y": 42
+        "y": 50
       },
       "datasource": {
         "type": "postgres",
@@ -2555,6 +2389,520 @@
           },
           "noValue": "No data"
         }
+      }
+    },
+    {
+      "id": 6,
+      "title": "TSS",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 0,
+        "y": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND(COALESCE(SUM(tss), 0)::numeric, 0) AS \"TSS\" FROM activities WHERE $__timeFilter(date);",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "#8b5cf6",
+            "mode": "fixed"
+          },
+          "noValue": "No data"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "Avg Power",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 3,
+        "x": 4,
+        "y": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND(AVG(avg_power)::numeric, 0) AS \"Power\" FROM activities WHERE $__timeFilter(date) AND avg_power > 0;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "#8b5cf6",
+            "mode": "fixed"
+          },
+          "noValue": "No data",
+          "unit": "watt"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "title": "Avg Speed",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 3,
+        "x": 7,
+        "y": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND(AVG(avg_speed_kmh)::numeric, 1) AS \"Speed\" FROM activities WHERE $__timeFilter(date) AND avg_speed_kmh > 0 AND distance_m > 5000;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "#73bf69",
+            "mode": "fixed"
+          },
+          "noValue": "No data",
+          "unit": "velocitykmh"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "title": "Avg HR",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 3,
+        "x": 10,
+        "y": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND(AVG(avg_hr)::numeric, 0) AS \"HR\" FROM activities WHERE $__timeFilter(date) AND avg_hr > 0;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "#F2495C",
+            "mode": "fixed"
+          },
+          "noValue": "No data"
+        }
+      }
+    },
+    {
+      "id": 50,
+      "title": "Avg Cadence",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 3,
+        "x": 13,
+        "y": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND(AVG(avg_cadence)::numeric, 0) AS \"Cadence\" FROM activities WHERE $__timeFilter(date) AND avg_cadence > 0;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "#ff9830",
+            "mode": "fixed"
+          },
+          "noValue": "No data"
+        }
+      }
+    },
+    {
+      "id": 51,
+      "title": "Max HR",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 16,
+        "y": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT MAX(max_hr) AS \"Max HR\" FROM activities WHERE $__timeFilter(date) AND max_hr > 0;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "#F2495C",
+            "mode": "fixed"
+          },
+          "noValue": "No data"
+        }
+      }
+    },
+    {
+      "id": 52,
+      "title": "Max Power",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 20,
+        "y": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT MAX(max_power) AS \"Max Power\" FROM activities WHERE $__timeFilter(date) AND max_power > 0;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "#8b5cf6",
+            "mode": "fixed"
+          },
+          "noValue": "No data",
+          "unit": "watt"
+        }
+      }
+    },
+    {
+      "id": 19,
+      "title": "Rides",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 14
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT gs AS \"time\", COUNT(a.id) AS \"Outdoor\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'cycling_outdoor' GROUP BY gs ORDER BY gs;",
+          "format": "time_series",
+          "refId": "A"
+        },
+        {
+          "rawSql": "SELECT gs AS \"time\", COUNT(a.id) AS \"Zwift\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'zwift' GROUP BY gs ORDER BY gs;",
+          "format": "time_series",
+          "refId": "B"
+        },
+        {
+          "rawSql": "SELECT gs AS \"time\", COUNT(a.id) AS \"E-Bike\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'ebike' GROUP BY gs ORDER BY gs;",
+          "format": "time_series",
+          "refId": "C"
+        },
+        {
+          "rawSql": "SELECT gs AS \"time\", COUNT(a.id) AS \"Indoor\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'cycling_indoor' GROUP BY gs ORDER BY gs;",
+          "format": "time_series",
+          "refId": "D"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "barWidthFactor": 0.6
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Outdoor"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#33658a",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Zwift"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#fc4c02",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "E-Bike"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#73bf69",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Indoor"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#8b5cf6",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 60,
+      "title": "Avg Cadence",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 30
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT gs AS \"time\", COALESCE(ROUND(AVG(a.avg_cadence)::numeric, 0), 0) AS \"Outdoor (rpm)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'cycling_outdoor' AND a.avg_cadence > 0 GROUP BY gs ORDER BY gs;",
+          "format": "time_series",
+          "refId": "A"
+        },
+        {
+          "rawSql": "SELECT gs AS \"time\", COALESCE(ROUND(AVG(a.avg_cadence)::numeric, 0), 0) AS \"Zwift (rpm)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'zwift' AND a.avg_cadence > 0 GROUP BY gs ORDER BY gs;",
+          "format": "time_series",
+          "refId": "B"
+        },
+        {
+          "rawSql": "SELECT gs AS \"time\", COALESCE(ROUND(AVG(a.avg_cadence)::numeric, 0), 0) AS \"E-Bike (rpm)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'ebike' AND a.avg_cadence > 0 GROUP BY gs ORDER BY gs;",
+          "format": "time_series",
+          "refId": "C"
+        },
+        {
+          "rawSql": "SELECT gs AS \"time\", COALESCE(ROUND(AVG(a.avg_cadence)::numeric, 0), 0) AS \"Indoor (rpm)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.sport_type = 'cycling_indoor' AND a.avg_cadence > 0 GROUP BY gs ORDER BY gs;",
+          "format": "time_series",
+          "refId": "D"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "barWidthFactor": 0.6
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Outdoor (rpm)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#33658a",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Zwift (rpm)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#fc4c02",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "E-Bike (rpm)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#73bf69",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Indoor (rpm)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#8b5cf6",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
       }
     }
   ]
