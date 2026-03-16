@@ -159,7 +159,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH max_hr AS (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY max_hr) AS mhr FROM activities WHERE max_hr IS NOT NULL AND max_hr > 0) SELECT CASE WHEN s.hr < max_hr.mhr * 0.6 THEN 'Z1 Recovery' WHEN s.hr < max_hr.mhr * 0.7 THEN 'Z2 Endurance' WHEN s.hr < max_hr.mhr * 0.8 THEN 'Z3 Tempo' WHEN s.hr < max_hr.mhr * 0.9 THEN 'Z4 Threshold' ELSE 'Z5 VO2max' END AS \"Zone\", ROUND(COUNT(*)::numeric / 60, 1) AS \"Minutes\" FROM activity_streams s, max_hr WHERE s.activity_id = ${activity_id} AND s.hr IS NOT NULL AND s.hr > 0 GROUP BY \"Zone\" ORDER BY \"Zone\";",
+          "rawSql": "WITH lthr AS (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY max_hr) AS thr FROM activities WHERE max_hr IS NOT NULL AND max_hr > 0) SELECT CASE WHEN s.hr < lthr.thr * 0.68 THEN 'Z1 Recovery' WHEN s.hr < lthr.thr * 0.83 THEN 'Z2 Endurance' WHEN s.hr < lthr.thr * 0.94 THEN 'Z3 Tempo' WHEN s.hr < lthr.thr * 1.05 THEN 'Z4 Threshold' ELSE 'Z5 VO2max' END AS \"Zone\", ROUND(COUNT(*)::numeric / 60, 1) AS \"Minutes\" FROM activity_streams s, lthr WHERE s.activity_id = ${activity_id} AND s.hr IS NOT NULL AND s.hr > 0 GROUP BY \"Zone\" ORDER BY \"Zone\";",
           "format": "table",
           "refId": "A"
         }
@@ -167,11 +167,70 @@
       "options": {
         "orientation": "horizontal",
         "xField": "Zone",
-        "showValue": "always"
+        "showValue": "always",
+        "colorByField": "Zone"
       },
       "fieldConfig": {
         "defaults": {},
         "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Zone"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "Z1 Recovery": {
+                        "color": "#808080",
+                        "index": 0
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "Z2 Endurance": {
+                        "color": "#3498db",
+                        "index": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "Z3 Tempo": {
+                        "color": "#2ecc71",
+                        "index": 2
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "Z4 Threshold": {
+                        "color": "#f1c40f",
+                        "index": 3
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "Z5 VO2max": {
+                        "color": "#e74c3c",
+                        "index": 4
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
           {
             "matcher": {
               "id": "byName",
@@ -926,7 +985,7 @@
               }
             ]
           },
-          "unit": "s"
+          "unit": "dthms"
         }
       }
     },
