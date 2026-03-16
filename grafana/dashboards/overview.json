@@ -1174,7 +1174,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 46
+        "y": 53
       },
       "panels": [
         {
@@ -1185,7 +1185,7 @@
             "h": 3,
             "w": 6,
             "x": 0,
-            "y": 47
+            "y": 54
           },
           "datasource": {
             "type": "postgres",
@@ -1226,7 +1226,7 @@
             "h": 3,
             "w": 6,
             "x": 6,
-            "y": 47
+            "y": 54
           },
           "datasource": {
             "type": "postgres",
@@ -1267,7 +1267,7 @@
             "h": 3,
             "w": 6,
             "x": 12,
-            "y": 47
+            "y": 54
           },
           "datasource": {
             "type": "postgres",
@@ -1374,7 +1374,7 @@
             "h": 3,
             "w": 6,
             "x": 18,
-            "y": 47
+            "y": 54
           },
           "datasource": {
             "type": "postgres",
@@ -1416,7 +1416,7 @@
             "h": 8,
             "w": 24,
             "x": 0,
-            "y": 50
+            "y": 57
           },
           "datasource": {
             "type": "postgres",
@@ -1511,7 +1511,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 47
+        "y": 54
       },
       "panels": [
         {
@@ -1522,7 +1522,7 @@
             "h": 10,
             "w": 24,
             "x": 0,
-            "y": 48
+            "y": 55
           },
           "datasource": {
             "type": "postgres",
@@ -1600,7 +1600,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 49
+        "y": 56
       },
       "panels": [
         {
@@ -1611,7 +1611,7 @@
             "h": 14,
             "w": 24,
             "x": 0,
-            "y": 49
+            "y": 56
           },
           "datasource": {
             "type": "postgres",
@@ -1671,7 +1671,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 50
+        "y": 57
       },
       "panels": [
         {
@@ -1682,7 +1682,7 @@
             "h": 8,
             "w": 8,
             "x": 0,
-            "y": 51
+            "y": 58
           },
           "datasource": {
             "type": "postgres",
@@ -1725,7 +1725,7 @@
             "h": 8,
             "w": 8,
             "x": 8,
-            "y": 51
+            "y": 58
           },
           "datasource": {
             "type": "postgres",
@@ -1768,7 +1768,7 @@
             "h": 8,
             "w": 8,
             "x": 16,
-            "y": 51
+            "y": 58
           },
           "datasource": {
             "type": "postgres",
@@ -1807,7 +1807,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 48
+        "y": 55
       },
       "panels": [
         {
@@ -1818,7 +1818,7 @@
             "h": 10,
             "w": 24,
             "x": 0,
-            "y": 51
+            "y": 58
           },
           "datasource": {
             "type": "postgres",
@@ -2407,6 +2407,662 @@
             ]
           }
         ]
+      }
+    },
+    {
+      "id": 300,
+      "type": "row",
+      "title": "vs Previous Period",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 46
+      },
+      "panels": []
+    },
+    {
+      "id": 301,
+      "title": "\u0394 Rides",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 0,
+        "y": 47
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND((COALESCE((SELECT COUNT(*) FROM activities WHERE $__timeFilter(date)), 0) - COALESCE((SELECT COUNT(*) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz), 0))::numeric, 0) AS \"Delta\";",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 302,
+      "title": "\u0394 Distance",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 4,
+        "y": 47
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND((COALESCE((SELECT SUM(distance_m)/1000.0 FROM activities WHERE $__timeFilter(date)), 0) - COALESCE((SELECT SUM(distance_m)/1000.0 FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz), 0))::numeric, 1) AS \"Delta\";",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "lengthkm"
+        }
+      }
+    },
+    {
+      "id": 303,
+      "title": "\u0394 Elevation",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 8,
+        "y": 47
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND((COALESCE((SELECT SUM(elevation_m) FROM activities WHERE $__timeFilter(date)), 0) - COALESCE((SELECT SUM(elevation_m) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz), 0))::numeric, 0) AS \"Delta\";",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "lengthm"
+        }
+      }
+    },
+    {
+      "id": 304,
+      "title": "\u0394 Duration",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 12,
+        "y": 47
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND((COALESCE((SELECT SUM(duration_s) FROM activities WHERE $__timeFilter(date)), 0) - COALESCE((SELECT SUM(duration_s) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz), 0))::numeric, 0) AS \"Delta\";",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "s"
+        }
+      }
+    },
+    {
+      "id": 305,
+      "title": "\u0394 Calories",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 16,
+        "y": 47
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND((COALESCE((SELECT SUM(calories) FROM activities WHERE $__timeFilter(date) AND calories IS NOT NULL), 0) - COALESCE((SELECT SUM(calories) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND calories IS NOT NULL), 0))::numeric, 0) AS \"Delta\";",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "kcal"
+        }
+      }
+    },
+    {
+      "id": 306,
+      "title": "\u0394 TSS",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 20,
+        "y": 47
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND((COALESCE((SELECT SUM(tss) FROM activities WHERE $__timeFilter(date)), 0) - COALESCE((SELECT SUM(tss) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz), 0))::numeric, 0) AS \"Delta\";",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 307,
+      "title": "\u0394 Avg Power",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 0,
+        "y": 50
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND((COALESCE((SELECT AVG(avg_power) FROM activities WHERE $__timeFilter(date) AND avg_power > 0), 0) - COALESCE((SELECT AVG(avg_power) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND avg_power > 0), 0))::numeric, 0) AS \"Delta\";",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "watt"
+        }
+      }
+    },
+    {
+      "id": 308,
+      "title": "\u0394 Avg Speed",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 4,
+        "y": 50
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND((COALESCE((SELECT AVG(avg_speed_kmh) FROM activities WHERE $__timeFilter(date) AND avg_speed_kmh > 0 AND distance_m > 5000), 0) - COALESCE((SELECT AVG(avg_speed_kmh) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND avg_speed_kmh > 0 AND distance_m > 5000), 0))::numeric, 1) AS \"Delta\";",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "velocitykmh"
+        }
+      }
+    },
+    {
+      "id": 309,
+      "title": "\u0394 Avg HR",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 8,
+        "y": 50
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND((COALESCE((SELECT AVG(avg_hr) FROM activities WHERE $__timeFilter(date) AND avg_hr > 0), 0) - COALESCE((SELECT AVG(avg_hr) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND avg_hr > 0), 0))::numeric, 0) AS \"Delta\";",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 310,
+      "title": "\u0394 Cadence",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 12,
+        "y": 50
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND((COALESCE((SELECT AVG(avg_cadence) FROM activities WHERE $__timeFilter(date) AND avg_cadence > 0), 0) - COALESCE((SELECT AVG(avg_cadence) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND avg_cadence > 0), 0))::numeric, 0) AS \"Delta\";",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 311,
+      "title": "\u0394 Max Power",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 16,
+        "y": 50
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND((COALESCE((SELECT MAX(max_power) FROM activities WHERE $__timeFilter(date) AND max_power > 0), 0) - COALESCE((SELECT MAX(max_power) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND max_power > 0), 0))::numeric, 0) AS \"Delta\";",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "watt"
+        }
+      }
+    },
+    {
+      "id": 312,
+      "title": "\u0394 Max HR",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 20,
+        "y": 50
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND((COALESCE((SELECT MAX(max_hr) FROM activities WHERE $__timeFilter(date) AND max_hr > 0), 0) - COALESCE((SELECT MAX(max_hr) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND max_hr > 0), 0))::numeric, 0) AS \"Delta\";",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        }
       }
     }
   ]
