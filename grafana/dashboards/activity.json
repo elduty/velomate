@@ -840,7 +840,8 @@
           "color": {
             "fixedColor": "#8b5cf6",
             "mode": "fixed"
-          }
+          },
+          "noValue": "N/A"
         },
         "overrides": []
       },
@@ -910,7 +911,8 @@
           },
           "color": {
             "mode": "thresholds"
-          }
+          },
+          "noValue": "N/A"
         },
         "overrides": []
       },
@@ -953,22 +955,23 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "#2ecc71",
                 "value": null
               },
               {
-                "color": "yellow",
+                "color": "#f1c40f",
                 "value": 1.05
               },
               {
-                "color": "red",
+                "color": "#e74c3c",
                 "value": 1.15
               }
             ]
           },
           "color": {
             "mode": "thresholds"
-          }
+          },
+          "noValue": "N/A"
         },
         "overrides": []
       },
@@ -1528,7 +1531,8 @@
                 "value": null
               }
             ]
-          }
+          },
+          "unit": "bpm"
         }
       }
     },
@@ -1583,7 +1587,8 @@
                 "value": null
               }
             ]
-          }
+          },
+          "unit": "bpm"
         }
       }
     },

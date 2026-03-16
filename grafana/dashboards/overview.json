@@ -17,7 +17,7 @@
   "links": [
     {
       "title": "Activity Detail",
-      "url": "/d/veloai-activity/activity-detail",
+      "url": "/d/veloai-activity/activity-details",
       "type": "link",
       "icon": "dashboard"
     },
@@ -1829,7 +1829,7 @@
         "h": 3,
         "w": 4,
         "x": 16,
-        "y": 1
+        "y": 4
       },
       "datasource": {
         "type": "postgres",
@@ -1918,7 +1918,8 @@
                 "value": null
               }
             ]
-          }
+          },
+          "unit": "bpm"
         }
       }
     },
@@ -2018,7 +2019,8 @@
                 "value": null
               }
             ]
-          }
+          },
+          "unit": "bpm"
         }
       }
     },
