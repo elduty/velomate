@@ -1710,7 +1710,7 @@
           },
           "targets": [
             {
-              "rawSql": "SELECT m.metric AS \"Metric\", m.period AS \"Period Best\", m.prev AS \"Previous Period\", m.alltime AS \"All Time\", m.period_num AS \"period_num\", m.prev_num AS \"prev_num\" FROM (\nSELECT 1 AS ord, 'Longest Ride' AS metric,\n  COALESCE(ROUND((MAX(distance_m)/1000.0)::numeric, 1)::text || ' km', 'No data') AS period,\n  (SELECT COALESCE(ROUND((MAX(distance_m)/1000.0)::numeric, 1)::text || ' km', 'No data') FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND distance_m > 0 AND is_indoor IS NOT TRUE) AS prev,\n  (SELECT COALESCE(ROUND((MAX(distance_m)/1000.0)::numeric, 1)::text || ' km', 'No data') FROM activities WHERE distance_m > 0 AND is_indoor IS NOT TRUE) AS alltime,\n  MAX(distance_m) AS period_num,\n  (SELECT MAX(distance_m) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND distance_m > 0 AND is_indoor IS NOT TRUE) AS prev_num\n  FROM activities WHERE $__timeFilter(date) AND distance_m > 0 AND is_indoor IS NOT TRUE\nUNION ALL SELECT 2, 'Most Elevation',\n  COALESCE(ROUND(MAX(elevation_m)::numeric, 0)::text || ' m', 'No data'),\n  (SELECT COALESCE(ROUND(MAX(elevation_m)::numeric, 0)::text || ' m', 'No data') FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND elevation_m > 0 AND is_indoor IS NOT TRUE),\n  (SELECT COALESCE(ROUND(MAX(elevation_m)::numeric, 0)::text || ' m', 'No data') FROM activities WHERE elevation_m > 0 AND is_indoor IS NOT TRUE),\n  MAX(elevation_m),\n  (SELECT MAX(elevation_m) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND elevation_m > 0 AND is_indoor IS NOT TRUE)\n  FROM activities WHERE $__timeFilter(date) AND elevation_m > 0 AND is_indoor IS NOT TRUE\nUNION ALL SELECT 3, 'Longest Duration',\n  COALESCE(TO_CHAR(MAX(duration_s) * interval '1 second', 'HH24:MI'), 'No data'),\n  (SELECT COALESCE(TO_CHAR(MAX(duration_s) * interval '1 second', 'HH24:MI'), 'No data') FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND duration_s > 0 AND is_indoor IS NOT TRUE),\n  (SELECT COALESCE(TO_CHAR(MAX(duration_s) * interval '1 second', 'HH24:MI'), 'No data') FROM activities WHERE duration_s > 0 AND is_indoor IS NOT TRUE),\n  MAX(duration_s),\n  (SELECT MAX(duration_s) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND duration_s > 0 AND is_indoor IS NOT TRUE)\n  FROM activities WHERE $__timeFilter(date) AND duration_s > 0 AND is_indoor IS NOT TRUE\nUNION ALL SELECT 4, 'Most Calories',\n  COALESCE(MAX(calories)::text || ' kcal', 'No data'),\n  (SELECT COALESCE(MAX(calories)::text || ' kcal', 'No data') FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND calories > 0 AND is_indoor IS NOT TRUE),\n  (SELECT COALESCE(MAX(calories)::text || ' kcal', 'No data') FROM activities WHERE calories > 0 AND is_indoor IS NOT TRUE),\n  MAX(calories),\n  (SELECT MAX(calories) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND calories > 0 AND is_indoor IS NOT TRUE)\n  FROM activities WHERE $__timeFilter(date) AND calories > 0 AND is_indoor IS NOT TRUE\nUNION ALL SELECT 5, 'Highest Avg Power',\n  COALESCE(MAX(avg_power)::text || ' W', 'No data'),\n  (SELECT COALESCE(MAX(avg_power)::text || ' W', 'No data') FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND avg_power > 0 AND is_indoor IS NOT TRUE),\n  (SELECT COALESCE(MAX(avg_power)::text || ' W', 'No data') FROM activities WHERE avg_power > 0 AND is_indoor IS NOT TRUE),\n  MAX(avg_power),\n  (SELECT MAX(avg_power) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND avg_power > 0 AND is_indoor IS NOT TRUE)\n  FROM activities WHERE $__timeFilter(date) AND avg_power > 0 AND is_indoor IS NOT TRUE\nUNION ALL SELECT 6, 'Highest Avg Speed',\n  COALESCE(ROUND(MAX(avg_speed_kmh)::numeric, 1)::text || ' km/h', 'No data'),\n  (SELECT COALESCE(ROUND(MAX(avg_speed_kmh)::numeric, 1)::text || ' km/h', 'No data') FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND avg_speed_kmh > 0 AND distance_m > 5000 AND is_indoor IS NOT TRUE),\n  (SELECT COALESCE(ROUND(MAX(avg_speed_kmh)::numeric, 1)::text || ' km/h', 'No data') FROM activities WHERE avg_speed_kmh > 0 AND distance_m > 5000 AND is_indoor IS NOT TRUE),\n  MAX(avg_speed_kmh),\n  (SELECT MAX(avg_speed_kmh) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND avg_speed_kmh > 0 AND distance_m > 5000 AND is_indoor IS NOT TRUE)\n  FROM activities WHERE $__timeFilter(date) AND avg_speed_kmh > 0 AND distance_m > 5000 AND is_indoor IS NOT TRUE\nUNION ALL SELECT 7, 'Highest Avg HR',\n  COALESCE(MAX(avg_hr)::text || ' bpm', 'No data'),\n  (SELECT COALESCE(MAX(avg_hr)::text || ' bpm', 'No data') FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND avg_hr > 0 AND is_indoor IS NOT TRUE),\n  (SELECT COALESCE(MAX(avg_hr)::text || ' bpm', 'No data') FROM activities WHERE avg_hr > 0 AND is_indoor IS NOT TRUE),\n  MAX(avg_hr)::float,\n  (SELECT MAX(avg_hr)::float FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND avg_hr > 0 AND is_indoor IS NOT TRUE)\n  FROM activities WHERE $__timeFilter(date) AND avg_hr > 0 AND is_indoor IS NOT TRUE\n) m ORDER BY m.ord;",
+              "rawSql": "SELECT m.metric AS \"Metric\", m.period AS \"Period Best\", m.prev AS \"Previous Period\", m.alltime AS \"All Time\" FROM (\nSELECT 1 AS ord, 'Longest Ride' AS metric,\n  COALESCE(ROUND((MAX(distance_m)/1000.0)::numeric, 1)::text || ' km', 'No data') AS period,\n  (SELECT COALESCE(ROUND((MAX(distance_m)/1000.0)::numeric, 1)::text || ' km', 'No data') FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND distance_m > 0 AND is_indoor IS NOT TRUE) AS prev,\n  (SELECT COALESCE(ROUND((MAX(distance_m)/1000.0)::numeric, 1)::text || ' km', 'No data') FROM activities WHERE distance_m > 0 AND is_indoor IS NOT TRUE) AS alltime\n  FROM activities WHERE $__timeFilter(date) AND distance_m > 0 AND is_indoor IS NOT TRUE\nUNION ALL SELECT 2, 'Most Elevation',\n  COALESCE(ROUND(MAX(elevation_m)::numeric, 0)::text || ' m', 'No data'),\n  (SELECT COALESCE(ROUND(MAX(elevation_m)::numeric, 0)::text || ' m', 'No data') FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND elevation_m > 0 AND is_indoor IS NOT TRUE),\n  (SELECT COALESCE(ROUND(MAX(elevation_m)::numeric, 0)::text || ' m', 'No data') FROM activities WHERE elevation_m > 0 AND is_indoor IS NOT TRUE)\n  FROM activities WHERE $__timeFilter(date) AND elevation_m > 0 AND is_indoor IS NOT TRUE\nUNION ALL SELECT 3, 'Longest Duration',\n  COALESCE(TO_CHAR(MAX(duration_s) * interval '1 second', 'HH24:MI'), 'No data'),\n  (SELECT COALESCE(TO_CHAR(MAX(duration_s) * interval '1 second', 'HH24:MI'), 'No data') FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND duration_s > 0 AND is_indoor IS NOT TRUE),\n  (SELECT COALESCE(TO_CHAR(MAX(duration_s) * interval '1 second', 'HH24:MI'), 'No data') FROM activities WHERE duration_s > 0 AND is_indoor IS NOT TRUE)\n  FROM activities WHERE $__timeFilter(date) AND duration_s > 0 AND is_indoor IS NOT TRUE\nUNION ALL SELECT 4, 'Most Calories',\n  COALESCE(MAX(calories)::text || ' kcal', 'No data'),\n  (SELECT COALESCE(MAX(calories)::text || ' kcal', 'No data') FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND calories > 0 AND is_indoor IS NOT TRUE),\n  (SELECT COALESCE(MAX(calories)::text || ' kcal', 'No data') FROM activities WHERE calories > 0 AND is_indoor IS NOT TRUE)\n  FROM activities WHERE $__timeFilter(date) AND calories > 0 AND is_indoor IS NOT TRUE\nUNION ALL SELECT 5, 'Highest Avg Power',\n  COALESCE(MAX(avg_power)::text || ' W', 'No data'),\n  (SELECT COALESCE(MAX(avg_power)::text || ' W', 'No data') FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND avg_power > 0 AND is_indoor IS NOT TRUE),\n  (SELECT COALESCE(MAX(avg_power)::text || ' W', 'No data') FROM activities WHERE avg_power > 0 AND is_indoor IS NOT TRUE)\n  FROM activities WHERE $__timeFilter(date) AND avg_power > 0 AND is_indoor IS NOT TRUE\nUNION ALL SELECT 6, 'Highest Avg Speed',\n  COALESCE(ROUND(MAX(avg_speed_kmh)::numeric, 1)::text || ' km/h', 'No data'),\n  (SELECT COALESCE(ROUND(MAX(avg_speed_kmh)::numeric, 1)::text || ' km/h', 'No data') FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND avg_speed_kmh > 0 AND distance_m > 5000 AND is_indoor IS NOT TRUE),\n  (SELECT COALESCE(ROUND(MAX(avg_speed_kmh)::numeric, 1)::text || ' km/h', 'No data') FROM activities WHERE avg_speed_kmh > 0 AND distance_m > 5000 AND is_indoor IS NOT TRUE)\n  FROM activities WHERE $__timeFilter(date) AND avg_speed_kmh > 0 AND distance_m > 5000 AND is_indoor IS NOT TRUE\nUNION ALL SELECT 7, 'Highest Avg HR',\n  COALESCE(MAX(avg_hr)::text || ' bpm', 'No data'),\n  (SELECT COALESCE(MAX(avg_hr)::text || ' bpm', 'No data') FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND avg_hr > 0 AND is_indoor IS NOT TRUE),\n  (SELECT COALESCE(MAX(avg_hr)::text || ' bpm', 'No data') FROM activities WHERE avg_hr > 0 AND is_indoor IS NOT TRUE)\n  FROM activities WHERE $__timeFilter(date) AND avg_hr > 0 AND is_indoor IS NOT TRUE\n) m ORDER BY m.ord;",
               "format": "table",
               "refId": "A"
             }
@@ -1736,30 +1736,6 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "period_num"
-                },
-                "properties": [
-                  {
-                    "id": "custom.hidden",
-                    "value": true
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "prev_num"
-                },
-                "properties": [
-                  {
-                    "id": "custom.hidden",
-                    "value": true
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
                   "options": "All Time"
                 },
                 "properties": [
@@ -1777,60 +1753,9 @@
                     }
                   }
                 ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "Period Best"
-                },
-                "properties": [
-                  {
-                    "id": "custom.cellOptions",
-                    "value": {
-                      "type": "color-text"
-                    }
-                  },
-                  {
-                    "id": "color",
-                    "value": {
-                      "mode": "thresholds"
-                    }
-                  },
-                  {
-                    "id": "thresholds",
-                    "value": {
-                      "mode": "absolute",
-                      "steps": [
-                        {
-                          "color": "red",
-                          "value": null
-                        },
-                        {
-                          "color": "green",
-                          "value": 0
-                        }
-                      ]
-                    }
-                  }
-                ]
               }
             ]
-          },
-          "transformations": [
-            {
-              "id": "calculateField",
-              "options": {
-                "mode": "binary",
-                "binary": {
-                  "left": "period_num",
-                  "operator": "-",
-                  "right": "prev_num"
-                },
-                "alias": "_diff",
-                "replaceFields": false
-              }
-            }
-          ]
+          }
         }
       ]
     },
