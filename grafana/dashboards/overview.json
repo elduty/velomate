@@ -66,7 +66,7 @@
       "type": "stat",
       "gridPos": {
         "h": 3,
-        "w": 5,
+        "w": 4,
         "x": 0,
         "y": 0
       },
@@ -107,8 +107,8 @@
       "type": "stat",
       "gridPos": {
         "h": 3,
-        "w": 5,
-        "x": 5,
+        "w": 4,
+        "x": 4,
         "y": 0
       },
       "datasource": {
@@ -149,8 +149,8 @@
       "type": "stat",
       "gridPos": {
         "h": 3,
-        "w": 5,
-        "x": 10,
+        "w": 4,
+        "x": 8,
         "y": 0
       },
       "datasource": {
@@ -191,8 +191,8 @@
       "type": "stat",
       "gridPos": {
         "h": 3,
-        "w": 5,
-        "x": 15,
+        "w": 4,
+        "x": 12,
         "y": 0
       },
       "datasource": {
@@ -234,7 +234,7 @@
       "gridPos": {
         "h": 3,
         "w": 4,
-        "x": 20,
+        "x": 16,
         "y": 0
       },
       "datasource": {
@@ -2398,8 +2398,8 @@
       "gridPos": {
         "h": 3,
         "w": 4,
-        "x": 0,
-        "y": 3
+        "x": 20,
+        "y": 0
       },
       "datasource": {
         "type": "postgres",
@@ -2438,8 +2438,8 @@
       "type": "stat",
       "gridPos": {
         "h": 3,
-        "w": 3,
-        "x": 4,
+        "w": 4,
+        "x": 0,
         "y": 3
       },
       "datasource": {
@@ -2480,8 +2480,8 @@
       "type": "stat",
       "gridPos": {
         "h": 3,
-        "w": 3,
-        "x": 7,
+        "w": 4,
+        "x": 4,
         "y": 3
       },
       "datasource": {
@@ -2522,8 +2522,8 @@
       "type": "stat",
       "gridPos": {
         "h": 3,
-        "w": 3,
-        "x": 10,
+        "w": 4,
+        "x": 8,
         "y": 3
       },
       "datasource": {
@@ -2563,8 +2563,8 @@
       "type": "stat",
       "gridPos": {
         "h": 3,
-        "w": 3,
-        "x": 13,
+        "w": 4,
+        "x": 12,
         "y": 3
       },
       "datasource": {
@@ -2605,7 +2605,7 @@
       "gridPos": {
         "h": 3,
         "w": 4,
-        "x": 16,
+        "x": 20,
         "y": 3
       },
       "datasource": {
@@ -2646,7 +2646,7 @@
       "gridPos": {
         "h": 3,
         "w": 4,
-        "x": 20,
+        "x": 16,
         "y": 3
       },
       "datasource": {
