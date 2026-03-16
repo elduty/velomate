@@ -1596,7 +1596,7 @@
     {
       "id": 40,
       "title": "Power Duration Curve",
-      "type": "timeseries",
+      "type": "xychart",
       "gridPos": {
         "h": 10,
         "w": 24,
@@ -1609,38 +1609,64 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT d.ts AS \"time\", d.best_power AS \"Best Power (W)\" FROM (\nSELECT '2000-01-01 00:00:05'::timestamp AS ts, ROUND(MAX(avg_p)::numeric, 0) AS best_power FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 4 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT '2000-01-01 00:00:10', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 9 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT '2000-01-01 00:00:30', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 29 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT '2000-01-01 00:01:00', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 59 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT '2000-01-01 00:02:00', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 119 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT '2000-01-01 00:05:00', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 299 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT '2000-01-01 00:10:00', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 599 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT '2000-01-01 00:20:00', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 1199 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT '2000-01-01 01:00:00', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 3599 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\n) d WHERE d.best_power IS NOT NULL ORDER BY d.ts;",
-          "format": "time_series",
+          "rawSql": "SELECT d.secs AS \"Duration (s)\", d.best_power AS \"Best Power (W)\" FROM (\nSELECT 5 AS secs, ROUND(MAX(avg_p)::numeric, 0) AS best_power FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 4 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 10, ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 9 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 30, ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 29 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 60, ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 59 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 120, ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 119 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 300, ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 299 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 600, ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 599 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 1200, ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 1199 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 3600, ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 3599 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\n) d WHERE d.best_power IS NOT NULL ORDER BY d.secs;",
+          "format": "table",
           "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "watt",
-          "color": {
-            "fixedColor": "#8b5cf6",
-            "mode": "fixed"
-          },
-          "custom": {
-            "drawStyle": "line",
-            "lineWidth": 3,
-            "fillOpacity": 20,
-            "pointSize": 8,
-            "showPoints": "always",
-            "lineInterpolation": "smooth"
-          },
           "noValue": "No power data"
-        }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Duration (s)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Best Power (W)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "watt"
+              }
+            ]
+          }
+        ]
       },
       "options": {
+        "series": [
+          {
+            "x": "Duration (s)",
+            "y": "Best Power (W)",
+            "color": {
+              "fixed": "#8b5cf6"
+            },
+            "lineWidth": 3,
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "pointSize": {
+              "fixed": 8
+            },
+            "show": "line+points"
+          }
+        ],
         "tooltip": {
           "mode": "single"
-        },
-        "legend": {
-          "displayMode": "hidden"
         }
-      },
-      "timeFrom": "50y"
+      }
     },
     {
       "id": 41,
