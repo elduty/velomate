@@ -1639,7 +1639,8 @@
         "legend": {
           "displayMode": "hidden"
         }
-      }
+      },
+      "timeFrom": "50y"
     },
     {
       "id": 41,
