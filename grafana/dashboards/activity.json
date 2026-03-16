@@ -718,12 +718,7 @@
             "pointSize": 3,
             "lineInterpolation": "smooth"
           },
-          "unit": "rpm",
-          "noValue": "No data for this activity",
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "#B877D9"
-          }
+          "noValue": "No data for this activity"
         },
         "overrides": [
           {
@@ -734,7 +729,7 @@
             "properties": [
               {
                 "id": "unit",
-                "value": "rpm"
+                "value": "none"
               },
               {
                 "id": "color",
@@ -759,6 +754,10 @@
               "options": "Grade (%)"
             },
             "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
               {
                 "id": "color",
                 "value": {
