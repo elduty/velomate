@@ -1601,7 +1601,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 26
+        "y": 34
       },
       "datasource": {
         "type": "postgres",
@@ -1648,8 +1648,8 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 0,
-        "y": 36
+        "x": 12,
+        "y": 26
       },
       "datasource": {
         "type": "postgres",
@@ -1795,8 +1795,8 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 12,
-        "y": 36
+        "x": 0,
+        "y": 26
       },
       "datasource": {
         "type": "postgres",
