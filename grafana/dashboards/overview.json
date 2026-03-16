@@ -1226,7 +1226,7 @@
       "type": "stat",
       "gridPos": {
         "h": 3,
-        "w": 12,
+        "w": 6,
         "x": 0,
         "y": 56
       },
@@ -1333,8 +1333,8 @@
       "type": "stat",
       "gridPos": {
         "h": 3,
-        "w": 12,
-        "x": 12,
+        "w": 6,
+        "x": 6,
         "y": 56
       },
       "datasource": {
@@ -2972,6 +2972,110 @@
         "y": 7
       },
       "panels": []
+    },
+    {
+      "id": 224,
+      "title": "Weekly Streak",
+      "description": "Consecutive weeks with at least one cycling ride.\nCounts from your most recent riding week backwards.",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 6,
+        "x": 12,
+        "y": 56
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "WITH weeks AS (SELECT DISTINCT date_trunc('week', date)::date AS week_start FROM activities WHERE date IS NOT NULL AND sport_type IN ('cycling_outdoor', 'cycling_indoor', 'zwift', 'ebike')), latest AS (SELECT MAX(week_start) AS start_from FROM weeks), numbered AS (SELECT week_start, ROW_NUMBER() OVER (ORDER BY week_start DESC) AS rn, ((SELECT start_from FROM latest) - ((ROW_NUMBER() OVER (ORDER BY week_start DESC) - 1) * 7)::int) AS expected FROM weeks) SELECT COUNT(*) AS \"Weeks\" FROM numbered WHERE week_start = expected;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "0",
+          "color": {
+            "fixedColor": "#6ed0ff",
+            "mode": "fixed"
+          }
+        }
+      }
+    },
+    {
+      "id": 225,
+      "title": "Days Since Ride",
+      "description": "Days since your last cycling activity.\nCounts any ride type (outdoor, indoor, Zwift).",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 6,
+        "x": 18,
+        "y": 56
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT CURRENT_DATE - MAX(date::date) AS \"Days\" FROM activities WHERE sport_type IN ('cycling_outdoor', 'cycling_indoor', 'zwift', 'ebike');",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No rides",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 3
+              },
+              {
+                "color": "orange",
+                "value": 5
+              },
+              {
+                "color": "red",
+                "value": 7
+              }
+            ]
+          }
+        }
+      }
     }
   ]
 }
