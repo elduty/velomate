@@ -159,32 +159,34 @@
       },
       "targets": [
         {
-          "rawSql": "WITH lthr AS (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY max_hr) AS thr FROM activities WHERE max_hr IS NOT NULL AND max_hr > 0), counts AS (SELECT CASE WHEN s.hr < lthr.thr * 0.68 THEN 'Z1 Recovery' WHEN s.hr < lthr.thr * 0.83 THEN 'Z2 Endurance' WHEN s.hr < lthr.thr * 0.94 THEN 'Z3 Tempo' WHEN s.hr < lthr.thr * 1.05 THEN 'Z4 Threshold' ELSE 'Z5 VO2max' END AS zone_name, COUNT(*) AS secs FROM activity_streams s, lthr WHERE s.activity_id = ${activity_id} AND s.hr IS NOT NULL AND s.hr > 0 GROUP BY zone_name) SELECT COALESCE((SELECT ROUND(secs/60.0::numeric, 1) FROM counts WHERE zone_name = 'Z1 Recovery'), 0) AS \"Z1 Recovery\", COALESCE((SELECT ROUND(secs/60.0::numeric, 1) FROM counts WHERE zone_name = 'Z2 Endurance'), 0) AS \"Z2 Endurance\", COALESCE((SELECT ROUND(secs/60.0::numeric, 1) FROM counts WHERE zone_name = 'Z3 Tempo'), 0) AS \"Z3 Tempo\", COALESCE((SELECT ROUND(secs/60.0::numeric, 1) FROM counts WHERE zone_name = 'Z4 Threshold'), 0) AS \"Z4 Threshold\", COALESCE((SELECT ROUND(secs/60.0::numeric, 1) FROM counts WHERE zone_name = 'Z5 VO2max'), 0) AS \"Z5 VO2max\";",
+          "rawSql": "WITH lthr AS (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY max_hr) AS thr FROM activities WHERE max_hr IS NOT NULL AND max_hr > 0), zones AS (SELECT unnest(ARRAY['Z1 Recovery','Z2 Endurance','Z3 Tempo','Z4 Threshold','Z5 VO2max']) AS zone_name), counts AS (SELECT CASE WHEN s.hr < lthr.thr * 0.68 THEN 'Z1 Recovery' WHEN s.hr < lthr.thr * 0.83 THEN 'Z2 Endurance' WHEN s.hr < lthr.thr * 0.94 THEN 'Z3 Tempo' WHEN s.hr < lthr.thr * 1.05 THEN 'Z4 Threshold' ELSE 'Z5 VO2max' END AS zone_name, COUNT(*) AS secs FROM activity_streams s, lthr WHERE s.activity_id = ${activity_id} AND s.hr IS NOT NULL AND s.hr > 0 GROUP BY zone_name) SELECT z.zone_name AS \"Zone\", COALESCE(c.secs / 60.0, 0) AS \"Minutes\", CASE z.zone_name WHEN 'Z1 Recovery' THEN 1 WHEN 'Z2 Endurance' THEN 2 WHEN 'Z3 Tempo' THEN 3 WHEN 'Z4 Threshold' THEN 4 WHEN 'Z5 VO2max' THEN 5 END AS \"ZoneColor\" FROM zones z LEFT JOIN counts c ON z.zone_name = c.zone_name ORDER BY z.zone_name;",
           "format": "table",
           "refId": "A"
         }
       ],
       "options": {
         "orientation": "horizontal",
+        "xField": "Zone",
         "showValue": "always",
-        "stacking": "none"
+        "colorByField": "ZoneColor"
       },
       "fieldConfig": {
-        "defaults": {
-          "unit": "min"
-        },
+        "defaults": {},
         "overrides": [
           {
             "matcher": {
               "id": "byName",
-              "options": "Z1 Recovery"
+              "options": "ZoneColor"
             },
             "properties": [
               {
+                "id": "custom.hidden",
+                "value": true
+              },
+              {
                 "id": "color",
                 "value": {
-                  "fixedColor": "#808080",
-                  "mode": "fixed"
+                  "mode": "continuous-blues"
                 }
               }
             ]
@@ -192,60 +194,12 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Z2 Endurance"
+              "options": "Minutes"
             },
             "properties": [
               {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#3498db",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Z3 Tempo"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#2ecc71",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Z4 Threshold"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#f1c40f",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Z5 VO2max"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#e74c3c",
-                  "mode": "fixed"
-                }
+                "id": "unit",
+                "value": "min"
               }
             ]
           }
@@ -268,32 +222,34 @@
       },
       "targets": [
         {
-          "rawSql": "WITH ftp AS (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY avg_power) AS ftp_val FROM activities WHERE avg_power IS NOT NULL AND avg_power > 0), counts AS (SELECT CASE WHEN s.power < ftp.ftp_val * 0.55 THEN 'Z1 Recovery' WHEN s.power < ftp.ftp_val * 0.75 THEN 'Z2 Endurance' WHEN s.power < ftp.ftp_val * 0.90 THEN 'Z3 Tempo' WHEN s.power < ftp.ftp_val * 1.05 THEN 'Z4 Threshold' WHEN s.power < ftp.ftp_val * 1.20 THEN 'Z5 VO2max' ELSE 'Z6 Anaerobic' END AS zone_name, COUNT(*) AS secs FROM activity_streams s, ftp WHERE s.activity_id = ${activity_id} AND s.power IS NOT NULL AND s.power > 0 GROUP BY zone_name) SELECT COALESCE((SELECT ROUND(secs/60.0::numeric, 1) FROM counts WHERE zone_name = 'Z1 Recovery'), 0) AS \"Z1 Recovery\", COALESCE((SELECT ROUND(secs/60.0::numeric, 1) FROM counts WHERE zone_name = 'Z2 Endurance'), 0) AS \"Z2 Endurance\", COALESCE((SELECT ROUND(secs/60.0::numeric, 1) FROM counts WHERE zone_name = 'Z3 Tempo'), 0) AS \"Z3 Tempo\", COALESCE((SELECT ROUND(secs/60.0::numeric, 1) FROM counts WHERE zone_name = 'Z4 Threshold'), 0) AS \"Z4 Threshold\", COALESCE((SELECT ROUND(secs/60.0::numeric, 1) FROM counts WHERE zone_name = 'Z5 VO2max'), 0) AS \"Z5 VO2max\", COALESCE((SELECT ROUND(secs/60.0::numeric, 1) FROM counts WHERE zone_name = 'Z6 Anaerobic'), 0) AS \"Z6 Anaerobic\";",
+          "rawSql": "WITH ftp AS (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY avg_power) AS ftp_val FROM activities WHERE avg_power IS NOT NULL AND avg_power > 0), zones AS (SELECT unnest(ARRAY['Z1 Recovery','Z2 Endurance','Z3 Tempo','Z4 Threshold','Z5 VO2max','Z6 Anaerobic']) AS zone_name), counts AS (SELECT CASE WHEN s.power < ftp.ftp_val * 0.55 THEN 'Z1 Recovery' WHEN s.power < ftp.ftp_val * 0.75 THEN 'Z2 Endurance' WHEN s.power < ftp.ftp_val * 0.90 THEN 'Z3 Tempo' WHEN s.power < ftp.ftp_val * 1.05 THEN 'Z4 Threshold' WHEN s.power < ftp.ftp_val * 1.20 THEN 'Z5 VO2max' ELSE 'Z6 Anaerobic' END AS zone_name, COUNT(*) AS secs FROM activity_streams s, ftp WHERE s.activity_id = ${activity_id} AND s.power IS NOT NULL AND s.power > 0 GROUP BY zone_name) SELECT z.zone_name AS \"Zone\", COALESCE(c.secs / 60.0, 0) AS \"Minutes\", CASE z.zone_name WHEN 'Z1 Recovery' THEN 1 WHEN 'Z2 Endurance' THEN 2 WHEN 'Z3 Tempo' THEN 3 WHEN 'Z4 Threshold' THEN 4 WHEN 'Z5 VO2max' THEN 5 WHEN 'Z6 Anaerobic' THEN 6 END AS \"ZoneColor\" FROM zones z LEFT JOIN counts c ON z.zone_name = c.zone_name ORDER BY z.zone_name;",
           "format": "table",
           "refId": "A"
         }
       ],
       "options": {
         "orientation": "horizontal",
+        "xField": "Zone",
         "showValue": "always",
-        "stacking": "none"
+        "colorByField": "ZoneColor"
       },
       "fieldConfig": {
-        "defaults": {
-          "unit": "min"
-        },
+        "defaults": {},
         "overrides": [
           {
             "matcher": {
               "id": "byName",
-              "options": "Z1 Recovery"
+              "options": "ZoneColor"
             },
             "properties": [
               {
+                "id": "custom.hidden",
+                "value": true
+              },
+              {
                 "id": "color",
                 "value": {
-                  "fixedColor": "#808080",
-                  "mode": "fixed"
+                  "mode": "continuous-blues"
                 }
               }
             ]
@@ -301,75 +257,12 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Z2 Endurance"
+              "options": "Minutes"
             },
             "properties": [
               {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#3498db",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Z3 Tempo"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#2ecc71",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Z4 Threshold"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#f1c40f",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Z5 VO2max"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#e67e22",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Z6 Anaerobic"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#e74c3c",
-                  "mode": "fixed"
-                }
+                "id": "unit",
+                "value": "min"
               }
             ]
           }
