@@ -879,16 +879,28 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "#808080",
                 "value": null
               },
               {
-                "color": "yellow",
-                "value": 0.75
+                "color": "#3498db",
+                "value": 0.6
               },
               {
-                "color": "red",
-                "value": 0.9
+                "color": "#2ecc71",
+                "value": 0.7
+              },
+              {
+                "color": "#f1c40f",
+                "value": 0.85
+              },
+              {
+                "color": "#e67e22",
+                "value": 0.95
+              },
+              {
+                "color": "#e74c3c",
+                "value": 1.05
               }
             ]
           },
