@@ -1663,7 +1663,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT d.label AS \"Duration\", d.this_ride AS \"This Ride (W)\", d.all_time AS \"All-Time Best (W)\" FROM (\nSELECT 1 AS ord, '5s' AS label, (SELECT ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 4 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power > 0) s WHERE avg_p IS NOT NULL) AS this_ride, (SELECT ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(s.power) OVER (PARTITION BY s.activity_id ORDER BY s.time_offset RANGE BETWEEN 4 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams s JOIN activities a ON a.id = s.activity_id WHERE a.date >= CURRENT_DATE - interval '1 year' AND s.power > 0) s WHERE avg_p IS NOT NULL) AS all_time\nUNION ALL SELECT 2, '10s', (SELECT ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 9 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power > 0) s WHERE avg_p IS NOT NULL), (SELECT ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(s.power) OVER (PARTITION BY s.activity_id ORDER BY s.time_offset RANGE BETWEEN 9 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams s JOIN activities a ON a.id = s.activity_id WHERE a.date >= CURRENT_DATE - interval '1 year' AND s.power > 0) s WHERE avg_p IS NOT NULL)\nUNION ALL SELECT 3, '30s', (SELECT ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 29 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power > 0) s WHERE avg_p IS NOT NULL), (SELECT ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(s.power) OVER (PARTITION BY s.activity_id ORDER BY s.time_offset RANGE BETWEEN 29 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams s JOIN activities a ON a.id = s.activity_id WHERE a.date >= CURRENT_DATE - interval '1 year' AND s.power > 0) s WHERE avg_p IS NOT NULL)\nUNION ALL SELECT 4, '1min', (SELECT ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 59 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power > 0) s WHERE avg_p IS NOT NULL), (SELECT ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(s.power) OVER (PARTITION BY s.activity_id ORDER BY s.time_offset RANGE BETWEEN 59 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams s JOIN activities a ON a.id = s.activity_id WHERE a.date >= CURRENT_DATE - interval '1 year' AND s.power > 0) s WHERE avg_p IS NOT NULL)\nUNION ALL SELECT 5, '2min', (SELECT ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 119 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power > 0) s WHERE avg_p IS NOT NULL), (SELECT ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(s.power) OVER (PARTITION BY s.activity_id ORDER BY s.time_offset RANGE BETWEEN 119 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams s JOIN activities a ON a.id = s.activity_id WHERE a.date >= CURRENT_DATE - interval '1 year' AND s.power > 0) s WHERE avg_p IS NOT NULL)\nUNION ALL SELECT 6, '5min', (SELECT ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 299 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power > 0) s WHERE avg_p IS NOT NULL), (SELECT ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(s.power) OVER (PARTITION BY s.activity_id ORDER BY s.time_offset RANGE BETWEEN 299 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams s JOIN activities a ON a.id = s.activity_id WHERE a.date >= CURRENT_DATE - interval '1 year' AND s.power > 0) s WHERE avg_p IS NOT NULL)\nUNION ALL SELECT 7, '10min', (SELECT ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 599 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power > 0) s WHERE avg_p IS NOT NULL), (SELECT ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(s.power) OVER (PARTITION BY s.activity_id ORDER BY s.time_offset RANGE BETWEEN 599 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams s JOIN activities a ON a.id = s.activity_id WHERE a.date >= CURRENT_DATE - interval '1 year' AND s.power > 0) s WHERE avg_p IS NOT NULL)\nUNION ALL SELECT 8, '20min', (SELECT ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 1199 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power > 0) s WHERE avg_p IS NOT NULL), (SELECT ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(s.power) OVER (PARTITION BY s.activity_id ORDER BY s.time_offset RANGE BETWEEN 1199 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams s JOIN activities a ON a.id = s.activity_id WHERE a.date >= CURRENT_DATE - interval '1 year' AND s.power > 0) s WHERE avg_p IS NOT NULL)\nUNION ALL SELECT 9, '60min', (SELECT ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 3599 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power > 0) s WHERE avg_p IS NOT NULL), (SELECT ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(s.power) OVER (PARTITION BY s.activity_id ORDER BY s.time_offset RANGE BETWEEN 3599 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams s JOIN activities a ON a.id = s.activity_id WHERE a.date >= CURRENT_DATE - interval '1 year' AND s.power > 0) s WHERE avg_p IS NOT NULL)\n) d WHERE d.this_ride IS NOT NULL OR d.all_time IS NOT NULL ORDER BY d.ord;",
+          "rawSql": "SELECT d.label AS \"Duration\", d.best_power AS \"Best Avg Power (W)\" FROM (\nSELECT 1 AS ord, '5s' AS label, ROUND(MAX(avg_p)::numeric, 0) AS best_power FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 4 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 2, '10s', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 9 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 3, '30s', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 29 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 4, '1min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 59 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 5, '2min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 119 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 6, '5min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 299 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 7, '10min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 599 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 8, '20min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 1199 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 9, '60min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 3599 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\n) d WHERE d.best_power IS NOT NULL ORDER BY d.ord;",
           "format": "table",
           "refId": "A"
         }
@@ -1676,32 +1676,13 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "This Ride (W)"
+              "options": "Best Avg Power (W)"
             },
             "properties": [
               {
                 "id": "color",
                 "value": {
                   "fixedColor": "#8b5cf6",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "unit",
-                "value": "watt"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "All-Time Best (W)"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#6ed0ff",
                   "mode": "fixed"
                 }
               },
@@ -1717,11 +1698,9 @@
         "orientation": "vertical",
         "xField": "Duration",
         "showValue": "always",
-        "barWidth": 0.7,
-        "stacking": "none",
-        "groupWidth": 1.0
+        "barWidth": 0.5
       },
-      "description": "Best sustained average power at each duration.\n\n\ud83d\udfe3 This ride \u2014 your best effort at each window\n\n\ud83d\udd35 All-time best \u2014 your lifetime bests for comparison\n\nSteep drop = sprinter profile.\n\nFlat curve = endurance profile."
+      "description": "Best sustained average power at each duration.\n\nShows the highest average power you held\n\nfor each time window during this ride.\n\nSteep drop = sprinter profile.\n\nFlat curve = endurance profile."
     },
     {
       "id": 41,
