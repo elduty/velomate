@@ -430,35 +430,13 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Pace"
-            },
-            "properties": [
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-background",
-                  "mode": "gradient"
-                }
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "continuous-GrYlRd"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
               "options": "Avg Speed"
             },
             "properties": [
               {
                 "id": "custom.cellOptions",
                 "value": {
-                  "type": "color-background",
-                  "mode": "gradient"
+                  "type": "color-text"
                 }
               },
               {
@@ -478,14 +456,13 @@
               {
                 "id": "custom.cellOptions",
                 "value": {
-                  "type": "color-background",
-                  "mode": "gradient"
+                  "type": "color-text"
                 }
               },
               {
                 "id": "color",
                 "value": {
-                  "mode": "continuous-blues"
+                  "mode": "continuous-GrYlRd"
                 }
               }
             ]
@@ -499,14 +476,13 @@
               {
                 "id": "custom.cellOptions",
                 "value": {
-                  "type": "color-background",
-                  "mode": "gradient"
+                  "type": "color-text"
                 }
               },
               {
                 "id": "color",
                 "value": {
-                  "mode": "continuous-purples"
+                  "mode": "continuous-GrYlRd"
                 }
               }
             ]
@@ -520,14 +496,13 @@
               {
                 "id": "custom.cellOptions",
                 "value": {
-                  "type": "color-background",
-                  "mode": "gradient"
+                  "type": "color-text"
                 }
               },
               {
                 "id": "color",
                 "value": {
-                  "mode": "continuous-blues"
+                  "mode": "continuous-GrYlRd"
                 }
               }
             ]
@@ -541,14 +516,13 @@
               {
                 "id": "custom.cellOptions",
                 "value": {
-                  "type": "color-background",
-                  "mode": "gradient"
+                  "type": "color-text"
                 }
               },
               {
                 "id": "color",
                 "value": {
-                  "mode": "continuous-YlRd"
+                  "mode": "continuous-GrYlRd"
                 }
               }
             ]
