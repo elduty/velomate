@@ -84,10 +84,10 @@
       "options": {
         "colorMode": "value",
         "graphMode": "none",
-        "textMode": "auto",
+        "textMode": "value",
         "reduceOptions": {
           "calcs": [
-            "lastNotNull"
+            "last"
           ]
         }
       },
@@ -125,10 +125,10 @@
       "options": {
         "colorMode": "value",
         "graphMode": "none",
-        "textMode": "auto",
+        "textMode": "value",
         "reduceOptions": {
           "calcs": [
-            "lastNotNull"
+            "last"
           ]
         }
       },
@@ -166,10 +166,10 @@
       "options": {
         "colorMode": "value",
         "graphMode": "none",
-        "textMode": "auto",
+        "textMode": "value",
         "reduceOptions": {
           "calcs": [
-            "lastNotNull"
+            "last"
           ]
         }
       },
@@ -207,10 +207,10 @@
       "options": {
         "colorMode": "value",
         "graphMode": "none",
-        "textMode": "auto",
+        "textMode": "value",
         "reduceOptions": {
           "calcs": [
-            "lastNotNull"
+            "last"
           ]
         }
       },
@@ -248,10 +248,10 @@
       "options": {
         "colorMode": "value",
         "graphMode": "none",
-        "textMode": "auto",
+        "textMode": "value",
         "reduceOptions": {
           "calcs": [
-            "lastNotNull"
+            "last"
           ]
         }
       },
@@ -1915,10 +1915,10 @@
       "options": {
         "colorMode": "value",
         "graphMode": "none",
-        "textMode": "auto",
+        "textMode": "value",
         "reduceOptions": {
           "calcs": [
-            "lastNotNull"
+            "last"
           ]
         }
       },
@@ -1956,10 +1956,10 @@
       "options": {
         "colorMode": "value",
         "graphMode": "none",
-        "textMode": "auto",
+        "textMode": "value",
         "reduceOptions": {
           "calcs": [
-            "lastNotNull"
+            "last"
           ]
         }
       },
@@ -1997,10 +1997,10 @@
       "options": {
         "colorMode": "value",
         "graphMode": "none",
-        "textMode": "auto",
+        "textMode": "value",
         "reduceOptions": {
           "calcs": [
-            "lastNotNull"
+            "last"
           ]
         }
       },
@@ -2038,10 +2038,10 @@
       "options": {
         "colorMode": "value",
         "graphMode": "none",
-        "textMode": "auto",
+        "textMode": "value",
         "reduceOptions": {
           "calcs": [
-            "lastNotNull"
+            "last"
           ]
         }
       },
@@ -2079,10 +2079,10 @@
       "options": {
         "colorMode": "value",
         "graphMode": "none",
-        "textMode": "auto",
+        "textMode": "value",
         "reduceOptions": {
           "calcs": [
-            "lastNotNull"
+            "last"
           ]
         }
       },
@@ -2120,10 +2120,10 @@
       "options": {
         "colorMode": "value",
         "graphMode": "none",
-        "textMode": "auto",
+        "textMode": "value",
         "reduceOptions": {
           "calcs": [
-            "lastNotNull"
+            "last"
           ]
         }
       },
@@ -2161,10 +2161,10 @@
       "options": {
         "colorMode": "value",
         "graphMode": "none",
-        "textMode": "auto",
+        "textMode": "value",
         "reduceOptions": {
           "calcs": [
-            "lastNotNull"
+            "last"
           ]
         }
       },
