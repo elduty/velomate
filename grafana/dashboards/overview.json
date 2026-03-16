@@ -1169,7 +1169,7 @@
       "id": 200,
       "type": "row",
       "title": "Fitness",
-      "collapsed": true,
+      "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -1265,8 +1265,8 @@
           "type": "stat",
           "gridPos": {
             "h": 3,
-            "w": 6,
-            "x": 12,
+            "w": 12,
+            "x": 0,
             "y": 55
           },
           "datasource": {
@@ -1372,8 +1372,8 @@
           "type": "stat",
           "gridPos": {
             "h": 3,
-            "w": 6,
-            "x": 18,
+            "w": 12,
+            "x": 12,
             "y": 55
           },
           "datasource": {
@@ -1416,7 +1416,7 @@
             "h": 8,
             "w": 24,
             "x": 0,
-            "y": 55
+            "y": 58
           },
           "datasource": {
             "type": "postgres",
@@ -1506,7 +1506,7 @@
       "id": 102,
       "type": "row",
       "title": "Outdoor Records",
-      "collapsed": true,
+      "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -1595,7 +1595,7 @@
       "id": 105,
       "type": "row",
       "title": "Ride Map",
-      "collapsed": true,
+      "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -1666,7 +1666,7 @@
       "id": 103,
       "type": "row",
       "title": "All Time Progression",
-      "collapsed": true,
+      "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -1802,7 +1802,7 @@
       "id": 104,
       "type": "row",
       "title": "Activities",
-      "collapsed": true,
+      "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
