@@ -1648,6 +1648,25 @@
                 }
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Duration (s)"
+            },
+            "properties": [
+              {
+                "id": "custom.scaleDistribution",
+                "value": {
+                  "type": "log",
+                  "log": 2
+                }
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
           }
         ]
       },
