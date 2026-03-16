@@ -805,7 +805,7 @@
       "type": "stat",
       "gridPos": {
         "h": 4,
-        "w": 5,
+        "w": 4,
         "x": 0,
         "y": 85
       },
@@ -843,8 +843,8 @@
       "type": "stat",
       "gridPos": {
         "h": 4,
-        "w": 5,
-        "x": 5,
+        "w": 4,
+        "x": 4,
         "y": 85
       },
       "datasource": {
@@ -897,8 +897,8 @@
       "type": "stat",
       "gridPos": {
         "h": 4,
-        "w": 5,
-        "x": 10,
+        "w": 4,
+        "x": 8,
         "y": 85
       },
       "datasource": {
@@ -1632,6 +1632,11 @@
           "rawSql": "SELECT d.label AS \"Duration\", d.best_power AS \"Best Avg Power (W)\" FROM (\nSELECT 1 AS ord, '5s' AS label, ROUND(MAX(avg_p)::numeric, 0) AS best_power FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 4 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 2, '10s', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 9 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 3, '30s', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 29 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 4, '1min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 59 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 5, '2min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 119 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 6, '5min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 299 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 7, '10min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 599 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 8, '20min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 1199 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 9, '60min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 3599 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\n) d WHERE d.best_power IS NOT NULL ORDER BY d.ord;",
           "format": "table",
           "refId": "A"
+        },
+        {
+          "rawSql": "SELECT d.label AS \"Duration\", d.best_power AS \"All-Time Best (W)\" FROM (\nSELECT 1 AS ord, '5s' AS label, ROUND(MAX(avg_p)::numeric, 0) AS best_power FROM (SELECT AVG(power) OVER (PARTITION BY activity_id ORDER BY time_offset RANGE BETWEEN 4 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 2, '10s', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (PARTITION BY activity_id ORDER BY time_offset RANGE BETWEEN 9 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 3, '30s', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (PARTITION BY activity_id ORDER BY time_offset RANGE BETWEEN 29 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 4, '1min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (PARTITION BY activity_id ORDER BY time_offset RANGE BETWEEN 59 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 5, '2min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (PARTITION BY activity_id ORDER BY time_offset RANGE BETWEEN 119 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 6, '5min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (PARTITION BY activity_id ORDER BY time_offset RANGE BETWEEN 299 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 7, '10min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (PARTITION BY activity_id ORDER BY time_offset RANGE BETWEEN 599 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 8, '20min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (PARTITION BY activity_id ORDER BY time_offset RANGE BETWEEN 1199 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 9, '60min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (PARTITION BY activity_id ORDER BY time_offset RANGE BETWEEN 3599 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\n) d WHERE d.best_power IS NOT NULL ORDER BY d.ord;",
+          "format": "table",
+          "refId": "B"
         }
       ],
       "fieldConfig": {
@@ -1649,6 +1654,25 @@
                 "id": "color",
                 "value": {
                   "fixedColor": "#8b5cf6",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "watt"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "All-Time Best (W)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#6ed0ff",
                   "mode": "fixed"
                 }
               },
@@ -1948,8 +1972,8 @@
       "type": "stat",
       "gridPos": {
         "h": 4,
-        "w": 5,
-        "x": 15,
+        "w": 4,
+        "x": 12,
         "y": 85
       },
       "datasource": {
@@ -1990,7 +2014,7 @@
       "gridPos": {
         "h": 4,
         "w": 4,
-        "x": 20,
+        "x": 16,
         "y": 85
       },
       "datasource": {
@@ -2020,6 +2044,47 @@
           "unit": "kJ",
           "color": {
             "fixedColor": "#8b5cf6",
+            "mode": "fixed"
+          }
+        }
+      }
+    },
+    {
+      "id": 43,
+      "title": "Suffer Score",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 85
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT suffer_score AS \"Suffer Score\" FROM activities WHERE id = ${activity_id};",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "N/A",
+          "color": {
+            "fixedColor": "dark-orange",
             "mode": "fixed"
           }
         }
