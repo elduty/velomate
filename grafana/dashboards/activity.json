@@ -2117,7 +2117,7 @@
           }
         }
       },
-      "description": "Training Impulse \u2014 HR zone-weighted effort score.\n\n< 50: Easy\n50-100: Moderate\n100-150: Hard\n150+: Race effort"
+      "description": "TRIMP (Training Impulse)\nHR zone-weighted effort score\n\n\ud83d\udd18 < 50 \u2014 Easy ride\n\ud83d\udd35 50-75 \u2014 Light effort\n\ud83d\udfe2 75-100 \u2014 Moderate\n\ud83d\udfe1 100-125 \u2014 Hard\n\ud83d\udfe0 125-150 \u2014 Very hard\n\ud83d\udd34 150+ \u2014 Race effort"
     }
   ]
 }
