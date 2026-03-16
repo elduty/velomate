@@ -832,7 +832,11 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "watt"
+          "unit": "watt",
+          "color": {
+            "fixedColor": "#8b5cf6",
+            "mode": "fixed"
+          }
         },
         "overrides": []
       },
@@ -887,6 +891,9 @@
                 "value": 0.9
               }
             ]
+          },
+          "color": {
+            "mode": "thresholds"
           }
         },
         "overrides": []
@@ -942,6 +949,9 @@
                 "value": 1.15
               }
             ]
+          },
+          "color": {
+            "mode": "thresholds"
           }
         },
         "overrides": []
