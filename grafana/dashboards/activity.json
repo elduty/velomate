@@ -406,7 +406,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 26
+        "y": 44
       },
       "datasource": {
         "type": "postgres",
@@ -437,7 +437,7 @@
         "h": 12,
         "w": 24,
         "x": 0,
-        "y": 36
+        "y": 54
       },
       "datasource": {
         "type": "postgres",
@@ -562,7 +562,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 48
+        "y": 66
       },
       "datasource": {
         "type": "postgres",
@@ -676,7 +676,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 58
+        "y": 76
       },
       "datasource": {
         "type": "postgres",
@@ -737,7 +737,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 66
+        "y": 84
       },
       "panels": []
     },
@@ -749,7 +749,7 @@
         "h": 4,
         "w": 6,
         "x": 0,
-        "y": 67
+        "y": 85
       },
       "datasource": {
         "type": "postgres",
@@ -787,7 +787,7 @@
         "h": 4,
         "w": 6,
         "x": 6,
-        "y": 67
+        "y": 85
       },
       "datasource": {
         "type": "postgres",
@@ -841,7 +841,7 @@
         "h": 4,
         "w": 6,
         "x": 12,
-        "y": 67
+        "y": 85
       },
       "datasource": {
         "type": "postgres",
@@ -895,7 +895,7 @@
         "h": 4,
         "w": 6,
         "x": 18,
-        "y": 67
+        "y": 85
       },
       "datasource": {
         "type": "postgres",
@@ -1591,6 +1591,160 @@
             ]
           }
         }
+      }
+    },
+    {
+      "id": 40,
+      "title": "Power Duration Curve",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 26
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT d.duration_label AS \"time\", d.best_power AS \"Best Power (W)\" FROM (\nSELECT 5 AS secs, '1970-01-01 00:00:05'::timestamp AS duration_label, ROUND(MAX(avg_p)::numeric, 0) AS best_power FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 4 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 10, '1970-01-01 00:00:10', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 9 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 30, '1970-01-01 00:00:30', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 29 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 60, '1970-01-01 00:01:00', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 59 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 120, '1970-01-01 00:02:00', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 119 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 300, '1970-01-01 00:05:00', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 299 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 600, '1970-01-01 00:10:00', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 599 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 1200, '1970-01-01 00:20:00', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 1199 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 3600, '1970-01-01 01:00:00', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 3599 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\n) d ORDER BY d.secs;",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "watt",
+          "color": {
+            "fixedColor": "#8b5cf6",
+            "mode": "fixed"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 3,
+            "fillOpacity": 20,
+            "pointSize": 8,
+            "showPoints": "always",
+            "lineInterpolation": "smooth",
+            "scaleDistribution": {
+              "type": "log",
+              "log": 2
+            }
+          },
+          "noValue": "No power data"
+        }
+      },
+      "options": {
+        "tooltip": {
+          "mode": "single"
+        },
+        "legend": {
+          "displayMode": "hidden"
+        }
+      }
+    },
+    {
+      "id": 41,
+      "title": "Power Distribution",
+      "type": "barchart",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 36
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT (FLOOR(power / 25) * 25)::text || '-' || (FLOOR(power / 25) * 25 + 24)::text || ' W' AS \"Power Range\", ROUND(COUNT(*)::numeric / 60, 1) AS \"Minutes\" FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0 GROUP BY FLOOR(power / 25) ORDER BY FLOOR(power / 25);",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "orientation": "vertical",
+        "xField": "Power Range",
+        "showValue": "never"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Minutes"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#8b5cf6",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "min"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 42,
+      "title": "HR Distribution",
+      "type": "barchart",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 36
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT (FLOOR(hr / 10) * 10)::text || '-' || (FLOOR(hr / 10) * 10 + 9)::text || ' bpm' AS \"HR Range\", ROUND(COUNT(*)::numeric / 60, 1) AS \"Minutes\" FROM activity_streams WHERE activity_id = ${activity_id} AND hr IS NOT NULL AND hr > 0 GROUP BY FLOOR(hr / 10) ORDER BY FLOOR(hr / 10);",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "orientation": "vertical",
+        "xField": "HR Range",
+        "showValue": "never"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Minutes"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#e74c3c",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "min"
+              }
+            ]
+          }
+        ]
       }
     }
   ]
