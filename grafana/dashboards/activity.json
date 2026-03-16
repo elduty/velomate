@@ -1669,9 +1669,7 @@
         "stacking": "normal"
       },
       "fieldConfig": {
-        "defaults": {
-          "unit": "min"
-        },
+        "defaults": {},
         "overrides": [
           {
             "matcher": {
@@ -1685,6 +1683,10 @@
                   "fixedColor": "#808080",
                   "mode": "fixed"
                 }
+              },
+              {
+                "id": "unit",
+                "value": "min"
               }
             ]
           },
@@ -1700,6 +1702,10 @@
                   "fixedColor": "#3498db",
                   "mode": "fixed"
                 }
+              },
+              {
+                "id": "unit",
+                "value": "min"
               }
             ]
           },
@@ -1715,6 +1721,10 @@
                   "fixedColor": "#2ecc71",
                   "mode": "fixed"
                 }
+              },
+              {
+                "id": "unit",
+                "value": "min"
               }
             ]
           },
@@ -1730,6 +1740,10 @@
                   "fixedColor": "#f1c40f",
                   "mode": "fixed"
                 }
+              },
+              {
+                "id": "unit",
+                "value": "min"
               }
             ]
           },
@@ -1745,6 +1759,10 @@
                   "fixedColor": "#e67e22",
                   "mode": "fixed"
                 }
+              },
+              {
+                "id": "unit",
+                "value": "min"
               }
             ]
           },
@@ -1760,6 +1778,10 @@
                   "fixedColor": "#e74c3c",
                   "mode": "fixed"
                 }
+              },
+              {
+                "id": "unit",
+                "value": "min"
               }
             ]
           }
@@ -1794,9 +1816,7 @@
         "stacking": "normal"
       },
       "fieldConfig": {
-        "defaults": {
-          "unit": "min"
-        },
+        "defaults": {},
         "overrides": [
           {
             "matcher": {
@@ -1810,6 +1830,10 @@
                   "fixedColor": "#808080",
                   "mode": "fixed"
                 }
+              },
+              {
+                "id": "unit",
+                "value": "min"
               }
             ]
           },
@@ -1825,6 +1849,10 @@
                   "fixedColor": "#3498db",
                   "mode": "fixed"
                 }
+              },
+              {
+                "id": "unit",
+                "value": "min"
               }
             ]
           },
@@ -1840,6 +1868,10 @@
                   "fixedColor": "#2ecc71",
                   "mode": "fixed"
                 }
+              },
+              {
+                "id": "unit",
+                "value": "min"
               }
             ]
           },
@@ -1855,6 +1887,10 @@
                   "fixedColor": "#f1c40f",
                   "mode": "fixed"
                 }
+              },
+              {
+                "id": "unit",
+                "value": "min"
               }
             ]
           },
@@ -1870,6 +1906,10 @@
                   "fixedColor": "#e74c3c",
                   "mode": "fixed"
                 }
+              },
+              {
+                "id": "unit",
+                "value": "min"
               }
             ]
           }
