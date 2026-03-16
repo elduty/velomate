@@ -1610,7 +1610,7 @@
       "targets": [
         {
           "rawSql": "SELECT d.label AS \"Duration\", d.best_power AS \"Best Power (W)\" FROM (\nSELECT 1 AS ord, '5s' AS label, ROUND(MAX(avg_p)::numeric, 0) AS best_power FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 4 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 2, '10s', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 9 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 3, '30s', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 29 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 4, '1m', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 59 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 5, '2m', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 119 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 6, '5m', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 299 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 7, '10m', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 599 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 8, '20m', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 1199 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 9, '60m', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 3599 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) s WHERE avg_p IS NOT NULL\n) d ORDER BY d.ord;",
-          "format": "time_series",
+          "format": "table",
           "refId": "A"
         }
       ],
@@ -1662,14 +1662,14 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT (FLOOR(power / 50) * 50)::int::text || 'W' AS \"Power\", ROUND(COUNT(*)::numeric / 60, 1) AS \"Minutes\" FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0 GROUP BY FLOOR(power / 50) ORDER BY FLOOR(power / 50);",
+          "rawSql": "SELECT (FLOOR(power / 25) * 25)::int AS \"Power (W)\", ROUND(COUNT(*)::numeric / 60, 1) AS \"Minutes\" FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0 GROUP BY FLOOR(power / 25) ORDER BY FLOOR(power / 25);",
           "format": "table",
           "refId": "A"
         }
       ],
       "options": {
         "orientation": "vertical",
-        "xField": "Power",
+        "xField": "Power (W)",
         "showValue": "never"
       },
       "fieldConfig": {
@@ -1713,14 +1713,14 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT (FLOOR(hr / 15) * 15)::int::text || ' bpm' AS \"HR\", ROUND(COUNT(*)::numeric / 60, 1) AS \"Minutes\" FROM activity_streams WHERE activity_id = ${activity_id} AND hr IS NOT NULL AND hr > 0 GROUP BY FLOOR(hr / 15) ORDER BY FLOOR(hr / 15);",
+          "rawSql": "SELECT (FLOOR(hr / 5) * 5)::int AS \"HR (bpm)\", ROUND(COUNT(*)::numeric / 60, 1) AS \"Minutes\" FROM activity_streams WHERE activity_id = ${activity_id} AND hr IS NOT NULL AND hr > 0 GROUP BY FLOOR(hr / 5) ORDER BY FLOOR(hr / 5);",
           "format": "table",
           "refId": "A"
         }
       ],
       "options": {
         "orientation": "vertical",
-        "xField": "HR",
+        "xField": "HR (bpm)",
         "showValue": "never"
       },
       "fieldConfig": {
