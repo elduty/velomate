@@ -43,7 +43,7 @@
         "name": "map_metric",
         "type": "custom",
         "label": "Map color",
-        "query": "speed_kmh,hr,power",
+        "query": "Speed : speed_kmh, Heart Rate : hr, Power : power",
         "current": {
           "text": "Speed",
           "value": "speed_kmh"
