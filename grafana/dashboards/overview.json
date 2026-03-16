@@ -262,7 +262,7 @@
         "defaults": {
           "noValue": "No data",
           "color": {
-            "fixedColor": "#F2495C",
+            "fixedColor": "#ff9830",
             "mode": "fixed"
           },
           "unit": "kcal"
@@ -1926,7 +1926,7 @@
         "defaults": {
           "noValue": "No data",
           "color": {
-            "fixedColor": "#73bf69",
+            "fixedColor": "#6ed0ff",
             "mode": "fixed"
           },
           "unit": "velocitykmh"
@@ -1968,7 +1968,7 @@
         "defaults": {
           "noValue": "No data",
           "color": {
-            "fixedColor": "#F2495C",
+            "fixedColor": "#6ed0ff",
             "mode": "fixed"
           }
         }
@@ -2050,7 +2050,7 @@
         "defaults": {
           "noValue": "No data",
           "color": {
-            "fixedColor": "#F2495C",
+            "fixedColor": "#6ed0ff",
             "mode": "fixed"
           }
         }
