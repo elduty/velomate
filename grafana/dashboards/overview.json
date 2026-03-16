@@ -82,7 +82,7 @@
         }
       ],
       "options": {
-        "colorMode": "value",
+        "colorMode": "background",
         "graphMode": "none",
         "textMode": "auto",
         "reduceOptions": {
@@ -95,8 +95,17 @@
         "defaults": {
           "noValue": "No data",
           "color": {
-            "fixedColor": "#6ed0ff",
-            "mode": "fixed"
+            "mode": "fixed",
+            "fixedColor": "dark-blue"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-blue",
+                "value": null
+              }
+            ]
           }
         }
       }
@@ -123,7 +132,7 @@
         }
       ],
       "options": {
-        "colorMode": "value",
+        "colorMode": "background",
         "graphMode": "none",
         "textMode": "auto",
         "reduceOptions": {
@@ -136,10 +145,19 @@
         "defaults": {
           "noValue": "No data",
           "color": {
-            "fixedColor": "#33658a",
-            "mode": "fixed"
+            "mode": "fixed",
+            "fixedColor": "dark-blue"
           },
-          "unit": "lengthkm"
+          "unit": "lengthkm",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-blue",
+                "value": null
+              }
+            ]
+          }
         }
       }
     },
@@ -165,7 +183,7 @@
         }
       ],
       "options": {
-        "colorMode": "value",
+        "colorMode": "background",
         "graphMode": "none",
         "textMode": "auto",
         "reduceOptions": {
@@ -178,10 +196,19 @@
         "defaults": {
           "noValue": "No data",
           "color": {
-            "fixedColor": "#ff9830",
-            "mode": "fixed"
+            "mode": "fixed",
+            "fixedColor": "dark-blue"
           },
-          "unit": "lengthm"
+          "unit": "lengthm",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-blue",
+                "value": null
+              }
+            ]
+          }
         }
       }
     },
@@ -207,7 +234,7 @@
         }
       ],
       "options": {
-        "colorMode": "value",
+        "colorMode": "background",
         "graphMode": "none",
         "textMode": "auto",
         "reduceOptions": {
@@ -220,10 +247,19 @@
         "defaults": {
           "noValue": "No data",
           "color": {
-            "fixedColor": "#6ed0ff",
-            "mode": "fixed"
+            "mode": "fixed",
+            "fixedColor": "dark-blue"
           },
-          "unit": "s"
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-blue",
+                "value": null
+              }
+            ]
+          }
         }
       }
     },
@@ -249,7 +285,7 @@
         }
       ],
       "options": {
-        "colorMode": "value",
+        "colorMode": "background",
         "graphMode": "none",
         "textMode": "auto",
         "reduceOptions": {
@@ -262,10 +298,19 @@
         "defaults": {
           "noValue": "No data",
           "color": {
-            "fixedColor": "#ff9830",
-            "mode": "fixed"
+            "mode": "fixed",
+            "fixedColor": "dark-orange"
           },
-          "unit": "kcal"
+          "unit": "kcal",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-orange",
+                "value": null
+              }
+            ]
+          }
         }
       }
     },
@@ -1695,7 +1740,7 @@
         }
       ],
       "options": {
-        "colorMode": "value",
+        "colorMode": "background",
         "graphMode": "none",
         "textMode": "auto",
         "reduceOptions": {
@@ -1708,8 +1753,17 @@
         "defaults": {
           "noValue": "No data",
           "color": {
-            "fixedColor": "#8b5cf6",
-            "mode": "fixed"
+            "mode": "fixed",
+            "fixedColor": "dark-purple"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-purple",
+                "value": null
+              }
+            ]
           }
         }
       }
@@ -1736,7 +1790,7 @@
         }
       ],
       "options": {
-        "colorMode": "value",
+        "colorMode": "background",
         "graphMode": "none",
         "textMode": "auto",
         "reduceOptions": {
@@ -1749,10 +1803,19 @@
         "defaults": {
           "noValue": "No data",
           "color": {
-            "fixedColor": "#8b5cf6",
-            "mode": "fixed"
+            "mode": "fixed",
+            "fixedColor": "dark-purple"
           },
-          "unit": "watt"
+          "unit": "watt",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-purple",
+                "value": null
+              }
+            ]
+          }
         }
       }
     },
@@ -1778,7 +1841,7 @@
         }
       ],
       "options": {
-        "colorMode": "value",
+        "colorMode": "background",
         "graphMode": "none",
         "textMode": "auto",
         "reduceOptions": {
@@ -1791,10 +1854,19 @@
         "defaults": {
           "noValue": "No data",
           "color": {
-            "fixedColor": "#6ed0ff",
-            "mode": "fixed"
+            "mode": "fixed",
+            "fixedColor": "dark-blue"
           },
-          "unit": "velocitykmh"
+          "unit": "velocitykmh",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-blue",
+                "value": null
+              }
+            ]
+          }
         }
       }
     },
@@ -1820,7 +1892,7 @@
         }
       ],
       "options": {
-        "colorMode": "value",
+        "colorMode": "background",
         "graphMode": "none",
         "textMode": "auto",
         "reduceOptions": {
@@ -1833,8 +1905,17 @@
         "defaults": {
           "noValue": "No data",
           "color": {
-            "fixedColor": "#6ed0ff",
-            "mode": "fixed"
+            "mode": "fixed",
+            "fixedColor": "dark-orange"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-orange",
+                "value": null
+              }
+            ]
           }
         }
       }
@@ -1861,7 +1942,7 @@
         }
       ],
       "options": {
-        "colorMode": "value",
+        "colorMode": "background",
         "graphMode": "none",
         "textMode": "auto",
         "reduceOptions": {
@@ -1874,8 +1955,17 @@
         "defaults": {
           "noValue": "No data",
           "color": {
-            "fixedColor": "#ff9830",
-            "mode": "fixed"
+            "mode": "fixed",
+            "fixedColor": "dark-orange"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-orange",
+                "value": null
+              }
+            ]
           }
         }
       }
@@ -1902,7 +1992,7 @@
         }
       ],
       "options": {
-        "colorMode": "value",
+        "colorMode": "background",
         "graphMode": "none",
         "textMode": "auto",
         "reduceOptions": {
@@ -1915,8 +2005,17 @@
         "defaults": {
           "noValue": "No data",
           "color": {
-            "fixedColor": "#6ed0ff",
-            "mode": "fixed"
+            "mode": "fixed",
+            "fixedColor": "dark-orange"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-orange",
+                "value": null
+              }
+            ]
           }
         }
       }
@@ -1943,7 +2042,7 @@
         }
       ],
       "options": {
-        "colorMode": "value",
+        "colorMode": "background",
         "graphMode": "none",
         "textMode": "auto",
         "reduceOptions": {
@@ -1956,10 +2055,19 @@
         "defaults": {
           "noValue": "No data",
           "color": {
-            "fixedColor": "#8b5cf6",
-            "mode": "fixed"
+            "mode": "fixed",
+            "fixedColor": "dark-purple"
           },
-          "unit": "watt"
+          "unit": "watt",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-purple",
+                "value": null
+              }
+            ]
+          }
         }
       }
     },
