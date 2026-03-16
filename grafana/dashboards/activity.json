@@ -141,7 +141,8 @@
             ]
           }
         ]
-      }
+      },
+      "description": "GPS route with color overlay.\n\nUse the Map Color dropdown to switch between:\n\n\u2022 Speed \u2014 green (fast) to red (slow)\n\n\u2022 Heart Rate \u2014 green (low) to red (high)\n\n\u2022 Power \u2014 green (low) to red (high)"
     },
     {
       "id": 31,
@@ -261,7 +262,8 @@
             ]
           }
         ]
-      }
+      },
+      "description": "Time in each heart rate zone.\n\nZones based on LTHR (lactate threshold HR),\n\nestimated as 95th percentile of your max HRs\n\nor configured via VELOAI_MAX_HR.\n\n\ud83d\udd18 Z1 < 68% \u2014 Recovery\n\n\ud83d\udd35 Z2 68-83% \u2014 Endurance\n\n\ud83d\udfe2 Z3 83-94% \u2014 Tempo\n\n\ud83d\udfe1 Z4 94-105% \u2014 Threshold\n\n\ud83d\udd34 Z5 > 105% \u2014 VO2max"
     },
     {
       "id": 32,
@@ -396,7 +398,8 @@
             ]
           }
         ]
-      }
+      },
+      "description": "Time in each power zone.\n\nZones based on FTP, estimated from best\n\n20-min power \u00d7 0.95 or configured via VELOAI_FTP.\n\n\ud83d\udd18 Z1 < 55% \u2014 Recovery\n\n\ud83d\udd35 Z2 55-75% \u2014 Endurance\n\n\ud83d\udfe2 Z3 75-90% \u2014 Tempo\n\n\ud83d\udfe1 Z4 90-105% \u2014 Threshold\n\n\ud83d\udfe0 Z5 105-120% \u2014 VO2max\n\n\ud83d\udd34 Z6 > 120% \u2014 Anaerobic"
     },
     {
       "id": 33,
@@ -427,7 +430,8 @@
           "noValue": "\u2014"
         },
         "overrides": []
-      }
+      },
+      "description": "Performance breakdown per completed kilometer.\n\n\ud83d\udfe2 = best value in that column\n\n\ud83d\udd34 = worst value in that column\n\nLast incomplete km excluded."
     },
     {
       "id": 20,
@@ -1714,7 +1718,8 @@
         "xField": "Duration",
         "showValue": "always",
         "barWidth": 0.5
-      }
+      },
+      "description": "Best sustained average power at each duration.\n\n\ud83d\udfe3 This ride \u2014 your best effort at each window\n\n\ud83d\udd35 All-time best \u2014 your lifetime bests for comparison\n\nSteep drop = sprinter profile.\n\nFlat curve = endurance profile."
     },
     {
       "id": 41,

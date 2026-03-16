@@ -1550,7 +1550,8 @@
             ]
           }
         ]
-      }
+      },
+      "description": "Best values for each metric.\n\nPeriod Best \u2014 highest in the selected time range.\n\n\u25b2 = better than previous equivalent period.\n\n\u25bc = worse than previous equivalent period.\n\nPrevious Period \u2014 same duration window before the current one.\n\nAll Time \u2014 lifetime best (outdoor only)."
     },
     {
       "id": 105,
@@ -2974,7 +2975,8 @@
         "x": 0,
         "y": 7
       },
-      "panels": []
+      "panels": [],
+      "description": "Compares the current time range against the equivalent\n\nprevious window. E.g., if viewing Last 7 days, compares\n\nagainst the 7 days before that.\n\n\ud83d\udfe2 Positive = improvement\n\n\ud83d\udd34 Negative = decline"
     },
     {
       "id": 224,
