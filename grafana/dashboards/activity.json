@@ -1623,11 +1623,11 @@
           "custom": {
             "lineWidth": 3,
             "fillOpacity": 20,
+            "spanNulls": false,
             "showPoints": "always",
             "pointSize": 6,
             "lineInterpolation": "smooth"
-          },
-          "noValue": "No power data"
+          }
         },
         "overrides": [
           {
@@ -1643,8 +1643,8 @@
               {
                 "id": "color",
                 "value": {
-                  "fixedColor": "#8b5cf6",
-                  "mode": "fixed"
+                  "mode": "fixed",
+                  "fixedColor": "#8b5cf6"
                 }
               }
             ]
@@ -1654,10 +1654,16 @@
       "options": {
         "xField": "Duration (s)",
         "tooltip": {
-          "mode": "single"
+          "mode": "multi",
+          "sort": "none"
         },
         "legend": {
-          "displayMode": "hidden"
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ]
         }
       }
     },
