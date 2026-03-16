@@ -2346,7 +2346,8 @@
             ]
           }
         }
-      }
+      },
+      "description": "Compared to the equivalent previous time window.\n\nE.g., Last 7 days vs the 7 days before that.\n\n\ud83d\udfe2 Positive = improvement\n\n\ud83d\udd34 Negative = decline"
     },
     {
       "id": 302,
@@ -2400,7 +2401,8 @@
           },
           "unit": "lengthkm"
         }
-      }
+      },
+      "description": "Compared to the equivalent previous time window.\n\nE.g., Last 7 days vs the 7 days before that.\n\n\ud83d\udfe2 Positive = improvement\n\n\ud83d\udd34 Negative = decline"
     },
     {
       "id": 303,
@@ -2454,7 +2456,8 @@
           },
           "unit": "lengthm"
         }
-      }
+      },
+      "description": "Compared to the equivalent previous time window.\n\nE.g., Last 7 days vs the 7 days before that.\n\n\ud83d\udfe2 Positive = improvement\n\n\ud83d\udd34 Negative = decline"
     },
     {
       "id": 304,
@@ -2508,7 +2511,8 @@
           },
           "unit": "dthms"
         }
-      }
+      },
+      "description": "Compared to the equivalent previous time window.\n\nE.g., Last 7 days vs the 7 days before that.\n\n\ud83d\udfe2 Positive = improvement\n\n\ud83d\udd34 Negative = decline"
     },
     {
       "id": 305,
@@ -2562,7 +2566,8 @@
           },
           "unit": "kcal"
         }
-      }
+      },
+      "description": "Compared to the equivalent previous time window.\n\nE.g., Last 7 days vs the 7 days before that.\n\n\ud83d\udfe2 Positive = improvement\n\n\ud83d\udd34 Negative = decline"
     },
     {
       "id": 306,
@@ -2615,7 +2620,8 @@
             ]
           }
         }
-      }
+      },
+      "description": "Compared to the equivalent previous time window.\n\nE.g., Last 7 days vs the 7 days before that.\n\n\ud83d\udfe2 Positive = improvement\n\n\ud83d\udd34 Negative = decline"
     },
     {
       "id": 307,
@@ -2669,7 +2675,8 @@
           },
           "unit": "watt"
         }
-      }
+      },
+      "description": "Compared to the equivalent previous time window.\n\nE.g., Last 7 days vs the 7 days before that.\n\n\ud83d\udfe2 Positive = improvement\n\n\ud83d\udd34 Negative = decline"
     },
     {
       "id": 308,
@@ -2723,7 +2730,8 @@
           },
           "unit": "velocitykmh"
         }
-      }
+      },
+      "description": "Compared to the equivalent previous time window.\n\nE.g., Last 7 days vs the 7 days before that.\n\n\ud83d\udfe2 Positive = improvement\n\n\ud83d\udd34 Negative = decline"
     },
     {
       "id": 309,
@@ -2776,7 +2784,8 @@
             ]
           }
         }
-      }
+      },
+      "description": "Compared to the equivalent previous time window.\n\nE.g., Last 7 days vs the 7 days before that.\n\n\ud83d\udfe2 Positive = improvement\n\n\ud83d\udd34 Negative = decline"
     },
     {
       "id": 310,
@@ -2829,7 +2838,8 @@
             ]
           }
         }
-      }
+      },
+      "description": "Compared to the equivalent previous time window.\n\nE.g., Last 7 days vs the 7 days before that.\n\n\ud83d\udfe2 Positive = improvement\n\n\ud83d\udd34 Negative = decline"
     },
     {
       "id": 311,
@@ -2883,7 +2893,8 @@
           },
           "unit": "watt"
         }
-      }
+      },
+      "description": "Compared to the equivalent previous time window.\n\nE.g., Last 7 days vs the 7 days before that.\n\n\ud83d\udfe2 Positive = improvement\n\n\ud83d\udd34 Negative = decline"
     },
     {
       "id": 312,
@@ -2936,7 +2947,8 @@
             ]
           }
         }
-      }
+      },
+      "description": "Compared to the equivalent previous time window.\n\nE.g., Last 7 days vs the 7 days before that.\n\n\ud83d\udfe2 Positive = improvement\n\n\ud83d\udd34 Negative = decline"
     },
     {
       "id": 500,
