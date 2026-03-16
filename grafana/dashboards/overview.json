@@ -22,20 +22,6 @@
       "icon": "dashboard"
     },
     {
-      "title": "Weekly Report",
-      "url": "/d/veloai-weekly/weekly-report",
-      "type": "link",
-      "icon": "dashboard",
-      "keepTime": true
-    },
-    {
-      "title": "Training Log",
-      "url": "/d/veloai-training-log/training-log",
-      "type": "link",
-      "icon": "dashboard",
-      "keepTime": true
-    },
-    {
       "title": "All Time Progression",
       "url": "/d/veloai-progression/all-time-progression",
       "type": "link",

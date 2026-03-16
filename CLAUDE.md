@@ -58,7 +58,7 @@ python3 -m veloai.cli
 
 - `ingestor/` — Dockerized polling service. `main.py` is the scheduler; `strava.py` handles Strava API calls; `db.py` owns schema DDL + all upserts; `fitness.py` does EMA-based CTL/ATL/TSB calculation
 - `veloai/` — CLI package. `cli.py` is the entry point; `planner.py` formats WhatsApp output; `weather.py` calls Open-Meteo; `db.py` is a read-only DB client; `config.py` loads YAML config + env vars; `route_planner.py` + `route_generator.py` handle Valhalla route creation
-- `grafana/dashboards/` — Five dashboard JSON files (overview, activity, weekly-report, training-log, year-in-review). Provisioned automatically on container start
+- `grafana/dashboards/` — Three dashboard JSON files (overview, activity, all-time-progression). Provisioned automatically on container start
 - `grafana/provisioning/` — Grafana datasource + dashboard provider YAML configs
 
 ## Important Patterns
