@@ -1717,8 +1717,9 @@
         "orientation": "vertical",
         "xField": "Duration",
         "showValue": "always",
-        "barWidth": 0.5,
-        "stacking": "none"
+        "barWidth": 1.0,
+        "stacking": "none",
+        "groupWidth": 1.0
       },
       "description": "Best sustained average power at each duration.\n\n\ud83d\udfe3 This ride \u2014 your best effort at each window\n\n\ud83d\udd35 All-time best \u2014 your lifetime bests for comparison\n\nSteep drop = sprinter profile.\n\nFlat curve = endurance profile."
     },
