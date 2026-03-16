@@ -159,7 +159,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH lthr AS (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY max_hr) AS thr FROM activities WHERE max_hr IS NOT NULL AND max_hr > 0), data AS (SELECT CASE WHEN s.hr < lthr.thr * 0.68 THEN 'z1' WHEN s.hr < lthr.thr * 0.83 THEN 'z2' WHEN s.hr < lthr.thr * 0.94 THEN 'z3' WHEN s.hr < lthr.thr * 1.05 THEN 'z4' ELSE 'z5' END AS z FROM activity_streams s, lthr WHERE s.activity_id = ${activity_id} AND s.hr IS NOT NULL AND s.hr > 0) SELECT 'HR' AS \"x\", COALESCE((SELECT ROUND(COUNT(*)::numeric/60, 1) FROM data WHERE z='z1'), 0) AS \"Z1 Recovery\", COALESCE((SELECT ROUND(COUNT(*)::numeric/60, 1) FROM data WHERE z='z2'), 0) AS \"Z2 Endurance\", COALESCE((SELECT ROUND(COUNT(*)::numeric/60, 1) FROM data WHERE z='z3'), 0) AS \"Z3 Tempo\", COALESCE((SELECT ROUND(COUNT(*)::numeric/60, 1) FROM data WHERE z='z4'), 0) AS \"Z4 Threshold\", COALESCE((SELECT ROUND(COUNT(*)::numeric/60, 1) FROM data WHERE z='z5'), 0) AS \"Z5 VO2max\";",
+          "rawSql": "WITH lthr AS (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY max_hr) AS thr FROM activities WHERE max_hr IS NOT NULL AND max_hr > 0), data AS (SELECT CASE WHEN s.hr < lthr.thr * 0.68 THEN 'z1' WHEN s.hr < lthr.thr * 0.83 THEN 'z2' WHEN s.hr < lthr.thr * 0.94 THEN 'z3' WHEN s.hr < lthr.thr * 1.05 THEN 'z4' ELSE 'z5' END AS z FROM activity_streams s, lthr WHERE s.activity_id = ${activity_id} AND s.hr IS NOT NULL AND s.hr > 0) SELECT 'HR' AS \"x\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z1'), 0) AS \"Z1 Recovery\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z2'), 0) AS \"Z2 Endurance\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z3'), 0) AS \"Z3 Tempo\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z4'), 0) AS \"Z4 Threshold\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z5'), 0) AS \"Z5 VO2max\";",
           "format": "table",
           "refId": "A"
         }
@@ -182,7 +182,7 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "min"
+          "unit": "dthms"
         },
         "overrides": [
           {
@@ -279,7 +279,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH ftp AS (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY avg_power) AS ftp_val FROM activities WHERE avg_power IS NOT NULL AND avg_power > 0), data AS (SELECT CASE WHEN s.power < ftp.ftp_val * 0.55 THEN 'z1' WHEN s.power < ftp.ftp_val * 0.75 THEN 'z2' WHEN s.power < ftp.ftp_val * 0.90 THEN 'z3' WHEN s.power < ftp.ftp_val * 1.05 THEN 'z4' WHEN s.power < ftp.ftp_val * 1.20 THEN 'z5' ELSE 'z6' END AS z FROM activity_streams s, ftp WHERE s.activity_id = ${activity_id} AND s.power IS NOT NULL AND s.power > 0) SELECT 'Power' AS \"x\", COALESCE((SELECT ROUND(COUNT(*)::numeric/60, 1) FROM data WHERE z='z1'), 0) AS \"Z1 Recovery\", COALESCE((SELECT ROUND(COUNT(*)::numeric/60, 1) FROM data WHERE z='z2'), 0) AS \"Z2 Endurance\", COALESCE((SELECT ROUND(COUNT(*)::numeric/60, 1) FROM data WHERE z='z3'), 0) AS \"Z3 Tempo\", COALESCE((SELECT ROUND(COUNT(*)::numeric/60, 1) FROM data WHERE z='z4'), 0) AS \"Z4 Threshold\", COALESCE((SELECT ROUND(COUNT(*)::numeric/60, 1) FROM data WHERE z='z5'), 0) AS \"Z5 VO2max\", COALESCE((SELECT ROUND(COUNT(*)::numeric/60, 1) FROM data WHERE z='z6'), 0) AS \"Z6 Anaerobic\";",
+          "rawSql": "WITH ftp AS (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY avg_power) AS ftp_val FROM activities WHERE avg_power IS NOT NULL AND avg_power > 0), data AS (SELECT CASE WHEN s.power < ftp.ftp_val * 0.55 THEN 'z1' WHEN s.power < ftp.ftp_val * 0.75 THEN 'z2' WHEN s.power < ftp.ftp_val * 0.90 THEN 'z3' WHEN s.power < ftp.ftp_val * 1.05 THEN 'z4' WHEN s.power < ftp.ftp_val * 1.20 THEN 'z5' ELSE 'z6' END AS z FROM activity_streams s, ftp WHERE s.activity_id = ${activity_id} AND s.power IS NOT NULL AND s.power > 0) SELECT 'Power' AS \"x\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z1'), 0) AS \"Z1 Recovery\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z2'), 0) AS \"Z2 Endurance\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z3'), 0) AS \"Z3 Tempo\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z4'), 0) AS \"Z4 Threshold\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z5'), 0) AS \"Z5 VO2max\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z6'), 0) AS \"Z6 Anaerobic\";",
           "format": "table",
           "refId": "A"
         }
@@ -302,7 +302,7 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "min"
+          "unit": "dthms"
         },
         "overrides": [
           {
