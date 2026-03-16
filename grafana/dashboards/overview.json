@@ -2976,7 +2976,7 @@
     {
       "id": 224,
       "title": "Weekly Streak",
-      "description": "Consecutive weeks with at least one cycling ride.\nCounts from your most recent riding week backwards.",
+      "description": "Consecutive weeks with at least one cycling ride.\n\nCounts from your most recent riding week backwards.",
       "type": "stat",
       "gridPos": {
         "h": 3,
@@ -3018,7 +3018,7 @@
     {
       "id": 225,
       "title": "Days Since Ride",
-      "description": "Days since your last cycling activity.\nCounts any ride type (outdoor, indoor, Zwift).",
+      "description": "Days since your last cycling activity.\n\nCounts any ride type (outdoor, indoor, Zwift).",
       "type": "stat",
       "gridPos": {
         "h": 3,

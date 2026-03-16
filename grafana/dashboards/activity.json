@@ -840,7 +840,7 @@
         },
         "overrides": []
       },
-      "description": "Normalized Power (NP)\nWhat the ride \"felt like\" in watts\n\n30s rolling average raised to 4th power,\nthen root-averaged. Accounts for surges \u2014\nhard efforts cost disproportionately more.\n\nNP > Avg Power = variable effort\nNP \u2248 Avg Power = steady effort"
+      "description": "Normalized Power (NP)\n\nWhat the ride \"felt like\" in watts\n\n\n\n30s rolling average raised to 4th power,\n\nthen root-averaged. Accounts for surges \u2014\n\nhard efforts cost disproportionately more.\n\n\n\nNP > Avg Power = variable effort\n\nNP \u2248 Avg Power = steady effort"
     },
     {
       "id": 35,
@@ -898,7 +898,7 @@
         },
         "overrides": []
       },
-      "description": "Intensity Factor (IF)\nNP \u00f7 FTP \u2014 how hard was this ride?\n\n\ud83d\udd18 < 0.6 \u2014 Recovery\n\ud83d\udd35 0.6-0.7 \u2014 Easy endurance\n\ud83d\udfe2 0.7-0.85 \u2014 Tempo / group ride\n\ud83d\udfe1 0.85-0.95 \u2014 Threshold work\n\ud83d\udfe0 0.95-1.05 \u2014 Race effort\n\ud83d\udd34 > 1.05 \u2014 Short max effort"
+      "description": "Intensity Factor (IF)\n\nNP \u00f7 FTP \u2014 how hard was this ride?\n\n\n\n\ud83d\udd18 < 0.6 \u2014 Recovery\n\n\ud83d\udd35 0.6-0.7 \u2014 Easy endurance\n\n\ud83d\udfe2 0.7-0.85 \u2014 Tempo / group ride\n\n\ud83d\udfe1 0.85-0.95 \u2014 Threshold work\n\n\ud83d\udfe0 0.95-1.05 \u2014 Race effort\n\n\ud83d\udd34 > 1.05 \u2014 Short max effort"
     },
     {
       "id": 36,
@@ -956,7 +956,7 @@
         },
         "overrides": []
       },
-      "description": "Variability Index (VI)\nNP \u00f7 Avg Power \u2014 how steady was your pacing?\n\n\ud83d\udfe2 1.00-1.05 \u2014 Very smooth (TT, ERG mode)\n\ud83d\udfe1 1.05-1.15 \u2014 Normal (group ride, rolling terrain)\n\ud83d\udd34 > 1.15 \u2014 Very spiky (crits, stop-start)\n\nLower VI at same NP = more efficient pacing"
+      "description": "Variability Index (VI)\n\nNP \u00f7 Avg Power \u2014 how steady was your pacing?\n\n\n\n\ud83d\udfe2 1.00-1.05 \u2014 Very smooth (TT, ERG mode)\n\n\ud83d\udfe1 1.05-1.15 \u2014 Normal (group ride, rolling terrain)\n\n\ud83d\udd34 > 1.15 \u2014 Very spiky (crits, stop-start)\n\n\n\nLower VI at same NP = more efficient pacing"
     },
     {
       "id": 1,
@@ -2019,7 +2019,7 @@
           }
         }
       },
-      "description": "Efficiency Factor (EF)\nNP \u00f7 Avg HR \u2014 aerobic efficiency\n\nHigher = fitter (more watts per heartbeat)\n\nTrack over months:\n\ud83d\udcc8 EF rising at same NP = fitness improving\n\ud83d\udcc9 EF dropping = fatigue, heat, or detraining\n\nCompare similar ride types and conditions"
+      "description": "Efficiency Factor (EF)\n\nNP \u00f7 Avg HR \u2014 aerobic efficiency\n\n\n\nHigher = fitter (more watts per heartbeat)\n\n\n\nTrack over months:\n\n\ud83d\udcc8 EF rising at same NP = fitness improving\n\n\ud83d\udcc9 EF dropping = fatigue, heat, or detraining\n\n\n\nCompare similar ride types and conditions"
     },
     {
       "id": 39,
@@ -2062,7 +2062,7 @@
           }
         }
       },
-      "description": "Work (kJ)\nTotal mechanical energy output\n\nAvg Power \u00d7 Duration \u00f7 1000\n\nRoughly equals calories burned:\n1 kJ \u2248 1 kcal (at ~25% human efficiency)\n\nUseful for fueling: match kJ with food intake"
+      "description": "Work (kJ)\n\nTotal mechanical energy output\n\n\n\nAvg Power \u00d7 Duration \u00f7 1000\n\n\n\nRoughly equals calories burned:\n\n1 kJ \u2248 1 kcal (at ~25% human efficiency)\n\n\n\nUseful for fueling: match kJ with food intake"
     },
     {
       "id": 43,
@@ -2132,7 +2132,7 @@
           }
         }
       },
-      "description": "TRIMP (Training Impulse)\nHR zone-weighted effort score\n\n\ud83d\udd18 < 50 \u2014 Easy ride\n\ud83d\udd35 50-75 \u2014 Light effort\n\ud83d\udfe2 75-100 \u2014 Moderate\n\ud83d\udfe1 100-125 \u2014 Hard\n\ud83d\udfe0 125-150 \u2014 Very hard\n\ud83d\udd34 150+ \u2014 Race effort"
+      "description": "TRIMP (Training Impulse)\n\nHR zone-weighted effort score\n\n\n\n\ud83d\udd18 < 50 \u2014 Easy ride\n\n\ud83d\udd35 50-75 \u2014 Light effort\n\n\ud83d\udfe2 75-100 \u2014 Moderate\n\n\ud83d\udfe1 100-125 \u2014 Hard\n\n\ud83d\udfe0 125-150 \u2014 Very hard\n\n\ud83d\udd34 150+ \u2014 Race effort"
     }
   ]
 }
