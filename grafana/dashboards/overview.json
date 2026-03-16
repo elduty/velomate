@@ -1773,7 +1773,8 @@
                   {
                     "id": "custom.cellOptions",
                     "value": {
-                      "type": "color-text"
+                      "type": "color-background",
+                      "mode": "basic"
                     }
                   }
                 ]
@@ -1787,7 +1788,8 @@
                   {
                     "id": "custom.cellOptions",
                     "value": {
-                      "type": "color-text"
+                      "type": "color-background",
+                      "mode": "basic"
                     }
                   },
                   {
