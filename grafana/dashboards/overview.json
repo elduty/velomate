@@ -76,7 +76,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT COUNT(*)::text || ' (' || CASE WHEN (COUNT(*) - COALESCE((SELECT COUNT(*) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz), 0)) >= 0 THEN '+' ELSE '' END || (COUNT(*) - COALESCE((SELECT COUNT(*) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz), 0))::text || ')' AS \"v\" FROM activities WHERE $__timeFilter(date);",
+          "rawSql": "SELECT CASE WHEN COUNT(*) = 0 THEN 'No data' ELSE COUNT(*)::text || ' (' || CASE WHEN ((COUNT(*) - COALESCE((SELECT COUNT(*) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz), 0))) >= 0 THEN '+' ELSE '' END || ((COUNT(*) - COALESCE((SELECT COUNT(*) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz), 0)))::text || ')' END AS \"v\" FROM activities WHERE $__timeFilter(date);",
           "format": "table",
           "refId": "A"
         }
@@ -117,7 +117,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND(COALESCE(SUM(distance_m / 1000.0), 0)::numeric, 1)::text || ' km (' || CASE WHEN (ROUND(COALESCE(SUM(distance_m / 1000.0), 0)::numeric, 1) - COALESCE((SELECT ROUND(SUM(distance_m / 1000.0)::numeric, 1) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz ), 0)) >= 0 THEN '+' ELSE '' END || (ROUND(COALESCE(SUM(distance_m / 1000.0), 0)::numeric, 1) - COALESCE((SELECT ROUND(SUM(distance_m / 1000.0)::numeric, 1) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz ), 0))::text || ')' AS \"v\" FROM activities WHERE $__timeFilter(date) ;",
+          "rawSql": "SELECT CASE WHEN ROUND(SUM(distance_m / 1000.0)::numeric, 1) IS NULL THEN 'No data' ELSE ROUND(SUM(distance_m / 1000.0)::numeric, 1)::text || ' km (' || CASE WHEN (COALESCE(ROUND(SUM(distance_m / 1000.0)::numeric, 1), 0) - COALESCE((SELECT ROUND(SUM(distance_m / 1000.0)::numeric, 1) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz ), 0)) >= 0 THEN '+' ELSE '' END || (COALESCE(ROUND(SUM(distance_m / 1000.0)::numeric, 1), 0) - COALESCE((SELECT ROUND(SUM(distance_m / 1000.0)::numeric, 1) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz ), 0))::text || ')' END AS \"v\" FROM activities WHERE $__timeFilter(date) ;",
           "format": "table",
           "refId": "A"
         }
@@ -158,7 +158,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND(COALESCE(SUM(elevation_m), 0)::numeric, 0)::text || ' m (' || CASE WHEN (ROUND(COALESCE(SUM(elevation_m), 0)::numeric, 0) - COALESCE((SELECT ROUND(SUM(elevation_m)::numeric, 0) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz ), 0)) >= 0 THEN '+' ELSE '' END || (ROUND(COALESCE(SUM(elevation_m), 0)::numeric, 0) - COALESCE((SELECT ROUND(SUM(elevation_m)::numeric, 0) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz ), 0))::text || ')' AS \"v\" FROM activities WHERE $__timeFilter(date) ;",
+          "rawSql": "SELECT CASE WHEN ROUND(SUM(elevation_m)::numeric, 0) IS NULL THEN 'No data' ELSE ROUND(SUM(elevation_m)::numeric, 0)::text || ' m (' || CASE WHEN (COALESCE(ROUND(SUM(elevation_m)::numeric, 0), 0) - COALESCE((SELECT ROUND(SUM(elevation_m)::numeric, 0) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz ), 0)) >= 0 THEN '+' ELSE '' END || (COALESCE(ROUND(SUM(elevation_m)::numeric, 0), 0) - COALESCE((SELECT ROUND(SUM(elevation_m)::numeric, 0) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz ), 0))::text || ')' END AS \"v\" FROM activities WHERE $__timeFilter(date) ;",
           "format": "table",
           "refId": "A"
         }
@@ -199,7 +199,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT TO_CHAR(COALESCE(SUM(duration_s), 0) * interval '1 second', 'HH24:MI') || ' (' || CASE WHEN (COALESCE(SUM(duration_s), 0) - COALESCE((SELECT SUM(duration_s) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz), 0)) >= 0 THEN '+' ELSE '' END || ROUND((COALESCE(SUM(duration_s), 0) - COALESCE((SELECT SUM(duration_s) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz), 0)) / 60.0::numeric, 0)::text || 'm)' AS \"v\" FROM activities WHERE $__timeFilter(date);",
+          "rawSql": "SELECT CASE WHEN SUM(duration_s) IS NULL THEN 'No data' ELSE TO_CHAR(COALESCE(SUM(duration_s), 0) * interval '1 second', 'HH24:MI') || ' (' || CASE WHEN (ROUND((COALESCE(SUM(duration_s), 0) - COALESCE((SELECT SUM(duration_s) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz), 0)) / 60.0::numeric, 0)) >= 0 THEN '+' ELSE '' END || (ROUND((COALESCE(SUM(duration_s), 0) - COALESCE((SELECT SUM(duration_s) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz), 0)) / 60.0::numeric, 0))::text || 'm)' END AS \"v\" FROM activities WHERE $__timeFilter(date);",
           "format": "table",
           "refId": "A"
         }
@@ -240,7 +240,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND(COALESCE(SUM(calories), 0)::numeric, 0)::text || ' kcal (' || CASE WHEN (ROUND(COALESCE(SUM(calories), 0)::numeric, 0) - COALESCE((SELECT ROUND(SUM(calories)::numeric, 0) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND calories IS NOT NULL), 0)) >= 0 THEN '+' ELSE '' END || (ROUND(COALESCE(SUM(calories), 0)::numeric, 0) - COALESCE((SELECT ROUND(SUM(calories)::numeric, 0) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND calories IS NOT NULL), 0))::text || ')' AS \"v\" FROM activities WHERE $__timeFilter(date) AND calories IS NOT NULL;",
+          "rawSql": "SELECT CASE WHEN ROUND(SUM(calories)::numeric, 0) IS NULL THEN 'No data' ELSE ROUND(SUM(calories)::numeric, 0)::text || ' kcal (' || CASE WHEN (COALESCE(ROUND(SUM(calories)::numeric, 0), 0) - COALESCE((SELECT ROUND(SUM(calories)::numeric, 0) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND calories IS NOT NULL), 0)) >= 0 THEN '+' ELSE '' END || (COALESCE(ROUND(SUM(calories)::numeric, 0), 0) - COALESCE((SELECT ROUND(SUM(calories)::numeric, 0) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND calories IS NOT NULL), 0))::text || ')' END AS \"v\" FROM activities WHERE $__timeFilter(date) AND calories IS NOT NULL;",
           "format": "table",
           "refId": "A"
         }
@@ -1907,7 +1907,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND(COALESCE(SUM(tss), 0)::numeric, 0)::text || '  (' || CASE WHEN (ROUND(COALESCE(SUM(tss), 0)::numeric, 0) - COALESCE((SELECT ROUND(SUM(tss)::numeric, 0) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz ), 0)) >= 0 THEN '+' ELSE '' END || (ROUND(COALESCE(SUM(tss), 0)::numeric, 0) - COALESCE((SELECT ROUND(SUM(tss)::numeric, 0) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz ), 0))::text || ')' AS \"v\" FROM activities WHERE $__timeFilter(date) ;",
+          "rawSql": "SELECT CASE WHEN ROUND(SUM(tss)::numeric, 0) IS NULL THEN 'No data' ELSE ROUND(SUM(tss)::numeric, 0)::text || '  (' || CASE WHEN (COALESCE(ROUND(SUM(tss)::numeric, 0), 0) - COALESCE((SELECT ROUND(SUM(tss)::numeric, 0) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz ), 0)) >= 0 THEN '+' ELSE '' END || (COALESCE(ROUND(SUM(tss)::numeric, 0), 0) - COALESCE((SELECT ROUND(SUM(tss)::numeric, 0) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz ), 0))::text || ')' END AS \"v\" FROM activities WHERE $__timeFilter(date) ;",
           "format": "table",
           "refId": "A"
         }
@@ -1948,7 +1948,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND(AVG(avg_power)::numeric, 0)::text || ' W (' || CASE WHEN (ROUND(AVG(avg_power)::numeric, 0) - COALESCE((SELECT ROUND(AVG(avg_power)::numeric, 0) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND avg_power > 0), 0)) >= 0 THEN '+' ELSE '' END || ROUND((ROUND(AVG(avg_power)::numeric, 0) - COALESCE((SELECT ROUND(AVG(avg_power)::numeric, 0) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND avg_power > 0), 0))::numeric, 0)::text || ')' AS \"v\" FROM activities WHERE $__timeFilter(date) AND avg_power > 0;",
+          "rawSql": "SELECT CASE WHEN ROUND(AVG(avg_power)::numeric, 0) IS NULL THEN 'No data' ELSE ROUND(AVG(avg_power)::numeric, 0)::text || ' W (' || CASE WHEN (ROUND((COALESCE(ROUND(AVG(avg_power)::numeric, 0), 0) - COALESCE((SELECT ROUND(AVG(avg_power)::numeric, 0) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND avg_power > 0), 0))::numeric, 0)) >= 0 THEN '+' ELSE '' END || (ROUND((COALESCE(ROUND(AVG(avg_power)::numeric, 0), 0) - COALESCE((SELECT ROUND(AVG(avg_power)::numeric, 0) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND avg_power > 0), 0))::numeric, 0))::text || ')' END AS \"v\" FROM activities WHERE $__timeFilter(date) AND avg_power > 0;",
           "format": "table",
           "refId": "A"
         }
@@ -1989,7 +1989,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND(AVG(avg_speed_kmh)::numeric, 1)::text || ' km/h (' || CASE WHEN (ROUND(AVG(avg_speed_kmh)::numeric, 1) - COALESCE((SELECT ROUND(AVG(avg_speed_kmh)::numeric, 1) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND avg_speed_kmh > 0 AND distance_m > 5000), 0)) >= 0 THEN '+' ELSE '' END || ROUND((ROUND(AVG(avg_speed_kmh)::numeric, 1) - COALESCE((SELECT ROUND(AVG(avg_speed_kmh)::numeric, 1) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND avg_speed_kmh > 0 AND distance_m > 5000), 0))::numeric, 1)::text || ')' AS \"v\" FROM activities WHERE $__timeFilter(date) AND avg_speed_kmh > 0 AND distance_m > 5000;",
+          "rawSql": "SELECT CASE WHEN ROUND(AVG(avg_speed_kmh)::numeric, 1) IS NULL THEN 'No data' ELSE ROUND(AVG(avg_speed_kmh)::numeric, 1)::text || ' km/h (' || CASE WHEN (ROUND((COALESCE(ROUND(AVG(avg_speed_kmh)::numeric, 1), 0) - COALESCE((SELECT ROUND(AVG(avg_speed_kmh)::numeric, 1) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND avg_speed_kmh > 0 AND distance_m > 5000), 0))::numeric, 1)) >= 0 THEN '+' ELSE '' END || (ROUND((COALESCE(ROUND(AVG(avg_speed_kmh)::numeric, 1), 0) - COALESCE((SELECT ROUND(AVG(avg_speed_kmh)::numeric, 1) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND avg_speed_kmh > 0 AND distance_m > 5000), 0))::numeric, 1))::text || ')' END AS \"v\" FROM activities WHERE $__timeFilter(date) AND avg_speed_kmh > 0 AND distance_m > 5000;",
           "format": "table",
           "refId": "A"
         }
@@ -2030,7 +2030,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND(AVG(avg_hr)::numeric, 0)::text || ' bpm (' || CASE WHEN (ROUND(AVG(avg_hr)::numeric, 0) - COALESCE((SELECT ROUND(AVG(avg_hr)::numeric, 0) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND avg_hr > 0), 0)) >= 0 THEN '+' ELSE '' END || ROUND((ROUND(AVG(avg_hr)::numeric, 0) - COALESCE((SELECT ROUND(AVG(avg_hr)::numeric, 0) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND avg_hr > 0), 0))::numeric, 0)::text || ')' AS \"v\" FROM activities WHERE $__timeFilter(date) AND avg_hr > 0;",
+          "rawSql": "SELECT CASE WHEN ROUND(AVG(avg_hr)::numeric, 0) IS NULL THEN 'No data' ELSE ROUND(AVG(avg_hr)::numeric, 0)::text || ' bpm (' || CASE WHEN (ROUND((COALESCE(ROUND(AVG(avg_hr)::numeric, 0), 0) - COALESCE((SELECT ROUND(AVG(avg_hr)::numeric, 0) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND avg_hr > 0), 0))::numeric, 0)) >= 0 THEN '+' ELSE '' END || (ROUND((COALESCE(ROUND(AVG(avg_hr)::numeric, 0), 0) - COALESCE((SELECT ROUND(AVG(avg_hr)::numeric, 0) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND avg_hr > 0), 0))::numeric, 0))::text || ')' END AS \"v\" FROM activities WHERE $__timeFilter(date) AND avg_hr > 0;",
           "format": "table",
           "refId": "A"
         }
@@ -2071,7 +2071,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND(AVG(avg_cadence)::numeric, 0)::text || ' rpm (' || CASE WHEN (ROUND(AVG(avg_cadence)::numeric, 0) - COALESCE((SELECT ROUND(AVG(avg_cadence)::numeric, 0) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND avg_cadence > 0), 0)) >= 0 THEN '+' ELSE '' END || ROUND((ROUND(AVG(avg_cadence)::numeric, 0) - COALESCE((SELECT ROUND(AVG(avg_cadence)::numeric, 0) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND avg_cadence > 0), 0))::numeric, 0)::text || ')' AS \"v\" FROM activities WHERE $__timeFilter(date) AND avg_cadence > 0;",
+          "rawSql": "SELECT CASE WHEN ROUND(AVG(avg_cadence)::numeric, 0) IS NULL THEN 'No data' ELSE ROUND(AVG(avg_cadence)::numeric, 0)::text || ' rpm (' || CASE WHEN (ROUND((COALESCE(ROUND(AVG(avg_cadence)::numeric, 0), 0) - COALESCE((SELECT ROUND(AVG(avg_cadence)::numeric, 0) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND avg_cadence > 0), 0))::numeric, 0)) >= 0 THEN '+' ELSE '' END || (ROUND((COALESCE(ROUND(AVG(avg_cadence)::numeric, 0), 0) - COALESCE((SELECT ROUND(AVG(avg_cadence)::numeric, 0) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND avg_cadence > 0), 0))::numeric, 0))::text || ')' END AS \"v\" FROM activities WHERE $__timeFilter(date) AND avg_cadence > 0;",
           "format": "table",
           "refId": "A"
         }
@@ -2112,7 +2112,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT MAX(max_hr)::text || ' bpm (' || CASE WHEN (MAX(max_hr) - COALESCE((SELECT MAX(max_hr) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND max_hr > 0), 0)) >= 0 THEN '+' ELSE '' END || (MAX(max_hr) - COALESCE((SELECT MAX(max_hr) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND max_hr > 0), 0))::text || ')' AS \"v\" FROM activities WHERE $__timeFilter(date) AND max_hr > 0;",
+          "rawSql": "SELECT CASE WHEN MAX(max_hr) IS NULL THEN 'No data' ELSE MAX(max_hr)::text || ' bpm (' || CASE WHEN (COALESCE(MAX(max_hr), 0) - COALESCE((SELECT MAX(max_hr) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND max_hr > 0), 0)) >= 0 THEN '+' ELSE '' END || (COALESCE(MAX(max_hr), 0) - COALESCE((SELECT MAX(max_hr) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND max_hr > 0), 0))::text || ')' END AS \"v\" FROM activities WHERE $__timeFilter(date) AND max_hr > 0;",
           "format": "table",
           "refId": "A"
         }
@@ -2153,7 +2153,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT MAX(max_power)::text || ' W (' || CASE WHEN (MAX(max_power) - COALESCE((SELECT MAX(max_power) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND max_power > 0), 0)) >= 0 THEN '+' ELSE '' END || (MAX(max_power) - COALESCE((SELECT MAX(max_power) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND max_power > 0), 0))::text || ')' AS \"v\" FROM activities WHERE $__timeFilter(date) AND max_power > 0;",
+          "rawSql": "SELECT CASE WHEN MAX(max_power) IS NULL THEN 'No data' ELSE MAX(max_power)::text || ' W (' || CASE WHEN (COALESCE(MAX(max_power), 0) - COALESCE((SELECT MAX(max_power) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND max_power > 0), 0)) >= 0 THEN '+' ELSE '' END || (COALESCE(MAX(max_power), 0) - COALESCE((SELECT MAX(max_power) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND max_power > 0), 0))::text || ')' END AS \"v\" FROM activities WHERE $__timeFilter(date) AND max_power > 0;",
           "format": "table",
           "refId": "A"
         }
