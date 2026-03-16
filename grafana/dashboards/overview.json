@@ -68,7 +68,7 @@
         "h": 3,
         "w": 4,
         "x": 0,
-        "y": 0
+        "y": 1
       },
       "datasource": {
         "type": "postgres",
@@ -109,7 +109,7 @@
         "h": 3,
         "w": 4,
         "x": 4,
-        "y": 0
+        "y": 1
       },
       "datasource": {
         "type": "postgres",
@@ -151,7 +151,7 @@
         "h": 3,
         "w": 4,
         "x": 8,
-        "y": 0
+        "y": 1
       },
       "datasource": {
         "type": "postgres",
@@ -193,7 +193,7 @@
         "h": 3,
         "w": 4,
         "x": 12,
-        "y": 0
+        "y": 1
       },
       "datasource": {
         "type": "postgres",
@@ -235,7 +235,7 @@
         "h": 3,
         "w": 4,
         "x": 16,
-        "y": 0
+        "y": 1
       },
       "datasource": {
         "type": "postgres",
@@ -277,7 +277,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 6
+        "y": 14
       },
       "datasource": {
         "type": "postgres",
@@ -389,7 +389,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 22
+        "y": 30
       },
       "datasource": {
         "type": "postgres",
@@ -501,7 +501,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 6
+        "y": 14
       },
       "datasource": {
         "type": "postgres",
@@ -613,7 +613,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 14
+        "y": 22
       },
       "datasource": {
         "type": "postgres",
@@ -725,7 +725,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 30
+        "y": 38
       },
       "datasource": {
         "type": "postgres",
@@ -837,7 +837,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 22
+        "y": 30
       },
       "datasource": {
         "type": "postgres",
@@ -949,7 +949,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 38
+        "y": 46
       },
       "datasource": {
         "type": "postgres",
@@ -1061,7 +1061,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 38
+        "y": 46
       },
       "datasource": {
         "type": "postgres",
@@ -1174,7 +1174,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 53
+        "y": 54
       },
       "panels": [
         {
@@ -1185,7 +1185,7 @@
             "h": 3,
             "w": 6,
             "x": 0,
-            "y": 54
+            "y": 55
           },
           "datasource": {
             "type": "postgres",
@@ -1226,7 +1226,7 @@
             "h": 3,
             "w": 6,
             "x": 6,
-            "y": 54
+            "y": 55
           },
           "datasource": {
             "type": "postgres",
@@ -1267,7 +1267,7 @@
             "h": 3,
             "w": 6,
             "x": 12,
-            "y": 54
+            "y": 55
           },
           "datasource": {
             "type": "postgres",
@@ -1374,7 +1374,7 @@
             "h": 3,
             "w": 6,
             "x": 18,
-            "y": 54
+            "y": 55
           },
           "datasource": {
             "type": "postgres",
@@ -1416,7 +1416,7 @@
             "h": 8,
             "w": 24,
             "x": 0,
-            "y": 57
+            "y": 55
           },
           "datasource": {
             "type": "postgres",
@@ -1511,7 +1511,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 54
+        "y": 55
       },
       "panels": [
         {
@@ -1522,7 +1522,7 @@
             "h": 10,
             "w": 24,
             "x": 0,
-            "y": 55
+            "y": 56
           },
           "datasource": {
             "type": "postgres",
@@ -1600,7 +1600,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 56
+        "y": 57
       },
       "panels": [
         {
@@ -1611,7 +1611,7 @@
             "h": 14,
             "w": 24,
             "x": 0,
-            "y": 56
+            "y": 58
           },
           "datasource": {
             "type": "postgres",
@@ -1671,7 +1671,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 57
+        "y": 58
       },
       "panels": [
         {
@@ -1682,7 +1682,7 @@
             "h": 8,
             "w": 8,
             "x": 0,
-            "y": 58
+            "y": 59
           },
           "datasource": {
             "type": "postgres",
@@ -1725,7 +1725,7 @@
             "h": 8,
             "w": 8,
             "x": 8,
-            "y": 58
+            "y": 59
           },
           "datasource": {
             "type": "postgres",
@@ -1768,7 +1768,7 @@
             "h": 8,
             "w": 8,
             "x": 16,
-            "y": 58
+            "y": 59
           },
           "datasource": {
             "type": "postgres",
@@ -1807,7 +1807,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 55
+        "y": 56
       },
       "panels": [
         {
@@ -1818,7 +1818,7 @@
             "h": 10,
             "w": 24,
             "x": 0,
-            "y": 58
+            "y": 57
           },
           "datasource": {
             "type": "postgres",
@@ -1903,7 +1903,7 @@
         "h": 3,
         "w": 4,
         "x": 20,
-        "y": 0
+        "y": 1
       },
       "datasource": {
         "type": "postgres",
@@ -1944,7 +1944,7 @@
         "h": 3,
         "w": 4,
         "x": 0,
-        "y": 3
+        "y": 4
       },
       "datasource": {
         "type": "postgres",
@@ -1986,7 +1986,7 @@
         "h": 3,
         "w": 4,
         "x": 4,
-        "y": 3
+        "y": 4
       },
       "datasource": {
         "type": "postgres",
@@ -2028,7 +2028,7 @@
         "h": 3,
         "w": 4,
         "x": 8,
-        "y": 3
+        "y": 4
       },
       "datasource": {
         "type": "postgres",
@@ -2069,7 +2069,7 @@
         "h": 3,
         "w": 4,
         "x": 12,
-        "y": 3
+        "y": 4
       },
       "datasource": {
         "type": "postgres",
@@ -2110,7 +2110,7 @@
         "h": 3,
         "w": 4,
         "x": 20,
-        "y": 3
+        "y": 4
       },
       "datasource": {
         "type": "postgres",
@@ -2151,7 +2151,7 @@
         "h": 3,
         "w": 4,
         "x": 16,
-        "y": 3
+        "y": 4
       },
       "datasource": {
         "type": "postgres",
@@ -2193,7 +2193,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 14
+        "y": 22
       },
       "datasource": {
         "type": "postgres",
@@ -2305,7 +2305,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 30
+        "y": 38
       },
       "datasource": {
         "type": "postgres",
@@ -2410,19 +2410,6 @@
       }
     },
     {
-      "id": 300,
-      "type": "row",
-      "title": "vs Previous Period",
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 46
-      },
-      "panels": []
-    },
-    {
       "id": 301,
       "title": "\u0394 Rides",
       "type": "stat",
@@ -2430,7 +2417,7 @@
         "h": 3,
         "w": 4,
         "x": 0,
-        "y": 47
+        "y": 7
       },
       "datasource": {
         "type": "postgres",
@@ -2483,7 +2470,7 @@
         "h": 3,
         "w": 4,
         "x": 4,
-        "y": 47
+        "y": 7
       },
       "datasource": {
         "type": "postgres",
@@ -2537,7 +2524,7 @@
         "h": 3,
         "w": 4,
         "x": 8,
-        "y": 47
+        "y": 7
       },
       "datasource": {
         "type": "postgres",
@@ -2591,7 +2578,7 @@
         "h": 3,
         "w": 4,
         "x": 12,
-        "y": 47
+        "y": 7
       },
       "datasource": {
         "type": "postgres",
@@ -2645,7 +2632,7 @@
         "h": 3,
         "w": 4,
         "x": 16,
-        "y": 47
+        "y": 7
       },
       "datasource": {
         "type": "postgres",
@@ -2699,7 +2686,7 @@
         "h": 3,
         "w": 4,
         "x": 20,
-        "y": 47
+        "y": 7
       },
       "datasource": {
         "type": "postgres",
@@ -2752,7 +2739,7 @@
         "h": 3,
         "w": 4,
         "x": 0,
-        "y": 50
+        "y": 10
       },
       "datasource": {
         "type": "postgres",
@@ -2806,7 +2793,7 @@
         "h": 3,
         "w": 4,
         "x": 4,
-        "y": 50
+        "y": 10
       },
       "datasource": {
         "type": "postgres",
@@ -2860,7 +2847,7 @@
         "h": 3,
         "w": 4,
         "x": 8,
-        "y": 50
+        "y": 10
       },
       "datasource": {
         "type": "postgres",
@@ -2913,7 +2900,7 @@
         "h": 3,
         "w": 4,
         "x": 12,
-        "y": 50
+        "y": 10
       },
       "datasource": {
         "type": "postgres",
@@ -2966,7 +2953,7 @@
         "h": 3,
         "w": 4,
         "x": 16,
-        "y": 50
+        "y": 10
       },
       "datasource": {
         "type": "postgres",
@@ -3020,7 +3007,7 @@
         "h": 3,
         "w": 4,
         "x": 20,
-        "y": 50
+        "y": 10
       },
       "datasource": {
         "type": "postgres",
@@ -3064,6 +3051,32 @@
           }
         }
       }
+    },
+    {
+      "id": 500,
+      "type": "row",
+      "title": "Period Summary",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "panels": []
+    },
+    {
+      "id": 501,
+      "type": "row",
+      "title": "Daily Charts",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 13
+      },
+      "panels": []
     }
   ]
 }
