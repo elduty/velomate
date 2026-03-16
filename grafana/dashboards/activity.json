@@ -167,8 +167,18 @@
       "options": {
         "orientation": "horizontal",
         "xField": "x",
-        "showValue": "always",
-        "stacking": "normal"
+        "showValue": "never",
+        "stacking": "normal",
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
       },
       "fieldConfig": {
         "defaults": {
@@ -277,8 +287,18 @@
       "options": {
         "orientation": "horizontal",
         "xField": "x",
-        "showValue": "always",
-        "stacking": "normal"
+        "showValue": "never",
+        "stacking": "normal",
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
       },
       "fieldConfig": {
         "defaults": {
