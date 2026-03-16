@@ -1880,7 +1880,8 @@
                 "modelType": "linear"
               }
             }
-          ]
+          ],
+          "timeFrom": "10y"
         },
         {
           "id": 401,
@@ -1922,7 +1923,8 @@
                 "modelType": "linear"
               }
             }
-          ]
+          ],
+          "timeFrom": "10y"
         },
         {
           "id": 402,
@@ -1957,7 +1959,8 @@
                 "lineWidth": 2
               }
             }
-          }
+          },
+          "timeFrom": "10y"
         }
       ]
     },
