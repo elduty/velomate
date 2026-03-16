@@ -789,7 +789,7 @@
     {
       "id": 106,
       "type": "row",
-      "title": "Advanced Metrics",
+      "title": "Power Metrics",
       "collapsed": false,
       "gridPos": {
         "h": 1,
@@ -805,7 +805,7 @@
       "type": "stat",
       "gridPos": {
         "h": 4,
-        "w": 6,
+        "w": 5,
         "x": 0,
         "y": 85
       },
@@ -843,8 +843,8 @@
       "type": "stat",
       "gridPos": {
         "h": 4,
-        "w": 6,
-        "x": 6,
+        "w": 5,
+        "x": 5,
         "y": 85
       },
       "datasource": {
@@ -897,8 +897,8 @@
       "type": "stat",
       "gridPos": {
         "h": 4,
-        "w": 6,
-        "x": 12,
+        "w": 5,
+        "x": 10,
         "y": 85
       },
       "datasource": {
@@ -941,44 +941,6 @@
               }
             ]
           }
-        },
-        "overrides": []
-      }
-    },
-    {
-      "id": 37,
-      "title": "Best Efforts",
-      "type": "stat",
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 18,
-        "y": 85
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "veloai"
-      },
-      "targets": [
-        {
-          "rawSql": "WITH rolling AS (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 299 PRECEDING AND CURRENT ROW) AS avg_5min, AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 1199 PRECEDING AND CURRENT ROW) AS avg_20min FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0) SELECT ROUND(MAX(avg_5min)::numeric, 0) AS \"Best 5min (W)\", ROUND(MAX(avg_20min)::numeric, 0) AS \"Best 20min (W)\" FROM rolling;",
-          "format": "table",
-          "refId": "A"
-        }
-      ],
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        }
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "watt"
         },
         "overrides": []
       }
@@ -1978,6 +1940,89 @@
             ]
           }
         ]
+      }
+    },
+    {
+      "id": 38,
+      "title": "Efficiency Factor",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 15,
+        "y": 85
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "WITH rolling AS (SELECT AVG(power) OVER (ORDER BY time_offset RANGE BETWEEN 29 PRECEDING AND CURRENT ROW) AS rolling_30s FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0), np AS (SELECT POWER(AVG(POWER(rolling_30s, 4)), 0.25) AS np_val FROM rolling WHERE rolling_30s IS NOT NULL) SELECT ROUND((np.np_val / a.avg_hr)::numeric, 2) AS \"EF\" FROM np, activities a WHERE a.id = ${activity_id} AND a.avg_hr > 0;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "N/A",
+          "color": {
+            "fixedColor": "#8b5cf6",
+            "mode": "fixed"
+          }
+        }
+      }
+    },
+    {
+      "id": 39,
+      "title": "Work",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 85
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND((avg_power * duration_s / 1000.0)::numeric, 0) AS \"Work (kJ)\" FROM activities WHERE id = ${activity_id} AND avg_power > 0;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "N/A",
+          "unit": "kJ",
+          "color": {
+            "fixedColor": "#8b5cf6",
+            "mode": "fixed"
+          }
+        }
       }
     }
   ]
