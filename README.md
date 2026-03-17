@@ -1,24 +1,24 @@
 # VeloAI 🚴
 
-A self-hosted cycling data platform — automatic ride ingestion from Strava, Grafana dashboards for analytics, and intelligent route planning.
+A self-hosted cycling data platform — automatic ride ingestion from Strava, Grafana dashboards for analytics, and intelligent route planning. **No Strava Premium required** — all metrics (fitness, power zones, training load, TRIMP) are computed locally from raw data.
 
 Inspired by [TeslaMate](https://github.com/teslamate-org/teslamate). Works with any device that syncs to Strava.
 
 ## Features
 
 ### Data Ingestion
-- Polls Strava every 10 minutes for new rides
+- Polls Strava every 10 minutes for new cycling rides (non-cycling activities filtered)
 - Stores full per-second telemetry (HR, power, cadence, speed, altitude, GPS)
 - Calculates CTL/ATL/TSB fitness metrics locally (no Strava Premium needed)
+- TRIMP (Training Impulse) computed from HR stream data (no Strava Premium needed)
 - FTP auto-estimated from rolling 90-day best 20-minute power, or configured manually
+- Daily fitness recalculation at 00:05 (rest days show CTL/ATL decay)
 - Smart deduplication when multiple devices record the same ride
 
-### Grafana Dashboards (5 dashboards)
-- **Overview** — hero stats, weekly/monthly volume, training load (TSS), records & progress trends, year in review, lifetime ride heatmap
-- **Activity Detail** — GPS route map with speed/HR/power color overlay, HR and power zone distribution, per-km splits, normalized power, intensity factor, variability index
-- **Fitness Trends** — CTL/ATL/TSB over time with PR annotations
-- **Weekly Report** — week summary, week-over-week comparison, daily breakdown, HR zones
-- **Training Log** — chronological ride table with drill-down, cumulative distance and TSS
+### Grafana Dashboards (3 dashboards)
+- **Overview** — 12 stat cards with period comparison, 10 daily charts (distance, duration, elevation, speed, power, cadence, HR, calories, rides, TSS — all split by ride type), fitness section (CTL/ATL/TSB/FTP/streak), outdoor records table, activities table with drill-down, lifetime ride heatmap
+- **Activity Details** — 12 stat cards, GPS route map with speed/HR/power color overlay, HR and power zones (Coggan model, zone-colored), power and HR distributions, power duration curve, speed & elevation / HR & power / cadence & grade telemetry, per-km splits with best/worst markers, power metrics (NP, IF, VI, EF, Work, TRIMP)
+- **All Time Progression** — speed, power, HR, distance, efficiency factor progression with regression lines, cumulative distance/elevation/duration/rides/TSS, all-time fitness history, monthly trends, year-over-year comparison
 
 ### Intelligent Route Planning
 - Generates real road-following GPX loops via [Valhalla](https://github.com/valhalla/valhalla) (free, OpenStreetMap-based)
