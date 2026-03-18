@@ -61,9 +61,9 @@
         "name": "sport_type",
         "type": "custom",
         "label": "Sport Type",
-        "query": "all,cycling_outdoor,zwift,ebike,cycling_indoor",
+        "query": "All : all, Outdoor : cycling_outdoor, Zwift : zwift, E-Bike : ebike, Indoor : cycling_indoor",
         "current": {
-          "text": "all",
+          "text": "All",
           "value": "all"
         },
         "options": [
@@ -650,72 +650,14 @@
       "id": 105,
       "type": "row",
       "title": "Ride Map",
-      "collapsed": true,
+      "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
         "y": 89
       },
-      "panels": [
-        {
-          "id": 30,
-          "title": "Lifetime Rides",
-          "type": "geomap",
-          "gridPos": {
-            "h": 14,
-            "w": 24,
-            "x": 0,
-            "y": 90
-          },
-          "datasource": {
-            "type": "postgres",
-            "uid": "veloai"
-          },
-          "targets": [
-            {
-              "rawSql": "SELECT s.lat AS \"latitude\", s.lng AS \"longitude\", a.date AS \"time\" FROM activity_streams s JOIN activities a ON a.id = s.activity_id WHERE s.lat IS NOT NULL AND s.lng IS NOT NULL AND a.is_indoor IS NOT TRUE AND s.time_offset % 10 = 0 ORDER BY a.date, s.time_offset LIMIT 500000;",
-              "format": "table",
-              "refId": "A"
-            }
-          ],
-          "options": {
-            "view": {
-              "id": "fit",
-              "lat": 0,
-              "lon": 0,
-              "zoom": 11
-            },
-            "layers": [
-              {
-                "type": "markers",
-                "name": "Rides",
-                "config": {
-                  "showLegend": false,
-                  "style": {
-                    "color": {
-                      "fixed": "#ff9830"
-                    },
-                    "opacity": 0.3,
-                    "size": {
-                      "fixed": 2
-                    }
-                  }
-                },
-                "location": {
-                  "mode": "coords",
-                  "latitude": "latitude",
-                  "longitude": "longitude"
-                }
-              }
-            ]
-          },
-          "fieldConfig": {
-            "defaults": {},
-            "overrides": []
-          }
-        }
-      ]
+      "panels": []
     },
     {
       "id": 104,
@@ -2049,6 +1991,63 @@
         ]
       },
       "description": "Activity summary — energy output and riding frequency per ."
+    },
+    {
+      "id": 30,
+      "title": "Ride Map",
+      "type": "geomap",
+      "gridPos": {
+        "h": 14,
+        "w": 24,
+        "x": 0,
+        "y": 90
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT s.lat AS \"latitude\", s.lng AS \"longitude\", a.date AS \"time\" FROM activity_streams s JOIN activities a ON a.id = s.activity_id WHERE $__timeFilter(a.date) AND s.lat IS NOT NULL AND s.lng IS NOT NULL AND a.is_indoor IS NOT TRUE AND s.time_offset % 10 = 0 ORDER BY a.date, s.time_offset LIMIT 500000;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "view": {
+          "id": "fit",
+          "lat": 0,
+          "lon": 0,
+          "zoom": 11
+        },
+        "layers": [
+          {
+            "type": "markers",
+            "name": "Rides",
+            "config": {
+              "showLegend": false,
+              "style": {
+                "color": {
+                  "fixed": "#ff9830"
+                },
+                "opacity": 0.3,
+                "size": {
+                  "fixed": 2
+                }
+              }
+            },
+            "location": {
+              "mode": "coords",
+              "latitude": "latitude",
+              "longitude": "longitude"
+            }
+          }
+        ]
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
     }
   ]
 }
