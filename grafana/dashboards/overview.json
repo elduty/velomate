@@ -2003,8 +2003,8 @@
             "drawStyle": "line",
             "lineWidth": 2,
             "fillOpacity": 8,
-            "pointSize": 4,
-            "showPoints": "never",
+            "pointSize": 5,
+            "showPoints": "auto",
             "spanNulls": 604800000,
             "stacking": {
               "mode": "none"
@@ -2094,8 +2094,8 @@
             "drawStyle": "line",
             "lineWidth": 2,
             "fillOpacity": 8,
-            "pointSize": 4,
-            "showPoints": "never",
+            "pointSize": 5,
+            "showPoints": "auto",
             "spanNulls": 604800000,
             "stacking": {
               "mode": "none"
@@ -2185,8 +2185,8 @@
             "drawStyle": "line",
             "lineWidth": 2,
             "fillOpacity": 8,
-            "pointSize": 4,
-            "showPoints": "never",
+            "pointSize": 5,
+            "showPoints": "auto",
             "spanNulls": 604800000,
             "stacking": {
               "mode": "none"
@@ -2277,8 +2277,8 @@
             "drawStyle": "line",
             "lineWidth": 2,
             "fillOpacity": 8,
-            "pointSize": 4,
-            "showPoints": "never",
+            "pointSize": 5,
+            "showPoints": "auto",
             "spanNulls": 604800000,
             "stacking": {
               "mode": "none"
@@ -2369,8 +2369,8 @@
             "drawStyle": "line",
             "lineWidth": 2,
             "fillOpacity": 8,
-            "pointSize": 4,
-            "showPoints": "never",
+            "pointSize": 5,
+            "showPoints": "auto",
             "spanNulls": 604800000,
             "stacking": {
               "mode": "none"
