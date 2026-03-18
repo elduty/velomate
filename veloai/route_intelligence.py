@@ -556,7 +556,7 @@ def get_ride_density(lat: float, lng: float, radius_km: float, days: int = 30, c
                 SELECT s.lat, s.lng
                 FROM activity_streams s
                 JOIN activities a ON a.id = s.activity_id
-                WHERE a.date >= CURRENT_DATE - interval '%s days'
+                WHERE a.date >= CURRENT_DATE - interval '1 day' * %s
                   AND s.lat IS NOT NULL AND s.lng IS NOT NULL
                   AND s.time_offset %% 30 = 0
                   AND ABS(s.lat - %s) < %s AND ABS(s.lng - %s) < %s

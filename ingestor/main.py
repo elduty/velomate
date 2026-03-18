@@ -88,19 +88,29 @@ def run():
         conn.close()
 
     # Persist configured FTP/HR to sync_state so dashboards can read them
-    conn = get_connection()
     try:
         from db import set_sync_state
         env_ftp = os.environ.get("VELOAI_FTP", "")
         env_hr = os.environ.get("VELOAI_MAX_HR", "")
-        if env_ftp and int(env_ftp) > 0:
-            set_sync_state(conn, "configured_ftp", env_ftp)
-            print(f"[main] Configured FTP: {env_ftp}W")
-        if env_hr and int(env_hr) > 0:
-            set_sync_state(conn, "configured_max_hr", env_hr)
-            print(f"[main] Configured Max HR: {env_hr}")
-    finally:
-        conn.close()
+        if env_ftp or env_hr:
+            conn = get_connection()
+            try:
+                if env_ftp:
+                    ftp = int(env_ftp)
+                    if ftp > 0:
+                        set_sync_state(conn, "configured_ftp", env_ftp)
+                        print(f"[main] Configured FTP: {env_ftp}W")
+                if env_hr:
+                    hr = int(env_hr)
+                    if hr > 0:
+                        set_sync_state(conn, "configured_max_hr", env_hr)
+                        print(f"[main] Configured Max HR: {env_hr}")
+            finally:
+                conn.close()
+    except (ValueError, TypeError) as e:
+        print(f"[main] Invalid FTP/HR env var (skipping): {e}")
+    except Exception as e:
+        print(f"[main] Could not persist FTP/HR to sync_state (skipping): {e}")
 
     # Backfill on first run if no activities yet
     if not has_data:
