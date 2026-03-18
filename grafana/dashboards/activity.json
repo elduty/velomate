@@ -1663,7 +1663,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Best Avg Power (W)"
+              "options": "This Ride (W)"
             },
             "properties": [
               {
