@@ -142,3 +142,86 @@ class TestScoreWeather:
         # precip 20 → -50, wind 45 → -40, temp 3 → -30, code 95 → -15
         # 100-50-40-30-15 = -35 → clamped to 0
         assert _score_weather(precip=20, wind=45, temp_max=3, code=95) == 0
+
+
+# ---------------------------------------------------------------------------
+# best_ride_hours
+# ---------------------------------------------------------------------------
+
+from veloai.weather import best_ride_hours
+
+
+class TestBestRideHours:
+    def _hour(self, hour, temp=22, wind=10, uv=3, precip=0, wind_dir=180):
+        return {
+            "time": f"2026-03-15T{hour:02d}:00",
+            "temp": temp,
+            "wind": wind,
+            "uv": uv,
+            "precip": precip,
+            "wind_direction": wind_dir,
+        }
+
+    def test_returns_only_requested_date(self):
+        hours = [self._hour(10), self._hour(14),
+                 {**self._hour(10), "time": "2026-03-16T10:00"}]
+        result = best_ride_hours(hours, "2026-03-15")
+        assert len(result) == 2
+
+    def test_filters_to_daylight(self):
+        """Only hours 6-20 included."""
+        hours = [self._hour(5), self._hour(6), self._hour(20), self._hour(21)]
+        result = best_ride_hours(hours, "2026-03-15")
+        assert len(result) == 2
+
+    def test_sorted_by_score_descending(self):
+        hours = [self._hour(8, temp=22), self._hour(14, temp=2)]
+        result = best_ride_hours(hours, "2026-03-15")
+        assert result[0]["score"] >= result[1]["score"]
+
+    def test_perfect_hour_scores_100(self):
+        hours = [self._hour(10, temp=22, wind=10, uv=3, precip=0)]
+        result = best_ride_hours(hours, "2026-03-15")
+        assert result[0]["score"] == 100
+
+    def test_cold_penalty(self):
+        hours = [self._hour(10, temp=3)]
+        result = best_ride_hours(hours, "2026-03-15")
+        assert result[0]["score"] == 70  # -30 for <5°C
+
+    def test_hot_penalty(self):
+        hours = [self._hour(14, temp=39)]
+        result = best_ride_hours(hours, "2026-03-15")
+        assert result[0]["score"] == 70  # -30 for >38°C
+
+    def test_wind_penalty(self):
+        hours = [self._hour(10, wind=35)]
+        result = best_ride_hours(hours, "2026-03-15")
+        assert result[0]["score"] == 75  # -25 for >30
+
+    def test_heavy_rain_penalty(self):
+        hours = [self._hour(10, precip=5)]
+        result = best_ride_hours(hours, "2026-03-15")
+        assert result[0]["score"] == 60  # -40 for >2
+
+    def test_uv_extreme_penalty(self):
+        hours = [self._hour(14, uv=11)]
+        result = best_ride_hours(hours, "2026-03-15")
+        assert result[0]["score"] == 75  # -25 for >=11
+
+    def test_uv_high_penalty(self):
+        hours = [self._hour(14, uv=8)]
+        result = best_ride_hours(hours, "2026-03-15")
+        assert result[0]["score"] == 85  # -15 for >=8
+
+    def test_score_clamped_to_zero(self):
+        hours = [self._hour(10, temp=2, wind=45, precip=5, uv=11)]
+        result = best_ride_hours(hours, "2026-03-15")
+        assert result[0]["score"] == 0
+
+    def test_empty_input(self):
+        assert best_ride_hours([], "2026-03-15") == []
+
+    def test_no_matching_date(self):
+        hours = [self._hour(10)]
+        assert best_ride_hours(hours, "2026-03-20") == []
