@@ -141,7 +141,7 @@
           }
         ]
       },
-      "description": "GPS route with color overlay.\n\nUse the Map Color dropdown to switch between:\n\n\u2022 Speed \u2014 green (fast) to red (slow)\n\n\u2022 Heart Rate \u2014 green (low) to red (high)\n\n\u2022 Power \u2014 green (low) to red (high)"
+      "description": "GPS route with color overlay.\n\nUse the Map Color dropdown to switch between:\n\n• Speed — green (fast) to red (slow)\n\n• Heart Rate — green (low) to red (high)\n\n• Power — green (low) to red (high)"
     },
     {
       "id": 31,
@@ -151,7 +151,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 18
+        "y": 23
       },
       "datasource": {
         "type": "postgres",
@@ -262,7 +262,7 @@
           }
         ]
       },
-      "description": "Time in each heart rate zone.\n\nZones based on LTHR (lactate threshold HR),\n\nestimated as 95th percentile of your max HRs\n\nor configured via VELOAI_MAX_HR.\n\n\ud83d\udd18 Z1 < 68% \u2014 Recovery\n\n\ud83d\udd35 Z2 68-83% \u2014 Endurance\n\n\ud83d\udfe2 Z3 83-94% \u2014 Tempo\n\n\ud83d\udfe1 Z4 94-105% \u2014 Threshold\n\n\ud83d\udd34 Z5 > 105% \u2014 VO2max"
+      "description": "Time in each heart rate zone.\n\nZones based on LTHR (lactate threshold HR),\n\nestimated as 95th percentile of your max HRs\n\nor configured via VELOAI_MAX_HR.\n\n🔘 Z1 < 68% — Recovery\n\n🔵 Z2 68-83% — Endurance\n\n🟢 Z3 83-94% — Tempo\n\n🟡 Z4 94-105% — Threshold\n\n🔴 Z5 > 105% — VO2max"
     },
     {
       "id": 32,
@@ -272,7 +272,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 18
+        "y": 23
       },
       "datasource": {
         "type": "postgres",
@@ -398,17 +398,17 @@
           }
         ]
       },
-      "description": "Time in each power zone.\n\nZones based on FTP, estimated from best\n\n20-min power \u00d7 0.95 or configured via VELOAI_FTP.\n\n\ud83d\udd18 Z1 < 55% \u2014 Recovery\n\n\ud83d\udd35 Z2 55-75% \u2014 Endurance\n\n\ud83d\udfe2 Z3 75-90% \u2014 Tempo\n\n\ud83d\udfe1 Z4 90-105% \u2014 Threshold\n\n\ud83d\udfe0 Z5 105-120% \u2014 VO2max\n\n\ud83d\udd34 Z6 > 120% \u2014 Anaerobic"
+      "description": "Time in each power zone.\n\nZones based on FTP, estimated from best\n\n20-min power × 0.95 or configured via VELOAI_FTP.\n\n🔘 Z1 < 55% — Recovery\n\n🔵 Z2 55-75% — Endurance\n\n🟢 Z3 75-90% — Tempo\n\n🟡 Z4 90-105% — Threshold\n\n🟠 Z5 105-120% — VO2max\n\n🔴 Z6 > 120% — Anaerobic"
     },
     {
       "id": 33,
       "title": "Per-km Splits",
       "type": "table",
       "gridPos": {
-        "h": 10,
+        "h": 8,
         "w": 24,
         "x": 0,
-        "y": 44
+        "y": 41
       },
       "datasource": {
         "type": "postgres",
@@ -416,7 +416,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH deltas AS (SELECT time_offset, hr, power, speed_kmh, altitude_m, cadence, COALESCE(speed_kmh, 0) / 3600.0 * (time_offset - LAG(time_offset, 1, time_offset) OVER (ORDER BY time_offset)) AS dist_delta, altitude_m - LAG(altitude_m) OVER (ORDER BY time_offset) AS alt_delta FROM activity_streams WHERE activity_id = ${activity_id}), cumulative AS (SELECT time_offset, hr, power, speed_kmh, altitude_m, cadence, alt_delta, SUM(dist_delta) OVER (ORDER BY time_offset ROWS UNBOUNDED PRECEDING) AS dist_km FROM deltas), splits AS (SELECT FLOOR(dist_km)::int + 1 AS km, COUNT(*) AS seconds, ROUND(AVG(speed_kmh)::numeric, 1) AS avg_speed, ROUND(AVG(hr)::numeric, 0) AS avg_hr, ROUND(AVG(NULLIF(power, 0))::numeric, 0) AS avg_power, ROUND(AVG(NULLIF(cadence, 0))::numeric, 0) AS avg_cadence, ROUND(COALESCE(SUM(CASE WHEN alt_delta > 0 THEN alt_delta ELSE 0 END), 0)::numeric, 0) AS elev_gain FROM cumulative WHERE dist_km >= 0 GROUP BY FLOOR(dist_km)::int) SELECT km AS \"KM\", CASE WHEN seconds = MIN(seconds) OVER () THEN '\ud83d\udfe2 ' WHEN seconds = MAX(seconds) OVER () THEN '\ud83d\udd34 ' ELSE '' END || TO_CHAR(seconds * interval '1 second', 'MI:SS') AS \"Pace\", CASE WHEN avg_speed = MAX(avg_speed) OVER () THEN '\ud83d\udfe2 ' WHEN avg_speed = MIN(avg_speed) OVER () THEN '\ud83d\udd34 ' ELSE '' END || avg_speed::text AS \"Avg Speed\", CASE WHEN avg_hr IS NULL THEN '\u2014' WHEN avg_hr = MIN(avg_hr) OVER () THEN '\ud83d\udfe2 ' || avg_hr::text WHEN avg_hr = MAX(avg_hr) OVER () THEN '\ud83d\udd34 ' || avg_hr::text ELSE avg_hr::text END AS \"Avg HR\", CASE WHEN avg_power IS NULL THEN '\u2014' WHEN avg_power = MAX(avg_power) OVER () THEN '\ud83d\udfe2 ' || avg_power::text WHEN avg_power = MIN(avg_power) OVER () THEN '\ud83d\udd34 ' || avg_power::text ELSE avg_power::text END AS \"Avg Power\", CASE WHEN avg_cadence IS NULL THEN '\u2014' WHEN avg_cadence = MAX(avg_cadence) OVER () THEN '\ud83d\udfe2 ' || avg_cadence::text WHEN avg_cadence = MIN(avg_cadence) OVER () THEN '\ud83d\udd34 ' || avg_cadence::text ELSE avg_cadence::text END AS \"Cadence\", elev_gain AS \"Elev Gain (m)\" FROM splits WHERE km < (SELECT MAX(km) FROM splits) ORDER BY km;",
+          "rawSql": "WITH deltas AS (SELECT time_offset, hr, power, speed_kmh, altitude_m, cadence, COALESCE(speed_kmh, 0) / 3600.0 * (time_offset - LAG(time_offset, 1, time_offset) OVER (ORDER BY time_offset)) AS dist_delta, altitude_m - LAG(altitude_m) OVER (ORDER BY time_offset) AS alt_delta FROM activity_streams WHERE activity_id = ${activity_id}), cumulative AS (SELECT time_offset, hr, power, speed_kmh, altitude_m, cadence, alt_delta, SUM(dist_delta) OVER (ORDER BY time_offset ROWS UNBOUNDED PRECEDING) AS dist_km FROM deltas), splits AS (SELECT FLOOR(dist_km)::int + 1 AS km, COUNT(*) AS seconds, ROUND(AVG(speed_kmh)::numeric, 1) AS avg_speed, ROUND(AVG(hr)::numeric, 0) AS avg_hr, ROUND(AVG(NULLIF(power, 0))::numeric, 0) AS avg_power, ROUND(AVG(NULLIF(cadence, 0))::numeric, 0) AS avg_cadence, ROUND(COALESCE(SUM(CASE WHEN alt_delta > 0 THEN alt_delta ELSE 0 END), 0)::numeric, 0) AS elev_gain FROM cumulative WHERE dist_km >= 0 GROUP BY FLOOR(dist_km)::int) SELECT km AS \"KM\", CASE WHEN seconds = MIN(seconds) OVER () THEN '🟢 ' WHEN seconds = MAX(seconds) OVER () THEN '🔴 ' ELSE '' END || TO_CHAR(seconds * interval '1 second', 'MI:SS') AS \"Pace\", CASE WHEN avg_speed = MAX(avg_speed) OVER () THEN '🟢 ' WHEN avg_speed = MIN(avg_speed) OVER () THEN '🔴 ' ELSE '' END || avg_speed::text AS \"Avg Speed\", CASE WHEN avg_hr IS NULL THEN '—' WHEN avg_hr = MIN(avg_hr) OVER () THEN '🟢 ' || avg_hr::text WHEN avg_hr = MAX(avg_hr) OVER () THEN '🔴 ' || avg_hr::text ELSE avg_hr::text END AS \"Avg HR\", CASE WHEN avg_power IS NULL THEN '—' WHEN avg_power = MAX(avg_power) OVER () THEN '🟢 ' || avg_power::text WHEN avg_power = MIN(avg_power) OVER () THEN '🔴 ' || avg_power::text ELSE avg_power::text END AS \"Avg Power\", CASE WHEN avg_cadence IS NULL THEN '—' WHEN avg_cadence = MAX(avg_cadence) OVER () THEN '🟢 ' || avg_cadence::text WHEN avg_cadence = MIN(avg_cadence) OVER () THEN '🔴 ' || avg_cadence::text ELSE avg_cadence::text END AS \"Cadence\", elev_gain AS \"Elev Gain (m)\" FROM splits WHERE km < (SELECT MAX(km) FROM splits) ORDER BY km;",
           "format": "table",
           "refId": "A"
         }
@@ -426,11 +426,11 @@
       },
       "fieldConfig": {
         "defaults": {
-          "noValue": "\u2014"
+          "noValue": "—"
         },
         "overrides": []
       },
-      "description": "Performance breakdown per completed kilometer.\n\n\ud83d\udfe2 = best value in that column\n\n\ud83d\udd34 = worst value in that column\n\nLast incomplete km excluded."
+      "description": "Performance breakdown per completed kilometer.\n\n🟢 = best value in that column\n\n🔴 = worst value in that column\n\nLast incomplete km excluded."
     },
     {
       "id": 20,
@@ -440,7 +440,7 @@
         "h": 12,
         "w": 24,
         "x": 0,
-        "y": 54
+        "y": 49
       },
       "datasource": {
         "type": "postgres",
@@ -565,7 +565,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 66
+        "y": 61
       },
       "datasource": {
         "type": "postgres",
@@ -679,7 +679,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 76
+        "y": 71
       },
       "datasource": {
         "type": "postgres",
@@ -798,7 +798,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 82
+        "y": 18
       },
       "panels": []
     },
@@ -810,7 +810,7 @@
         "h": 4,
         "w": 4,
         "x": 0,
-        "y": 83
+        "y": 19
       },
       "datasource": {
         "type": "postgres",
@@ -844,7 +844,7 @@
         },
         "overrides": []
       },
-      "description": "Normalized Power (NP)\n\nWhat the ride \"felt like\" in watts\n\n\n\n30s rolling average raised to 4th power,\n\nthen root-averaged. Accounts for surges \u2014\n\nhard efforts cost disproportionately more.\n\n\n\nNP > Avg Power = variable effort\n\nNP \u2248 Avg Power = steady effort"
+      "description": "Normalized Power (NP)\n\nWhat the ride \"felt like\" in watts\n\n\n\n30s rolling average raised to 4th power,\n\nthen root-averaged. Accounts for surges —\n\nhard efforts cost disproportionately more.\n\n\n\nNP > Avg Power = variable effort\n\nNP ≈ Avg Power = steady effort"
     },
     {
       "id": 35,
@@ -854,7 +854,7 @@
         "h": 4,
         "w": 4,
         "x": 4,
-        "y": 83
+        "y": 19
       },
       "datasource": {
         "type": "postgres",
@@ -915,7 +915,7 @@
         },
         "overrides": []
       },
-      "description": "Intensity Factor (IF)\n\nNP \u00f7 FTP \u2014 how hard was this ride?\n\n\n\n\ud83d\udd18 < 0.6 \u2014 Recovery\n\n\ud83d\udd35 0.6-0.7 \u2014 Easy endurance\n\n\ud83d\udfe2 0.7-0.85 \u2014 Tempo / group ride\n\n\ud83d\udfe1 0.85-0.95 \u2014 Threshold work\n\n\ud83d\udfe0 0.95-1.05 \u2014 Race effort\n\n\ud83d\udd34 > 1.05 \u2014 Short max effort"
+      "description": "Intensity Factor (IF)\n\nNP ÷ FTP — how hard was this ride?\n\n\n\n🔘 < 0.6 — Recovery\n\n🔵 0.6-0.7 — Easy endurance\n\n🟢 0.7-0.85 — Tempo / group ride\n\n🟡 0.85-0.95 — Threshold work\n\n🟠 0.95-1.05 — Race effort\n\n🔴 > 1.05 — Short max effort"
     },
     {
       "id": 36,
@@ -925,7 +925,7 @@
         "h": 4,
         "w": 4,
         "x": 8,
-        "y": 83
+        "y": 19
       },
       "datasource": {
         "type": "postgres",
@@ -974,7 +974,7 @@
         },
         "overrides": []
       },
-      "description": "Variability Index (VI)\n\nNP \u00f7 Avg Power \u2014 how steady was your pacing?\n\n\n\n\ud83d\udfe2 1.00-1.05 \u2014 Very smooth (TT, ERG mode)\n\n\ud83d\udfe1 1.05-1.15 \u2014 Normal (group ride, rolling terrain)\n\n\ud83d\udd34 > 1.15 \u2014 Very spiky (crits, stop-start)\n\n\n\nLower VI at same NP = more efficient pacing"
+      "description": "Variability Index (VI)\n\nNP ÷ Avg Power — how steady was your pacing?\n\n\n\n🟢 1.00-1.05 — Very smooth (TT, ERG mode)\n\n🟡 1.05-1.15 — Normal (group ride, rolling terrain)\n\n🔴 > 1.15 — Very spiky (crits, stop-start)\n\n\n\nLower VI at same NP = more efficient pacing"
     },
     {
       "id": 1,
@@ -1655,7 +1655,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 34
+        "y": 31
       },
       "datasource": {
         "type": "postgres",
@@ -1703,281 +1703,6 @@
       "description": "Best sustained average power at each duration.\n\nShows the highest average power you held\n\nfor each time window during this ride.\n\nSteep drop = sprinter profile.\n\nFlat curve = endurance profile."
     },
     {
-      "id": 41,
-      "title": "Power Distribution",
-      "type": "barchart",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 26
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "veloai"
-      },
-      "targets": [
-        {
-          "rawSql": "WITH ftp AS (\n  SELECT COALESCE(\n    (SELECT value::numeric FROM sync_state WHERE key = 'configured_ftp' AND value::numeric > 0),\n    (SELECT ROUND(MAX(avg_20min) * 0.95) FROM (\n      SELECT AVG(s.power) OVER (PARTITION BY s.activity_id ORDER BY s.time_offset RANGE BETWEEN 1199 PRECEDING AND CURRENT ROW) AS avg_20min\n      FROM activity_streams s\n      JOIN activities a ON a.id = s.activity_id\n      WHERE a.date >= CURRENT_DATE - interval '90 days'\n        AND s.power IS NOT NULL AND s.power > 0\n    ) sub WHERE avg_20min IS NOT NULL),\n    (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY avg_power) FROM activities WHERE avg_power IS NOT NULL AND avg_power > 0)\n  ) AS ftp_val\n), buckets AS (SELECT FLOOR(power / 10) * 10 AS bucket, COUNT(*) / 60.0 AS mins, CASE WHEN power < ftp.ftp_val * 0.55 THEN 'Z1 Recovery' WHEN power < ftp.ftp_val * 0.75 THEN 'Z2 Endurance' WHEN power < ftp.ftp_val * 0.90 THEN 'Z3 Tempo' WHEN power < ftp.ftp_val * 1.05 THEN 'Z4 Threshold' WHEN power < ftp.ftp_val * 1.20 THEN 'Z5 VO2max' ELSE 'Z6 Anaerobic' END AS zone FROM activity_streams, ftp WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0 GROUP BY bucket, zone) SELECT bucket::int AS \"Power (W)\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z1 Recovery'), 0) AS \"Z1 Recovery\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z2 Endurance'), 0) AS \"Z2 Endurance\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z3 Tempo'), 0) AS \"Z3 Tempo\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z4 Threshold'), 0) AS \"Z4 Threshold\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z5 VO2max'), 0) AS \"Z5 VO2max\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z6 Anaerobic'), 0) AS \"Z6 Anaerobic\" FROM buckets GROUP BY bucket ORDER BY bucket;",
-          "format": "table",
-          "refId": "A"
-        }
-      ],
-      "options": {
-        "orientation": "vertical",
-        "xField": "Power (W)",
-        "showValue": "never",
-        "stacking": "normal"
-      },
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Z1 Recovery"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#808080",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "unit",
-                "value": "min"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Z2 Endurance"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#3498db",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "unit",
-                "value": "min"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Z3 Tempo"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#2ecc71",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "unit",
-                "value": "min"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Z4 Threshold"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#f1c40f",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "unit",
-                "value": "min"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Z5 VO2max"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#e67e22",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "unit",
-                "value": "min"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Z6 Anaerobic"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#e74c3c",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "unit",
-                "value": "min"
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "id": 42,
-      "title": "HR Distribution",
-      "type": "barchart",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 26
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "veloai"
-      },
-      "targets": [
-        {
-          "rawSql": "WITH lthr AS (SELECT COALESCE((SELECT value::numeric FROM sync_state WHERE key = 'configured_max_hr' AND value::numeric > 0), (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY max_hr) FROM activities WHERE max_hr IS NOT NULL AND max_hr > 0)) AS thr), buckets AS (SELECT FLOOR(hr / 5) * 5 AS bucket, COUNT(*) / 60.0 AS mins, CASE WHEN hr < lthr.thr * 0.68 THEN 'Z1 Recovery' WHEN hr < lthr.thr * 0.83 THEN 'Z2 Endurance' WHEN hr < lthr.thr * 0.94 THEN 'Z3 Tempo' WHEN hr < lthr.thr * 1.05 THEN 'Z4 Threshold' ELSE 'Z5 VO2max' END AS zone FROM activity_streams, lthr WHERE activity_id = ${activity_id} AND hr IS NOT NULL AND hr > 0 GROUP BY bucket, zone) SELECT bucket::int AS \"HR (bpm)\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z1 Recovery'), 0) AS \"Z1 Recovery\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z2 Endurance'), 0) AS \"Z2 Endurance\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z3 Tempo'), 0) AS \"Z3 Tempo\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z4 Threshold'), 0) AS \"Z4 Threshold\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z5 VO2max'), 0) AS \"Z5 VO2max\" FROM buckets GROUP BY bucket ORDER BY bucket;",
-          "format": "table",
-          "refId": "A"
-        }
-      ],
-      "options": {
-        "orientation": "vertical",
-        "xField": "HR (bpm)",
-        "showValue": "never",
-        "stacking": "normal"
-      },
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Z1 Recovery"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#808080",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "unit",
-                "value": "min"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Z2 Endurance"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#3498db",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "unit",
-                "value": "min"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Z3 Tempo"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#2ecc71",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "unit",
-                "value": "min"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Z4 Threshold"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#f1c40f",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "unit",
-                "value": "min"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Z5 VO2max"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#e74c3c",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "unit",
-                "value": "min"
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
       "id": 38,
       "title": "Efficiency Factor",
       "type": "stat",
@@ -1985,7 +1710,7 @@
         "h": 4,
         "w": 4,
         "x": 12,
-        "y": 83
+        "y": 19
       },
       "datasource": {
         "type": "postgres",
@@ -2017,7 +1742,7 @@
           }
         }
       },
-      "description": "Efficiency Factor (EF)\n\nNP \u00f7 Avg HR \u2014 aerobic efficiency\n\n\n\nHigher = fitter (more watts per heartbeat)\n\n\n\nTrack over months:\n\n\ud83d\udcc8 EF rising at same NP = fitness improving\n\n\ud83d\udcc9 EF dropping = fatigue, heat, or detraining\n\n\n\nCompare similar ride types and conditions"
+      "description": "Efficiency Factor (EF)\n\nNP ÷ Avg HR — aerobic efficiency\n\n\n\nHigher = fitter (more watts per heartbeat)\n\n\n\nTrack over months:\n\n📈 EF rising at same NP = fitness improving\n\n📉 EF dropping = fatigue, heat, or detraining\n\n\n\nCompare similar ride types and conditions"
     },
     {
       "id": 39,
@@ -2027,7 +1752,7 @@
         "h": 4,
         "w": 4,
         "x": 16,
-        "y": 83
+        "y": 19
       },
       "datasource": {
         "type": "postgres",
@@ -2060,7 +1785,7 @@
           }
         }
       },
-      "description": "Work (kJ)\n\nTotal mechanical energy output\n\n\n\nAvg Power \u00d7 Duration \u00f7 1000\n\n\n\nRoughly equals calories burned:\n\n1 kJ \u2248 1 kcal (at ~25% human efficiency)\n\n\n\nUseful for fueling: match kJ with food intake"
+      "description": "Work (kJ)\n\nTotal mechanical energy output\n\n\n\nAvg Power × Duration ÷ 1000\n\n\n\nRoughly equals calories burned:\n\n1 kJ ≈ 1 kcal (at ~25% human efficiency)\n\n\n\nUseful for fueling: match kJ with food intake"
     },
     {
       "id": 43,
@@ -2070,7 +1795,7 @@
         "h": 4,
         "w": 4,
         "x": 20,
-        "y": 83
+        "y": 19
       },
       "datasource": {
         "type": "postgres",
@@ -2130,7 +1855,7 @@
           }
         }
       },
-      "description": "TRIMP (Training Impulse)\n\nHR zone-weighted effort score\n\n\n\n\ud83d\udd18 < 50 \u2014 Easy ride\n\n\ud83d\udd35 50-75 \u2014 Light effort\n\n\ud83d\udfe2 75-100 \u2014 Moderate\n\n\ud83d\udfe1 100-125 \u2014 Hard\n\n\ud83d\udfe0 125-150 \u2014 Very hard\n\n\ud83d\udd34 150+ \u2014 Race effort"
+      "description": "TRIMP (Training Impulse)\n\nHR zone-weighted effort score\n\n\n\n🔘 < 50 — Easy ride\n\n🔵 50-75 — Light effort\n\n🟢 75-100 — Moderate\n\n🟡 100-125 — Hard\n\n🟠 125-150 — Very hard\n\n🔴 150+ — Race effort"
     }
   ]
 }

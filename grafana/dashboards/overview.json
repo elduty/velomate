@@ -893,7 +893,7 @@
           "noValue": "No data",
           "color": {
             "mode": "fixed",
-            "fixedColor": "dark-blue"
+            "fixedColor": "dark-purple"
           },
           "unit": "velocitykmh",
           "thresholds": {
