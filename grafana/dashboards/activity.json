@@ -790,19 +790,6 @@
       }
     },
     {
-      "id": 106,
-      "type": "row",
-      "title": "Power Metrics",
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 18
-      },
-      "panels": []
-    },
-    {
       "id": 34,
       "title": "Normalized Power",
       "type": "stat",
@@ -810,7 +797,7 @@
         "h": 4,
         "w": 4,
         "x": 0,
-        "y": 19
+        "y": 18
       },
       "datasource": {
         "type": "postgres",
@@ -854,7 +841,7 @@
         "h": 4,
         "w": 4,
         "x": 4,
-        "y": 19
+        "y": 18
       },
       "datasource": {
         "type": "postgres",
@@ -925,7 +912,7 @@
         "h": 4,
         "w": 4,
         "x": 8,
-        "y": 19
+        "y": 18
       },
       "datasource": {
         "type": "postgres",
@@ -1710,7 +1697,7 @@
         "h": 4,
         "w": 4,
         "x": 12,
-        "y": 19
+        "y": 18
       },
       "datasource": {
         "type": "postgres",
@@ -1752,7 +1739,7 @@
         "h": 4,
         "w": 4,
         "x": 16,
-        "y": 19
+        "y": 18
       },
       "datasource": {
         "type": "postgres",
@@ -1795,7 +1782,7 @@
         "h": 4,
         "w": 4,
         "x": 20,
-        "y": 19
+        "y": 18
       },
       "datasource": {
         "type": "postgres",
