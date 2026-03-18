@@ -2060,7 +2060,8 @@
             ]
           }
         ]
-      }
+      },
+      "description": "Volume — how far and how much climbing per .\n\nRising together = bigger rides. Distance rising but elevation flat = more flat routes."
     },
     {
       "id": 602,
@@ -2151,7 +2152,8 @@
             ]
           }
         ]
-      }
+      },
+      "description": "Training load — duration provides context for TSS.\n\nHigh TSS from short rides = intense sessions. High TSS from long rides = endurance work."
     },
     {
       "id": 603,
@@ -2243,7 +2245,7 @@
           }
         ]
       },
-      "description": "Efficiency trend — same power at lower HR over time = fitness improving."
+      "description": "Efficiency — same power at lower HR over time = fitness improving.\n\nWhen these lines diverge (power up, HR down), aerobic fitness is building."
     },
     {
       "id": 604,
@@ -2335,7 +2337,7 @@
           }
         ]
       },
-      "description": "Technique — higher cadence at same speed = more efficient pedaling."
+      "description": "Technique — higher cadence at same speed = more efficient pedaling.\n\nWatch for cadence trends after bike fit changes or drill blocks."
     },
     {
       "id": 605,
@@ -2426,7 +2428,8 @@
             ]
           }
         ]
-      }
+      },
+      "description": "Activity summary — energy output and riding frequency per ."
     }
   ]
 }
