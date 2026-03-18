@@ -2004,8 +2004,8 @@
             "lineWidth": 2,
             "fillOpacity": 8,
             "pointSize": 4,
-            "showPoints": "auto",
-            "spanNulls": true,
+            "showPoints": "never",
+            "spanNulls": 604800000,
             "stacking": {
               "mode": "none"
             }
@@ -2029,6 +2029,10 @@
               {
                 "id": "custom.axisPlacement",
                 "value": "left"
+              },
+              {
+                "id": "min",
+                "value": 0
               }
             ]
           },
@@ -2048,6 +2052,10 @@
               {
                 "id": "custom.axisPlacement",
                 "value": "right"
+              },
+              {
+                "id": "min",
+                "value": 0
               }
             ]
           }
@@ -2087,8 +2095,8 @@
             "lineWidth": 2,
             "fillOpacity": 8,
             "pointSize": 4,
-            "showPoints": "auto",
-            "spanNulls": true,
+            "showPoints": "never",
+            "spanNulls": 604800000,
             "stacking": {
               "mode": "none"
             }
@@ -2112,6 +2120,10 @@
               {
                 "id": "custom.axisPlacement",
                 "value": "left"
+              },
+              {
+                "id": "min",
+                "value": 0
               }
             ]
           },
@@ -2131,6 +2143,10 @@
               {
                 "id": "custom.axisPlacement",
                 "value": "right"
+              },
+              {
+                "id": "min",
+                "value": 0
               }
             ]
           }
@@ -2170,8 +2186,8 @@
             "lineWidth": 2,
             "fillOpacity": 8,
             "pointSize": 4,
-            "showPoints": "auto",
-            "spanNulls": true,
+            "showPoints": "never",
+            "spanNulls": 604800000,
             "stacking": {
               "mode": "none"
             }
@@ -2195,6 +2211,10 @@
               {
                 "id": "custom.axisPlacement",
                 "value": "left"
+              },
+              {
+                "id": "min",
+                "value": 0
               }
             ]
           },
@@ -2214,6 +2234,10 @@
               {
                 "id": "custom.axisPlacement",
                 "value": "right"
+              },
+              {
+                "id": "min",
+                "value": 0
               }
             ]
           }
@@ -2254,8 +2278,8 @@
             "lineWidth": 2,
             "fillOpacity": 8,
             "pointSize": 4,
-            "showPoints": "auto",
-            "spanNulls": true,
+            "showPoints": "never",
+            "spanNulls": 604800000,
             "stacking": {
               "mode": "none"
             }
@@ -2279,6 +2303,10 @@
               {
                 "id": "custom.axisPlacement",
                 "value": "left"
+              },
+              {
+                "id": "min",
+                "value": 0
               }
             ]
           },
@@ -2298,6 +2326,10 @@
               {
                 "id": "custom.axisPlacement",
                 "value": "right"
+              },
+              {
+                "id": "min",
+                "value": 0
               }
             ]
           }
@@ -2338,8 +2370,8 @@
             "lineWidth": 2,
             "fillOpacity": 8,
             "pointSize": 4,
-            "showPoints": "auto",
-            "spanNulls": true,
+            "showPoints": "never",
+            "spanNulls": 604800000,
             "stacking": {
               "mode": "none"
             }
@@ -2363,6 +2395,10 @@
               {
                 "id": "custom.axisPlacement",
                 "value": "left"
+              },
+              {
+                "id": "min",
+                "value": 0
               }
             ]
           },
@@ -2382,6 +2418,10 @@
               {
                 "id": "custom.axisPlacement",
                 "value": "right"
+              },
+              {
+                "id": "min",
+                "value": 0
               }
             ]
           }
