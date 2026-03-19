@@ -49,10 +49,10 @@ Comprehensive production-readiness audit. All findings validated against source 
 | ID | File | Issue | Why Not Fixed |
 |----|------|-------|---------------|
 | O1 | `db.py:255-285` + `strava.py:288` | Stream restoration in dedup merge is immediately wiped by `upsert_streams` call in `sync_activities`. The carefully saved+restored streams get DELETE'd and replaced. | Fix requires changing the dedup-merge API contract. `upsert_activity` should signal to caller not to overwrite streams. Needs design discussion. |
-| O2 | `db.py:113` | `find_duplicate_by_distance` is defined but never called. Was for Strava-Komoot cross-platform matching. | May be useful for future cross-platform dedup. Leaving for now; document in CLAUDE.md. |
-| O3 | `strava.py:56-64` | If DB write of rotated refresh token fails, `_current_refresh_token` is not updated. Next auth attempt uses old (now-invalid) token → auth failure. | Rare edge case. Fix requires persisting token to a fallback location. |
+| O2 | `db.py:113` | `find_duplicate_by_distance` is defined but never called. Was for Strava-Komoot cross-platform matching. | ✅ Fixed — removed dead code; added explanatory comment to `find_duplicate` |
+| O3 | `strava.py:56-64` | If DB write of rotated refresh token fails, `_current_refresh_token` is not updated. Next auth attempt uses old (now-invalid) token → auth failure. | ✅ Fixed — `_current_refresh_token` updated in memory even on DB write failure |
 | O4 | `config.py:75-77` | `bool` is subclass of `int`, so `type(True)("false")` returns `True`. Can't set boolean config to False via env vars. | No boolean configs currently use env vars (`loop` has no ENV_MAP entry). Latent bug. |
-| O5 | `route_planner.py:504` | String comparison of local ride_time vs UTC sunrise/sunset times. Off by timezone offset. | Fix requires parsing timezone or using a timezone-aware comparison. |
+| O5 | `route_planner.py:504` | String comparison of local ride_time vs UTC sunrise/sunset times. Off by timezone offset. | ✅ Fixed — `fetch_sunrise_sunset` now parses ISO8601 and returns local times + tz label |
 | O6 | `route_planner.py:136` | `_analyze_wind` bearing uses `atan2(dlng, dlat)` without cos(lat) correction on dlng. ~15° error at Lisbon. | Same issue as old RI3; acceptable for wind direction classification (45° buckets). |
 | O7 | `fitness.py:57-62` | FTP estimation `RANGE BETWEEN 1199 PRECEDING` is correct for gapless data but overestimates if multiple activities' streams intermingle in the window partition. | Partition is `BY activity_id`, so this only affects within-activity gaps. Acceptable. |
 
@@ -60,20 +60,20 @@ Comprehensive production-readiness audit. All findings validated against source 
 
 | ID | Issue |
 |----|-------|
-| O8 | `main.py:53` — No startup retry if DB not ready. First `get_connection()` in `run_backfill`/`run` has no try/except. Docker Compose health checks mitigate this. |
-| O9 | `db.py` (ingestor) — `autocommit=True` means `upsert_streams` DELETE+INSERT are not atomic. Crash between them loses streams. |
+| O8 | `main.py:53` — No startup retry if DB not ready. First `get_connection()` in `run_backfill`/`run` has no try/except. Docker Compose health checks mitigate this. | ✅ Fixed — 10-attempt retry loop with 5s backoff |
+| O9 | `db.py` (ingestor) — `autocommit=True` means `upsert_streams` DELETE+INSERT are not atomic. Crash between them loses streams. | ✅ Fixed — wrapped in transaction with autocommit=False |
 | O10 | `fitness.py:183` — Weekly totals use O(n²) iteration. Acceptable for ~365 days. |
 | O11 | `fitness.py:141` — N+1 TSS UPDATE per activity. ~365 round-trips for a year. |
-| O12 | `route_intelligence.py:98` — Strava segments bounding box uses hardcoded `cos(lat)=0.75`. Only correct at ~41°N. |
+| O12 | `route_intelligence.py:98` — Strava segments bounding box uses hardcoded `cos(lat)=0.75`. Only correct at ~41°N. | ✅ Fixed — replaced with `math.cos(math.radians(lat))` |
 | O13 | `route_intelligence.py:352` — Elevation API uses GET with coordinates in URL. Long URLs may be rejected by proxies. |
 | O14 | `map_preview.py:42` — Fixed `coords[::5]` downsampling regardless of route length. |
-| O15 | `config.py:54-55` — Config caching ignores `config_path` argument after first load. |
-| O16 | No `pyproject.toml` or `setup.py` — CLI can't be pip-installed. |
-| O17 | Dependencies use floor pins only (`>=`), no upper bounds. |
-| O18 | Dockerfile runs as root (no USER directive). |
-| O19 | `cli.py:8` — `warnings.filterwarnings("ignore")` suppresses all warnings globally. |
+| O15 | `config.py:54-55` — Config caching ignores `config_path` argument after first load. | ✅ Fixed — cache keyed by path (`_config_path_used` tracks last path) |
+| O16 | No `pyproject.toml` or `setup.py` — CLI can't be pip-installed. | ✅ Fixed — `pyproject.toml` already present |
+| O17 | Dependencies use floor pins only (`>=`), no upper bounds. | ✅ Fixed — `requirements.txt` already uses `~=` compatible release pins |
+| O18 | Dockerfile runs as root (no USER directive). | ✅ Fixed — `ingestor/Dockerfile` already uses `USER app` |
+| O19 | `cli.py:8` — `warnings.filterwarnings("ignore")` suppresses all warnings globally. | ✅ Fixed — scoped to `mapbox_vector_tile` and `google.protobuf` modules |
 | O20 | `planner.py:23` — Distance dedup rounding boundary creates arbitrary split at 500m intervals. |
-| O21 | `route_intelligence.py:652` — Comment says "clockwise" but atan2(dlat, dlng) produces East-origin counterclockwise ordering. |
+| O21 | `route_intelligence.py:652` — Comment says "clockwise" but atan2(dlat, dlng) produces East-origin counterclockwise ordering. | ✅ Fixed — comment corrected to "counterclockwise" |
 
 ---
 
