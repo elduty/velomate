@@ -18,8 +18,7 @@ steps:
       - cd $CI_WORKSPACE
       - python3 -m venv .venv
       - .venv/bin/pip install -q -r requirements.txt pytest
-      - .venv/bin/python3 -m pytest tests/ -q 2>&1 | tee /tmp/pytest-output.txt
-      - exit ${PIPESTATUS[0]}
+      - set -o pipefail && .venv/bin/python3 -m pytest tests/ -q 2>&1 | tee /tmp/pytest-output.txt
 
   - name: notify-failure
     image: bash
