@@ -79,13 +79,32 @@ def run_backfill():
 
 def run():
     """Main loop: schema init, optional backfill, then poll forever."""
-    conn = get_connection()
-    try:
-        create_schema(conn)
-        print("[main] Schema ready")
-        has_data = get_sync_state(conn, "strava_last_activity_epoch")
+    # Retry loop for initial DB connection — common in Docker Compose startup ordering
+    max_attempts = 10
+    retry_delay = 5
+    conn = None
+    for attempt in range(1, max_attempts + 1):
+        try:
+            conn = get_connection()
+            create_schema(conn)
+            print("[main] Schema ready")
+            has_data = get_sync_state(conn, "strava_last_activity_epoch")
+            break
+        except Exception as e:
+            print(f"[main] DB not ready (attempt {attempt}/{max_attempts}): {e}")
+            if conn:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+                conn = None
+            if attempt == max_attempts:
+                print("[main] DB unavailable after max retries — exiting")
+                sys.exit(1)
+            time.sleep(retry_delay)
     finally:
-        conn.close()
+        if conn:
+            conn.close()
 
     # Persist configured FTP/HR to sync_state so dashboards can read them
     try:

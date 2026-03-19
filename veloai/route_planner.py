@@ -505,7 +505,8 @@ def plan(duration_str: str = None, distance_str: str = None,
             from veloai.weather import fetch_sunrise_sunset
             sun = fetch_sunrise_sunset(home_lat, home_lng, ride_date)
             if sun:
-                lines.append(f"  🌅 Sunrise {sun['sunrise']}, sunset {sun['sunset']} (UTC)")
+                tz_label = sun.get("tz_label", "UTC")
+                lines.append(f"  🌅 Sunrise {sun['sunrise']}, sunset {sun['sunset']} ({tz_label})")
         except Exception as e:
             print(f"  [sun] {e}", file=sys.stderr)
 

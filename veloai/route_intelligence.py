@@ -96,7 +96,7 @@ def get_strava_segments(lat: float, lng: float, radius_km: float, access_token: 
     """
     # Bounding box from center + radius
     dlat = radius_km / 111.0
-    dlng = radius_km / (111.0 * 0.75)  # rough cos correction
+    dlng = radius_km / (111.0 * math.cos(math.radians(lat)))  # cos correction for actual latitude
     bounds = f"{lat - dlat},{lng - dlng},{lat + dlat},{lng + dlng}"
 
     try:
@@ -760,7 +760,7 @@ def smart_waypoints(
         })
         used_angles.append(angle)
 
-    # Sort by angle for sensible route ordering (clockwise)
+    # Sort by angle for sensible route ordering (counterclockwise, as atan2 ascending = CCW)
     selected.sort(key=lambda w: math.atan2(w["lat"] - lat, w["lng"] - lng))
 
     return selected

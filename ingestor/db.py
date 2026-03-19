@@ -115,32 +115,15 @@ def classify_activity(data: dict) -> dict:
     return {**data, "is_indoor": is_indoor, "sport_type": sport_type}
 
 
-def find_duplicate_by_distance(conn, date_str: str, distance_m: float, tolerance_pct: float = 0.10):
-    """Find an existing activity on the same calendar day with similar distance (±10%).
-    More reliable than duration-based dedup for cross-platform matching (Strava moving time
-    vs Komoot elapsed time differ significantly for the same ride).
-    Returns (id, strava_id, device, distance_m, avg_hr, avg_power) or None.
-    """
-    if not distance_m or distance_m <= 0:
-        return None
-    # Skip dedup for very short rides (<5km) — too easy to false-match commutes
-    if distance_m < 5000:
-        return None
-    with conn.cursor() as cur:
-        cur.execute("""
-            SELECT id, strava_id, device, distance_m, avg_hr, avg_power
-            FROM activities
-            WHERE date::date = %s::date
-              AND distance_m > 0
-              AND ABS(distance_m - %s) / %s < %s
-        """, (date_str, distance_m, distance_m, tolerance_pct))
-        return cur.fetchone()
-
-
 def find_duplicate(conn, date_str: str, duration_s: int, tolerance_seconds: int = 300) -> tuple | None:
     """Find an existing activity that started within tolerance of date_str
     and has a similar duration. Returns activity id or None.
     Used to detect cross-device duplicates (Zwift + Watch recording same session).
+
+    Note: a distance-based variant was considered (find_duplicate_by_distance) but
+    removed — Strava moving_time and elapsed_time are consistent across devices for
+    the same session, so duration-based dedup is reliable. Distance-based matching
+    risks false positives on routes with similar distances on different days.
     """
     with conn.cursor() as cur:
         cur.execute("""
@@ -290,20 +273,29 @@ def upsert_activity(conn, data: dict) -> tuple[int, bool]:
 
 
 def upsert_streams(conn, activity_id: int, streams: list):
-    """Replace streams for an activity."""
-    with conn.cursor() as cur:
-        cur.execute("DELETE FROM activity_streams WHERE activity_id = %s", (activity_id,))
-        if not streams:
-            return
-        psycopg2.extras.execute_values(
-            cur,
-            """INSERT INTO activity_streams
-                (activity_id, time_offset, hr, power, cadence, speed_kmh, altitude_m, lat, lng)
-                VALUES %s""",
-            [(activity_id, s.get("time_offset"), s.get("hr"), s.get("power"),
-              s.get("cadence"), s.get("speed_kmh"), s.get("altitude_m"),
-              s.get("lat"), s.get("lng")) for s in streams]
-        )
+    """Replace streams for an activity. Wrapped in a transaction so a crash
+    between DELETE and INSERT doesn't leave the activity with no streams.
+    """
+    conn.autocommit = False
+    try:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM activity_streams WHERE activity_id = %s", (activity_id,))
+            if streams:
+                psycopg2.extras.execute_values(
+                    cur,
+                    """INSERT INTO activity_streams
+                        (activity_id, time_offset, hr, power, cadence, speed_kmh, altitude_m, lat, lng)
+                        VALUES %s""",
+                    [(activity_id, s.get("time_offset"), s.get("hr"), s.get("power"),
+                      s.get("cadence"), s.get("speed_kmh"), s.get("altitude_m"),
+                      s.get("lat"), s.get("lng")) for s in streams]
+                )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.autocommit = True
 
 
 def upsert_athlete_stats(conn, date, stats: dict):

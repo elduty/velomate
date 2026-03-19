@@ -63,6 +63,9 @@ def refresh_access_token(client_id: str, client_secret: str, refresh_token: str)
             finally:
                 conn.close()
         except Exception as e:
+            # DB write failed — update in-memory token so the current process doesn't
+            # reuse the old (now-invalid) token. Token will be lost on restart.
+            _current_refresh_token = new_refresh
             print(f"[strava] WARNING: Could not persist new refresh token: {e}")
 
     return _access_token

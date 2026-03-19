@@ -28,6 +28,7 @@ ENV_MAP = {
 }
 
 _config = None
+_config_path_used = None
 
 
 def _resolve_secret(section: dict, key: str) -> str:
@@ -50,12 +51,14 @@ def _resolve_secret(section: dict, key: str) -> str:
 
 
 def load(config_path: str = None) -> dict:
-    """Load config from YAML file + env vars. Caches result."""
-    global _config
-    if _config is not None:
-        return _config
-
+    """Load config from YAML file + env vars. Caches result.
+    If config_path differs from the previously cached path, the cache is invalidated
+    so callers with different paths always get the correct config.
+    """
+    global _config, _config_path_used
     path = config_path or os.environ.get("VELOAI_CONFIG", DEFAULT_CONFIG_PATH)
+    if _config is not None and _config_path_used == path:
+        return _config
     cfg = {}
     if os.path.exists(path):
         with open(path) as f:
@@ -106,6 +109,7 @@ def load(config_path: str = None) -> dict:
     result["avoid"] = cfg.get("avoid", []) or []
 
     _config = result
+    _config_path_used = path
     return result
 
 

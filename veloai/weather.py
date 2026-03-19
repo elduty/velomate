@@ -1,5 +1,5 @@
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List
 
 import requests
@@ -210,7 +210,9 @@ def fetch_air_quality(lat: float, lon: float, date_str: str) -> dict | None:
 
 
 def fetch_sunrise_sunset(lat: float, lon: float, date_str: str) -> dict | None:
-    """Fetch sunrise/sunset times. Returns {sunrise, sunset, civil_twilight_end} or None."""
+    """Fetch sunrise/sunset times. Returns {sunrise, sunset, civil_twilight_end, utc_offset_h} or None.
+    Times are converted from UTC ISO8601 to local time using the UTC offset from the timestamp.
+    """
     url = SUNRISE_URL.format(lat=lat, lng=lon, date=date_str)
     try:
         r = requests.get(url, timeout=10)
@@ -219,10 +221,34 @@ def fetch_sunrise_sunset(lat: float, lon: float, date_str: str) -> dict | None:
         if data.get("status") != "OK":
             return None
         results = data["results"]
+
+        def _to_local(iso_str: str) -> tuple[str, int]:
+            """Parse ISO8601 timestamp and return (HH:MM local, utc_offset_hours)."""
+            if not iso_str:
+                return "", 0
+            try:
+                dt = datetime.fromisoformat(iso_str)
+                if dt.tzinfo is not None:
+                    offset_h = int(dt.utcoffset().total_seconds() / 3600)
+                else:
+                    # Assume UTC if no timezone info
+                    offset_h = 0
+                return dt.strftime("%H:%M"), offset_h
+            except (ValueError, AttributeError):
+                # Fallback: strip to HH:MM from raw string
+                return iso_str[11:16] if len(iso_str) > 15 else iso_str, 0
+
+        sunrise_local, utc_offset = _to_local(results["sunrise"])
+        sunset_local, _ = _to_local(results["sunset"])
+        twilight_local, _ = _to_local(results.get("civil_twilight_end", ""))
+
+        tz_label = f"UTC{'+' if utc_offset >= 0 else ''}{utc_offset}" if utc_offset != 0 else "UTC"
         return {
-            "sunrise": results["sunrise"][11:16],   # HH:MM
-            "sunset": results["sunset"][11:16],
-            "civil_twilight_end": results.get("civil_twilight_end", "")[11:16],
+            "sunrise": sunrise_local,
+            "sunset": sunset_local,
+            "civil_twilight_end": twilight_local,
+            "utc_offset_h": utc_offset,
+            "tz_label": tz_label,
         }
     except Exception:
         pass

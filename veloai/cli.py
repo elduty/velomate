@@ -5,7 +5,9 @@ import warnings
 from veloai import weather, planner
 from veloai.config import load as load_config
 
-warnings.filterwarnings("ignore")
+# Suppress noisy DeprecationWarnings from mapbox_vector_tile's protobuf dependency
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="mapbox_vector_tile")
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="google.protobuf")
 
 
 def cmd_recommend(args):
