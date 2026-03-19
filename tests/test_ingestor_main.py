@@ -150,3 +150,35 @@ class TestRunReclassify:
             with pytest.raises(Exception, match="reclassify failed"):
                 ingestor_main.run_reclassify()
         mock_conn.close.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# N1 — connection leak fix: failed conn closed before reconnect
+# ---------------------------------------------------------------------------
+
+class TestGetHealthyConnN1:
+    def test_closes_failed_conn_before_reconnect(self):
+        """N1: first connection that fails SELECT 1 must be closed before reconnect."""
+        bad_conn = MagicMock()
+        bad_conn.cursor.return_value.__enter__ = MagicMock(side_effect=Exception("conn dead"))
+        bad_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+
+        good_conn = MagicMock()
+
+        with patch("main.get_connection", side_effect=[bad_conn, good_conn]):
+            result = ingestor_main._get_healthy_conn()
+
+        bad_conn.close.assert_called_once()
+        assert result is good_conn
+
+    def test_does_not_leak_when_reconnect_also_fails(self):
+        """N1: failed conn is still closed even when reconnect raises."""
+        bad_conn = MagicMock()
+        bad_conn.cursor.return_value.__enter__ = MagicMock(side_effect=Exception("conn dead"))
+        bad_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+
+        with patch("main.get_connection", side_effect=[bad_conn, Exception("reconnect failed")]):
+            result = ingestor_main._get_healthy_conn()
+
+        bad_conn.close.assert_called_once()
+        assert result is None

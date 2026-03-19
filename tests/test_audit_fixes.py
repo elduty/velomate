@@ -409,3 +409,85 @@ class TestO15ConfigCache:
 
         cfg.load(str(config_b))
         assert cfg._config_path_used == str(config_b)
+
+
+# ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# N2 — dedup gap-fill: existing richer record gets new fields via UPDATE
+# ---------------------------------------------------------------------------
+
+import sys as _sys
+from pathlib import Path as _Path
+from unittest.mock import MagicMock as _MagicMock, patch as _patch
+
+_ingestor_dir = _Path(__file__).resolve().parent.parent / "ingestor"
+if str(_ingestor_dir) not in _sys.path:
+    _sys.path.insert(0, str(_ingestor_dir))
+
+_sys.modules.setdefault("psycopg2", _MagicMock())
+_sys.modules.setdefault("psycopg2.extras", _MagicMock())
+
+import db as ingestor_db  # noqa: E402
+
+
+def _make_conn():
+    conn = _MagicMock()
+    cursor = _MagicMock()
+    conn.cursor.return_value.__enter__ = _MagicMock(return_value=cursor)
+    conn.cursor.return_value.__exit__ = _MagicMock(return_value=False)
+    return conn, cursor
+
+
+# Existing record is richer: power(3) + hr(2) + distance(1) = 6
+# New record is weaker:  hr(2) only = 2
+_RICH_EXISTING = (42, 99999, "karoo", 10000, 150, 250)  # id, strava_id, device, dist, hr, power
+_WEAK_NEW = {
+    "name": "Morning Ride", "date": "2026-03-18T07:00:00Z", "duration_s": 3600,
+    "distance_m": 0, "avg_hr": 155, "avg_power": None, "max_hr": None,
+    "max_power": None, "avg_cadence": None, "suffer_score": 42, "tss": 65.0,
+    "calories": None, "strava_id": 111111, "device": "strava", "elevation_m": 0,
+}
+
+
+class TestDedupGapFillN2:
+    """N2: when existing record is richer, UPDATE it with new fields from incoming data."""
+
+    def test_merge_sets_skip_insert_when_existing_richer(self):
+        """merge_activity_data returns _skip_insert=True when existing is richer."""
+        merged = ingestor_db.merge_activity_data(_RICH_EXISTING, _WEAK_NEW)
+        assert merged.get("_skip_insert") is True
+
+    def test_update_called_not_insert(self):
+        """upsert_activity calls UPDATE (not INSERT) when existing is richer."""
+        conn, cursor = _make_conn()
+        with _patch.object(ingestor_db, "find_duplicate", return_value=_RICH_EXISTING), \
+             _patch.object(ingestor_db, "_do_insert") as mock_insert, \
+             _patch.object(ingestor_db, "classify_activity", side_effect=lambda d: d):
+            ingestor_db.upsert_activity(conn, dict(_WEAK_NEW))
+        mock_insert.assert_not_called()
+        cursor.execute.assert_called_once()
+
+    def test_update_sql_uses_coalesce(self):
+        """UPDATE SQL uses COALESCE so existing non-NULL values are not overwritten."""
+        conn, cursor = _make_conn()
+        with _patch.object(ingestor_db, "find_duplicate", return_value=_RICH_EXISTING), \
+             _patch.object(ingestor_db, "_do_insert"), \
+             _patch.object(ingestor_db, "classify_activity", side_effect=lambda d: d):
+            ingestor_db.upsert_activity(conn, dict(_WEAK_NEW))
+        sql = cursor.execute.call_args[0][0]
+        assert "UPDATE activities" in sql
+        assert "COALESCE" in sql
+
+    def test_update_passes_new_suffer_score(self):
+        """suffer_score from incoming data is passed to the UPDATE."""
+        conn, cursor = _make_conn()
+        with _patch.object(ingestor_db, "find_duplicate", return_value=_RICH_EXISTING), \
+             _patch.object(ingestor_db, "_do_insert"), \
+             _patch.object(ingestor_db, "classify_activity", side_effect=lambda d: d):
+            ingestor_db.upsert_activity(conn, dict(_WEAK_NEW))
+        params = cursor.execute.call_args[0][1]
+        assert params["suffer_score"] == 42
+        assert params["tss"] == 65.0
+        assert params["ex_id"] == 42
