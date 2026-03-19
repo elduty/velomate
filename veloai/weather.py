@@ -222,14 +222,20 @@ def fetch_sunrise_sunset(lat: float, lon: float, date_str: str) -> dict | None:
             return None
         results = data["results"]
 
-        def _to_local(iso_str: str) -> tuple[str, int]:
-            """Parse ISO8601 timestamp and return (HH:MM local, utc_offset_hours)."""
+        def _to_local(iso_str: str) -> tuple[str, float]:
+            """Parse ISO8601 timestamp and return (HH:MM local, utc_offset_hours).
+
+            utc_offset_hours is a float to correctly handle fractional offsets
+            such as India (UTC+5:30 = 5.5) and Nepal (UTC+5:45 = 5.75).
+            """
             if not iso_str:
                 return "", 0
             try:
                 dt = datetime.fromisoformat(iso_str)
                 if dt.tzinfo is not None:
-                    offset_h = int(dt.utcoffset().total_seconds() / 3600)
+                    # Use total_seconds to preserve fractional hours (e.g. +5:30 → 5.5)
+                    offset_secs = dt.utcoffset().total_seconds()
+                    offset_h = offset_secs / 3600
                 else:
                     # Assume UTC if no timezone info
                     offset_h = 0
@@ -242,7 +248,15 @@ def fetch_sunrise_sunset(lat: float, lon: float, date_str: str) -> dict | None:
         sunset_local, _ = _to_local(results["sunset"])
         twilight_local, _ = _to_local(results.get("civil_twilight_end", ""))
 
-        tz_label = f"UTC{'+' if utc_offset >= 0 else ''}{utc_offset}" if utc_offset != 0 else "UTC"
+        # Format tz_label — show :30/:45 for fractional offsets
+        if utc_offset == 0:
+            tz_label = "UTC"
+        else:
+            sign = "+" if utc_offset > 0 else "-"
+            abs_offset = abs(utc_offset)
+            hours = int(abs_offset)
+            minutes = round((abs_offset - hours) * 60)
+            tz_label = f"UTC{sign}{hours}:{minutes:02d}" if minutes else f"UTC{sign}{hours}"
         return {
             "sunrise": sunrise_local,
             "sunset": sunset_local,

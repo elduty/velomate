@@ -345,12 +345,13 @@ def get_elevation_profile(coords: list) -> dict:
     step = max(1, len(coords) // 50)
     samples = coords[::step][:50]
 
-    # Open Topo Data accepts pipe-separated lat,lng pairs
+    # Open Topo Data: use POST to avoid URL length limits for large coordinate lists
     locations = "|".join(f"{lat},{lng}" for lat, lng in samples)
 
     try:
-        resp = requests.get(
-            f"https://api.opentopodata.org/v1/eudem25m?locations={locations}",
+        resp = requests.post(
+            "https://api.opentopodata.org/v1/eudem25m",
+            json={"locations": locations},
             timeout=15,
         )
         resp.raise_for_status()
