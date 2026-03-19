@@ -5,8 +5,7 @@ labels:
 when:
   - event: [push, pull_request, manual]
 
-clone:
-  disable: true
+skip_clone: true
 
 steps:
   - name: test
