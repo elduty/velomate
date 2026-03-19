@@ -102,9 +102,8 @@ def run():
                 print("[main] DB unavailable after max retries — exiting")
                 sys.exit(1)
             time.sleep(retry_delay)
-    finally:
-        if conn:
-            conn.close()
+    if conn:
+        conn.close()
 
     # Persist configured FTP/HR to sync_state so dashboards can read them
     try:
