@@ -14,6 +14,7 @@ from fitness import recalculate_fitness
 
 def _get_healthy_conn():
     """Get a healthy DB connection, reconnecting if needed."""
+    conn = None
     try:
         conn = get_connection()
         # Verify connection is alive
@@ -22,6 +23,11 @@ def _get_healthy_conn():
         return conn
     except Exception as e:
         print(f"[main] DB connection failed, reconnecting: {e}")
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
         try:
             return get_connection()
         except Exception as e2:

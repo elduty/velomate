@@ -233,6 +233,34 @@ def upsert_activity(conn, data: dict) -> tuple[int, bool]:
             merged = merge_activity_data(duplicate, data)
             if merged.get("_skip_insert"):
                 print(f"  [dedup] Skipping {data['name']} — weaker duplicate of existing activity {ex_id}")
+                # Still update the existing record with any new fields from the incoming data
+                # (e.g. suffer_score, tss, calories that may arrive on a later sync)
+                now = datetime.now(timezone.utc)
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        UPDATE activities SET
+                            suffer_score = COALESCE(suffer_score, %(suffer_score)s),
+                            tss          = COALESCE(tss, %(tss)s),
+                            calories     = COALESCE(calories, %(calories)s),
+                            avg_hr       = COALESCE(avg_hr, %(avg_hr)s),
+                            avg_power    = COALESCE(avg_power, %(avg_power)s),
+                            max_hr       = COALESCE(max_hr, %(max_hr)s),
+                            max_power    = COALESCE(max_power, %(max_power)s),
+                            avg_cadence  = COALESCE(avg_cadence, %(avg_cadence)s),
+                            synced_at    = %(synced_at)s
+                        WHERE id = %(ex_id)s
+                    """, {
+                        "suffer_score": data.get("suffer_score"),
+                        "tss":          data.get("tss"),
+                        "calories":     data.get("calories"),
+                        "avg_hr":       data.get("avg_hr"),
+                        "avg_power":    data.get("avg_power"),
+                        "max_hr":       data.get("max_hr"),
+                        "max_power":    data.get("max_power"),
+                        "avg_cadence":  data.get("avg_cadence"),
+                        "synced_at":    now,
+                        "ex_id":        ex_id,
+                    })
                 return ex_id, True
             else:
                 # Atomic merge: save streams, delete old, insert new, restore streams
