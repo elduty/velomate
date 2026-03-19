@@ -1,0 +1,18 @@
+when:
+  - event: [push, pull_request]
+
+steps:
+  - name: clone
+    image: bash
+    environment:
+      CI_REPO_CLONE_URL: ssh://git@10.7.40.20:2222/MrMartian/veloai.git
+    commands:
+      - git clone $CI_REPO_CLONE_URL --branch $CI_COMMIT_BRANCH --depth 1 .
+
+  - name: test
+    image: bash
+    commands:
+      - cd $CI_WORKSPACE
+      - python3 -m venv .venv
+      - .venv/bin/pip install -q -r requirements.txt pytest
+      - .venv/bin/python3 -m pytest tests/ -q
