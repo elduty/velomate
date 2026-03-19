@@ -1,31 +1,22 @@
 labels:
   platform: macos
+  backend: local
 
 when:
-  - event: [push, pull_request]
+  - event: [push, pull_request, manual]
 
 steps:
-  - name: clone
-    image: bash
-    environment:
-      CI_REPO_CLONE_URL: ssh://git@10.7.40.20:2222/MrMartian/veloai.git
-    commands:
-      - git clone $CI_REPO_CLONE_URL --branch $CI_COMMIT_BRANCH --depth 1 .
-
   - name: test
-    image: bash
     commands:
-      - cd $CI_WORKSPACE
-      - python3 -m venv .venv
-      - .venv/bin/pip install -q -r requirements.txt pytest
-      - set -o pipefail && .venv/bin/python3 -m pytest tests/ -q 2>&1 | tee /tmp/pytest-output.txt
+      - python3 -m venv /tmp/veloai-ci-venv
+      - /tmp/veloai-ci-venv/bin/pip install -q -r requirements.txt pytest
+      - set -o pipefail && /tmp/veloai-ci-venv/bin/python3 -m pytest tests/ -q 2>&1 | tee /tmp/pytest-output.txt
 
   - name: notify-failure
-    image: bash
     when:
       - status: failure
     environment:
       OPENCLAW_HOOKS_TOKEN:
         from_secret: openclaw_hooks_token
     commands:
-      - python3 $CI_WORKSPACE/ci/notify.py
+      - python3 ci/notify.py
