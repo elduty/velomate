@@ -11,12 +11,12 @@ steps:
   - name: test
     image: bash
     commands:
+      - rm -rf /tmp/veloai-ci-src /tmp/veloai-ci-venv
       - git clone ssh://git@10.7.40.20:2222/MrMartian/veloai.git --branch main --depth 1 /tmp/veloai-ci-src
       - cd /tmp/veloai-ci-src
       - /opt/homebrew/bin/python3.12 -m venv /tmp/veloai-ci-venv
       - /tmp/veloai-ci-venv/bin/pip install -q -r requirements.txt pytest
       - set -o pipefail && /tmp/veloai-ci-venv/bin/python3 -m pytest tests/ -q 2>&1 | tee /tmp/pytest-output.txt
-      - rm -rf /tmp/veloai-ci-src /tmp/veloai-ci-venv
 
   - name: notify-failure
     image: bash
