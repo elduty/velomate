@@ -65,7 +65,7 @@ Comprehensive production-readiness audit. All findings validated against source 
 | O10 | `fitness.py:183` — Weekly totals use O(n²) iteration. Acceptable for ~365 days. |
 | O11 | `fitness.py:141` — N+1 TSS UPDATE per activity. ~365 round-trips for a year. |
 | O12 | `route_intelligence.py:98` — Strava segments bounding box uses hardcoded `cos(lat)=0.75`. Only correct at ~41°N. | ✅ Fixed — replaced with `math.cos(math.radians(lat))` |
-| O13 | `route_intelligence.py:352` — Elevation API uses GET with coordinates in URL. Long URLs may be rejected by proxies. |
+| O13 | `route_intelligence.py:352` — Elevation API uses GET with coordinates in URL. Long URLs may be rejected by proxies. | ✅ Fixed — switched to POST request for Open Topo Data API |
 | O14 | `map_preview.py:42` — Fixed `coords[::5]` downsampling regardless of route length. |
 | O15 | `config.py:54-55` — Config caching ignores `config_path` argument after first load. | ✅ Fixed — cache keyed by path (`_config_path_used` tracks last path) |
 | O16 | No `pyproject.toml` or `setup.py` — CLI can't be pip-installed. | ✅ Fixed — `pyproject.toml` already present |
@@ -79,7 +79,9 @@ Comprehensive production-readiness audit. All findings validated against source 
 
 ## Test Coverage
 
-71 tests pass. All assertions are correct.
+205 tests pass. All assertions are correct.
+
+**2026-03-19 update:** Added `tests/test_ingestor_main.py` (ingestor smoke tests + `_get_healthy_conn`, `run_backfill`, `run_reclassify`) and `tests/test_audit_fixes.py` (O3/O5/O8/O9/O15 regression tests). Total: +35 tests.
 
 ### Untested Pure Functions (highest value targets)
 
