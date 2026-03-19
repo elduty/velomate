@@ -7,12 +7,14 @@ when:
 
 steps:
   - name: test
+    image: local
     commands:
       - python3 -m venv /tmp/veloai-ci-venv
       - /tmp/veloai-ci-venv/bin/pip install -q -r requirements.txt pytest
       - set -o pipefail && /tmp/veloai-ci-venv/bin/python3 -m pytest tests/ -q 2>&1 | tee /tmp/pytest-output.txt
 
   - name: notify-failure
+    image: local
     when:
       - status: failure
     environment:
