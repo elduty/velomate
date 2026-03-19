@@ -10,7 +10,7 @@ clone:
 
 steps:
   - name: test
-    image: local
+    image: bash
     commands:
       - git clone ssh://git@10.7.40.20:2222/MrMartian/veloai.git --branch main --depth 1 /tmp/veloai-ci-src
       - cd /tmp/veloai-ci-src
@@ -20,7 +20,7 @@ steps:
       - rm -rf /tmp/veloai-ci-src /tmp/veloai-ci-venv
 
   - name: notify-failure
-    image: local
+    image: bash
     when:
       - status: failure
     environment:
