@@ -5,6 +5,9 @@ labels:
 when:
   - event: [push, pull_request, manual]
 
+clone:
+  disable: true
+
 steps:
   - name: test
     image: local
