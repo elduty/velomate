@@ -27,3 +27,4 @@ steps:
         from_secret: openclaw_hooks_token
     commands:
       - python3 ci/notify.py
+# CI passing ✅
