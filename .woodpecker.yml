@@ -15,4 +15,25 @@ steps:
       - cd $CI_WORKSPACE
       - python3 -m venv .venv
       - .venv/bin/pip install -q -r requirements.txt pytest
-      - .venv/bin/python3 -m pytest tests/ -q
+      - .venv/bin/python3 -m pytest tests/ -q 2>&1 | tee /tmp/pytest-output.txt
+      - exit ${PIPESTATUS[0]}
+
+  - name: notify-failure
+    image: bash
+    when:
+      - status: failure
+    environment:
+      OPENCLAW_HOOKS_TOKEN:
+        from_secret: openclaw_hooks_token
+    commands:
+      - |
+        OUTPUT=$(tail -20 /tmp/pytest-output.txt 2>/dev/null || echo "No test output available")
+        MESSAGE="❌ VeloAI tests failed on branch $CI_COMMIT_BRANCH (commit $CI_COMMIT_SHA)
+
+        $OUTPUT
+
+        Commit message: $CI_COMMIT_MESSAGE"
+        curl -s -X POST http://127.0.0.1:18789/hooks/agent \
+          -H "Content-Type: application/json" \
+          -H "Authorization: Bearer $OPENCLAW_HOOKS_TOKEN" \
+          -d "{\"message\": $(echo "$MESSAGE" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))'), \"name\": \"ci-failure\", \"wakeMode\": \"now\"}"
