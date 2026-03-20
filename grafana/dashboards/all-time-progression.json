@@ -449,14 +449,6 @@
           }
         ]
       },
-      "transformations": [
-        {
-          "id": "regression",
-          "options": {
-            "modelType": "linear"
-          }
-        }
-      ],
       "description": "Average speed per ride (outdoor, >5km only).\n\nDots = individual rides. Line = 10-ride rolling average."
     },
     {
@@ -520,14 +512,6 @@
           }
         ]
       },
-      "transformations": [
-        {
-          "id": "regression",
-          "options": {
-            "modelType": "linear"
-          }
-        }
-      ],
       "description": "Average power per ride (rides >20min with power data).\n\nDots = individual rides. Line = 10-ride rolling average."
     },
     {
@@ -589,15 +573,7 @@
             ]
           }
         ]
-      },
-      "transformations": [
-        {
-          "id": "regression",
-          "options": {
-            "modelType": "linear"
-          }
-        }
-      ]
+      }
     },
     {
       "id": 13,
@@ -659,15 +635,7 @@
             ]
           }
         ]
-      },
-      "transformations": [
-        {
-          "id": "regression",
-          "options": {
-            "modelType": "linear"
-          }
-        }
-      ]
+      }
     },
     {
       "id": 14,
@@ -730,14 +698,6 @@
           }
         ]
       },
-      "transformations": [
-        {
-          "id": "regression",
-          "options": {
-            "modelType": "linear"
-          }
-        }
-      ],
       "description": "Normalized Power accounts for variability in effort.\n\nA steady 200W ride and an interval ride averaging 200W have different NP.\n\nHigher NP = more intense effort pattern."
     },
     {
@@ -800,14 +760,6 @@
           }
         ]
       },
-      "transformations": [
-        {
-          "id": "regression",
-          "options": {
-            "modelType": "linear"
-          }
-        }
-      ],
       "description": "Efficiency Factor = Normalized Power / Avg HR.\n\nRising EF = getting fitter (more power per heartbeat).\n\nOne of the best indicators of aerobic fitness improvement."
     },
     {
