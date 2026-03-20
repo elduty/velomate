@@ -405,7 +405,7 @@
       "targets": [
         {
           "rawSql": "SELECT date::date AS time,\n  ROUND(avg_speed_kmh::numeric, 1) AS \"Avg Speed\",\n  ROUND(AVG(avg_speed_kmh) OVER (ORDER BY date ROWS BETWEEN 9 PRECEDING AND CURRENT ROW)::numeric, 1) AS \"10-ride avg\"\nFROM activities\nWHERE avg_speed_kmh > 0 AND distance_m > 5000 AND is_indoor IS NOT TRUE\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n  AND $__timeFilter(date)\nORDER BY date;",
-          "format": "time_series",
+          "format": "table",
           "refId": "A"
         }
       ],
@@ -468,7 +468,7 @@
       "targets": [
         {
           "rawSql": "SELECT date::date AS time,\n  ROUND(avg_power::numeric, 0) AS \"Avg Power\",\n  ROUND(AVG(avg_power) OVER (ORDER BY date ROWS BETWEEN 9 PRECEDING AND CURRENT ROW)::numeric, 0) AS \"10-ride avg\"\nFROM activities\nWHERE avg_power IS NOT NULL AND avg_power > 0 AND duration_s > 1200\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n  AND $__timeFilter(date)\nORDER BY date;",
-          "format": "time_series",
+          "format": "table",
           "refId": "A"
         }
       ],
@@ -531,7 +531,7 @@
       "targets": [
         {
           "rawSql": "SELECT date::date AS time,\n  avg_hr AS \"Avg HR\",\n  ROUND(AVG(avg_hr) OVER (ORDER BY date ROWS BETWEEN 9 PRECEDING AND CURRENT ROW)::numeric, 0) AS \"10-ride avg\"\nFROM activities\nWHERE avg_hr IS NOT NULL AND avg_hr > 0\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n  AND $__timeFilter(date)\nORDER BY date;",
-          "format": "time_series",
+          "format": "table",
           "refId": "A"
         }
       ],
@@ -592,7 +592,7 @@
       "targets": [
         {
           "rawSql": "SELECT date::date AS time,\n  ROUND((distance_m / 1000.0)::numeric, 1) AS \"Distance\",\n  ROUND(AVG(distance_m / 1000.0) OVER (ORDER BY date ROWS BETWEEN 9 PRECEDING AND CURRENT ROW)::numeric, 1) AS \"10-ride avg\"\nFROM activities\nWHERE distance_m > 0\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n  AND $__timeFilter(date)\nORDER BY date;",
-          "format": "time_series",
+          "format": "table",
           "refId": "A"
         }
       ],
