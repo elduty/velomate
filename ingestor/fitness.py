@@ -17,6 +17,20 @@ def calculate_tss(duration_s: int, avg_hr: int, threshold_hr: int) -> float:
     return duration_h * (intensity ** 2) * 100
 
 
+def compute_work_kj(total_power_sum: float) -> float:
+    """Work in kJ = sum of per-second power / 1000."""
+    if not total_power_sum:
+        return 0.0
+    return round(total_power_sum / 1000.0, 1)
+
+
+def compute_ef(np: float, avg_hr: int) -> float | None:
+    """Efficiency Factor = NP / avg HR."""
+    if not np or not avg_hr or avg_hr <= 0:
+        return None
+    return round(np / avg_hr, 2)
+
+
 def calculate_tss_power(duration_s: int, avg_power: int, ftp: int) -> float:
     """Power-based TSS = (duration_s × avg_power × IF) / (FTP × 3600) × 100
     where IF (Intensity Factor) = avg_power / FTP"""
@@ -144,10 +158,11 @@ def recalculate_fitness(conn):
     print("[fitness] Computing NP/EF/Work...")
     with conn.cursor() as cur:
         cur.execute("""
-            SELECT DISTINCT a.id, a.avg_hr, a.avg_power, a.duration_s
+            SELECT a.id, a.avg_hr, a.avg_power, a.duration_s
             FROM activities a
             JOIN activity_streams s ON s.activity_id = a.id
             WHERE s.power IS NOT NULL AND s.power > 0
+              AND a.np IS NULL
             GROUP BY a.id, a.avg_hr, a.avg_power, a.duration_s
             HAVING COUNT(*) > 30
         """)
@@ -164,7 +179,7 @@ def recalculate_fitness(conn):
                         RANGE BETWEEN 29 PRECEDING AND CURRENT ROW
                     ) AS rolling_30s
                     FROM activity_streams
-                    WHERE activity_id = %s AND power IS NOT NULL AND power > 0
+                    WHERE activity_id = %s AND power IS NOT NULL
                 )
                 SELECT POWER(AVG(POWER(rolling_30s, 4)), 0.25)
                 FROM rolling
@@ -174,8 +189,16 @@ def recalculate_fitness(conn):
             np_val = round(row[0], 1) if row and row[0] else None
 
         if np_val:
-            ef_val = round(np_val / avg_hr, 2) if avg_hr and avg_hr > 0 else None
-            work_val = round(avg_power * duration_s / 1000.0, 1) if avg_power and duration_s else None
+            ef_val = compute_ef(np_val, avg_hr)
+
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT ROUND((SUM(power) / 1000.0)::numeric, 1)
+                    FROM activity_streams
+                    WHERE activity_id = %s AND power IS NOT NULL
+                """, (act_id,))
+                work_row = cur.fetchone()
+                work_val = float(work_row[0]) if work_row and work_row[0] else None
 
             with conn.cursor() as cur:
                 cur.execute("""

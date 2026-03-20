@@ -1,88 +1,69 @@
-"""Tests for NP/EF/Work computation formulas used in fitness.py."""
+"""Tests for NP/EF/Work computation functions in fitness.py."""
 
-import pytest
+import sys
+import os
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "ingestor"))
+
+from fitness import compute_work_kj, compute_ef
 
 
-class TestWorkCalculation:
-    """Work (kJ) = avg_power (W) * duration_s / 1000"""
+class TestComputeWorkKj:
+    """Work (kJ) = sum of per-second power / 1000."""
 
     def test_normal(self):
-        avg_power = 200
-        duration_s = 3600
-        work = round(avg_power * duration_s / 1000.0, 1)
-        assert work == 720.0
+        # 200W avg × 3600s = 720,000 total power sum
+        assert compute_work_kj(720000) == 720.0
 
     def test_short_ride(self):
-        avg_power = 150
-        duration_s = 1800  # 30 min
-        work = round(avg_power * duration_s / 1000.0, 1)
-        assert work == 270.0
+        # 150W avg × 1800s = 270,000
+        assert compute_work_kj(270000) == 270.0
 
     def test_high_power(self):
-        avg_power = 350
-        duration_s = 7200  # 2 hours
-        work = round(avg_power * duration_s / 1000.0, 1)
-        assert work == 2520.0
+        # 350W avg × 7200s = 2,520,000
+        assert compute_work_kj(2520000) == 2520.0
 
-    def test_zero_power(self):
-        avg_power = 0
-        duration_s = 3600
-        work = round(avg_power * duration_s / 1000.0, 1)
-        assert work == 0.0
+    def test_zero_sum(self):
+        assert compute_work_kj(0) == 0.0
 
-    def test_zero_duration(self):
-        avg_power = 200
-        duration_s = 0
-        work = round(avg_power * duration_s / 1000.0, 1)
-        assert work == 0.0
+    def test_none_sum(self):
+        assert compute_work_kj(None) == 0.0
 
-    def test_none_power_guard(self):
-        """In fitness.py, Work is only computed when avg_power and duration_s are truthy."""
-        avg_power = None
-        duration_s = 3600
-        work = round(avg_power * duration_s / 1000.0, 1) if avg_power and duration_s else None
-        assert work is None
+    def test_small_value(self):
+        # 100W × 60s = 6,000 -> 6.0 kJ
+        assert compute_work_kj(6000) == 6.0
 
-    def test_none_duration_guard(self):
-        avg_power = 200
-        duration_s = None
-        work = round(avg_power * duration_s / 1000.0, 1) if avg_power and duration_s else None
-        assert work is None
+    def test_rounding(self):
+        # 6,123 -> 6.1 kJ
+        assert compute_work_kj(6123) == 6.1
 
 
-class TestEFCalculation:
-    """Efficiency Factor (EF) = NP / avg_hr"""
+class TestComputeEf:
+    """Efficiency Factor = NP / avg HR."""
 
     def test_normal(self):
-        np_val = 220.0
-        avg_hr = 150
-        ef = round(np_val / avg_hr, 2)
-        assert ef == 1.47
+        assert compute_ef(220.0, 150) == 1.47
 
     def test_low_hr(self):
-        np_val = 200.0
-        avg_hr = 120
-        ef = round(np_val / avg_hr, 2)
-        assert ef == 1.67
+        assert compute_ef(200.0, 120) == 1.67
 
     def test_high_np(self):
-        np_val = 300.0
-        avg_hr = 170
-        ef = round(np_val / avg_hr, 2)
-        assert ef == 1.76
+        assert compute_ef(300.0, 170) == 1.76
 
-    def test_zero_hr_guard(self):
-        """EF is None when avg_hr is 0 (guard in fitness.py)."""
-        np_val = 220.0
-        avg_hr = 0
-        ef = round(np_val / avg_hr, 2) if avg_hr and avg_hr > 0 else None
-        assert ef is None
+    def test_zero_hr(self):
+        assert compute_ef(220.0, 0) is None
 
-    def test_none_hr_guard(self):
-        np_val = 220.0
-        avg_hr = None
-        ef = round(np_val / avg_hr, 2) if avg_hr and avg_hr > 0 else None
-        assert ef is None
+    def test_none_hr(self):
+        assert compute_ef(220.0, None) is None
+
+    def test_none_np(self):
+        assert compute_ef(None, 150) is None
+
+    def test_zero_np(self):
+        assert compute_ef(0, 150) is None
+
+    def test_negative_hr(self):
+        assert compute_ef(220.0, -5) is None
 
 
 class TestNPEdgeCases:
