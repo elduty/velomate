@@ -984,7 +984,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND((COALESCE((SELECT COUNT(*) FROM activities WHERE $__timeFilter(date)), 0) - COALESCE((SELECT COUNT(*) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz), 0))::numeric, 0) AS \"Delta\" AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}');",
+          "rawSql": "SELECT ROUND((COALESCE((SELECT COUNT(*) FROM activities WHERE $__timeFilter(date) AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0) - COALESCE((SELECT COUNT(*) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0))::numeric, 0) AS \"Delta\";",
           "format": "table",
           "refId": "A"
         }
@@ -1037,7 +1037,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND((COALESCE((SELECT SUM(distance_m)/1000.0 FROM activities WHERE $__timeFilter(date)), 0) - COALESCE((SELECT SUM(distance_m)/1000.0 FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz), 0))::numeric, 1) AS \"Delta\" AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}');",
+          "rawSql": "SELECT ROUND((COALESCE((SELECT SUM(distance_m)/1000.0 FROM activities WHERE $__timeFilter(date) AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0) - COALESCE((SELECT SUM(distance_m)/1000.0 FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0))::numeric, 1) AS \"Delta\";",
           "format": "table",
           "refId": "A"
         }
@@ -1091,7 +1091,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND((COALESCE((SELECT SUM(elevation_m) FROM activities WHERE $__timeFilter(date)), 0) - COALESCE((SELECT SUM(elevation_m) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz), 0))::numeric, 0) AS \"Delta\" AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}');",
+          "rawSql": "SELECT ROUND((COALESCE((SELECT SUM(elevation_m) FROM activities WHERE $__timeFilter(date) AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0) - COALESCE((SELECT SUM(elevation_m) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0))::numeric, 0) AS \"Delta\";",
           "format": "table",
           "refId": "A"
         }
@@ -1145,7 +1145,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND((COALESCE((SELECT SUM(duration_s) FROM activities WHERE $__timeFilter(date)), 0) - COALESCE((SELECT SUM(duration_s) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz), 0)) / 60.0::numeric, 0) AS \"Delta\" AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}');",
+          "rawSql": "SELECT ROUND((COALESCE((SELECT SUM(duration_s) FROM activities WHERE $__timeFilter(date) AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0) - COALESCE((SELECT SUM(duration_s) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0)) / 60.0::numeric, 0) AS \"Delta\";",
           "format": "table",
           "refId": "A"
         }
@@ -1199,7 +1199,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND((COALESCE((SELECT SUM(tss) FROM activities WHERE $__timeFilter(date)), 0) - COALESCE((SELECT SUM(tss) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz), 0))::numeric, 0) AS \"Delta\" AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}');",
+          "rawSql": "SELECT ROUND((COALESCE((SELECT SUM(tss) FROM activities WHERE $__timeFilter(date) AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0) - COALESCE((SELECT SUM(tss) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0))::numeric, 0) AS \"Delta\";",
           "format": "table",
           "refId": "A"
         }
@@ -1252,7 +1252,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND((COALESCE((SELECT AVG(avg_power) FROM activities WHERE $__timeFilter(date) AND avg_power > 0), 0) - COALESCE((SELECT AVG(avg_power) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND avg_power > 0), 0))::numeric, 0) AS \"Delta\" AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}');",
+          "rawSql": "SELECT ROUND((COALESCE((SELECT AVG(avg_power) FROM activities WHERE $__timeFilter(date) AND avg_power > 0 AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0) - COALESCE((SELECT AVG(avg_power) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND avg_power > 0 AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0))::numeric, 0) AS \"Delta\";",
           "format": "table",
           "refId": "A"
         }
@@ -1306,7 +1306,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND((COALESCE((SELECT AVG(avg_speed_kmh) FROM activities WHERE $__timeFilter(date) AND avg_speed_kmh > 0 AND distance_m > 5000), 0) - COALESCE((SELECT AVG(avg_speed_kmh) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND avg_speed_kmh > 0 AND distance_m > 5000), 0))::numeric, 1) AS \"Delta\" AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}');",
+          "rawSql": "SELECT ROUND((COALESCE((SELECT AVG(avg_speed_kmh) FROM activities WHERE $__timeFilter(date) AND avg_speed_kmh > 0 AND distance_m > 5000 AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0) - COALESCE((SELECT AVG(avg_speed_kmh) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND avg_speed_kmh > 0 AND distance_m > 5000 AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0))::numeric, 1) AS \"Delta\";",
           "format": "table",
           "refId": "A"
         }
@@ -1360,7 +1360,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND((COALESCE((SELECT AVG(avg_hr) FROM activities WHERE $__timeFilter(date) AND avg_hr > 0), 0) - COALESCE((SELECT AVG(avg_hr) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND avg_hr > 0), 0))::numeric, 0) AS \"Delta\" AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}');",
+          "rawSql": "SELECT ROUND((COALESCE((SELECT AVG(avg_hr) FROM activities WHERE $__timeFilter(date) AND avg_hr > 0 AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0) - COALESCE((SELECT AVG(avg_hr) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND avg_hr > 0 AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0))::numeric, 0) AS \"Delta\";",
           "format": "table",
           "refId": "A"
         }
@@ -1496,7 +1496,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT CURRENT_DATE - MAX(date::date) AS \"Days\" FROM activities WHERE (('${sport_type}' = 'all') OR sport_type = '${sport_type}');",
+          "rawSql": "SELECT CURRENT_DATE - MAX(date::date) AS \"Days\" FROM activities WHERE sport_type IS NOT NULL AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}');",
           "format": "table",
           "refId": "A"
         }
