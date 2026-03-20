@@ -874,7 +874,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT\n  date_trunc('week', date) AS time,\n  MIN(avg_power) AS \"open\",\n  MAX(avg_power) AS \"high\",\n  MIN(avg_power) AS \"low\",\n  ROUND(AVG(avg_power)::numeric, 0) AS \"close\"\nFROM activities\nWHERE avg_power IS NOT NULL AND avg_power > 0\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n  AND $__timeFilter(date)\nGROUP BY 1\nORDER BY 1;",
+          "rawSql": "SELECT\n  week AS time,\n  COALESCE(prev_avg, avg_p) AS \"open\",\n  max_p AS \"high\",\n  min_p AS \"low\",\n  avg_p AS \"close\"\nFROM (\n  SELECT\n    date_trunc('week', date) AS week,\n    ROUND(AVG(avg_power)::numeric, 0) AS avg_p,\n    MAX(avg_power) AS max_p,\n    MIN(avg_power) AS min_p,\n    LAG(ROUND(AVG(avg_power)::numeric, 0)) OVER (ORDER BY date_trunc('week', date)) AS prev_avg\n  FROM activities\n  WHERE avg_power IS NOT NULL AND avg_power > 0\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n    AND $__timeFilter(date)\n  GROUP BY 1\n) sub\nORDER BY 1;",
           "format": "table",
           "refId": "A"
         }
