@@ -833,8 +833,8 @@
       },
       "targets": [
         {
-          "rawSql": "WITH monthly_ftp AS (\n  SELECT date_trunc('month', a.date) AS month,\n    ROUND(MAX(avg_20min) * 0.95) AS ftp_est\n  FROM (\n    SELECT s.activity_id,\n      AVG(s.power) OVER (\n        PARTITION BY s.activity_id\n        ORDER BY s.time_offset\n        RANGE BETWEEN 1199 PRECEDING AND CURRENT ROW\n      ) AS avg_20min\n    FROM activity_streams s\n    JOIN activities a ON a.id = s.activity_id\n    WHERE s.power IS NOT NULL AND s.power > 0\n      AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')\n  ) sub\n  JOIN activities a ON a.id = sub.activity_id\n  WHERE avg_20min IS NOT NULL\n  GROUP BY 1\n)\nSELECT month AS time, ftp_est AS \"Est. FTP (W)\"\nFROM monthly_ftp\nORDER BY month;",
-          "format": "table",
+          "rawSql": "SELECT date_trunc('month', a.date) AS time,\n  ROUND((MAX(sub.best_20min) * 0.95)::numeric, 0) AS \"Est. FTP (W)\"\nFROM (\n  SELECT activity_id, MAX(rolling_avg) AS best_20min\n  FROM (\n    SELECT s.activity_id,\n      AVG(s.power) OVER (\n        PARTITION BY s.activity_id\n        ORDER BY s.time_offset\n        RANGE BETWEEN 1199 PRECEDING AND CURRENT ROW\n      ) AS rolling_avg\n    FROM activity_streams s\n    WHERE s.power IS NOT NULL AND s.power > 0\n  ) t\n  GROUP BY activity_id\n) sub\nJOIN activities a ON a.id = sub.activity_id\nWHERE sub.best_20min IS NOT NULL\n  AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')\nGROUP BY 1\nORDER BY 1;",
+          "format": "time_series",
           "refId": "A"
         },
         {
