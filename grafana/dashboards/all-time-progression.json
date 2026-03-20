@@ -790,6 +790,257 @@
           "custom": { "drawStyle": "line", "fillOpacity": 15, "lineWidth": 2 }
         }
       }
+    },
+    {
+      "id": 105,
+      "type": "row",
+      "title": "Monthly Trends",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 70 },
+      "panels": []
+    },
+    {
+      "id": 60,
+      "title": "Monthly Distance",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 71 },
+      "datasource": { "type": "postgres", "uid": "veloai" },
+      "targets": [
+        {
+          "rawSql": "SELECT date_trunc('month', date) AS \"time\",\n  ROUND(SUM(distance_m) / 1000::numeric, 0) AS \"Outdoor\"\nFROM activities\nWHERE sport_type = 'cycling_outdoor'\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
+          "format": "time_series",
+          "refId": "A"
+        },
+        {
+          "rawSql": "SELECT date_trunc('month', date) AS \"time\",\n  ROUND(SUM(distance_m) / 1000::numeric, 0) AS \"Zwift\"\nFROM activities\nWHERE sport_type = 'zwift'\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
+          "format": "time_series",
+          "refId": "B"
+        },
+        {
+          "rawSql": "SELECT date_trunc('month', date) AS \"time\",\n  ROUND(SUM(distance_m) / 1000::numeric, 0) AS \"E-Bike\"\nFROM activities\nWHERE sport_type = 'ebike'\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
+          "format": "time_series",
+          "refId": "C"
+        },
+        {
+          "rawSql": "SELECT date_trunc('month', date) AS \"time\",\n  ROUND(SUM(distance_m) / 1000::numeric, 0) AS \"Indoor\"\nFROM activities\nWHERE sport_type = 'cycling_indoor'\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
+          "format": "time_series",
+          "refId": "D"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "lengthkm",
+          "custom": { "drawStyle": "bars", "fillOpacity": 80, "stacking": { "mode": "normal" }, "barWidthFactor": 0.6 }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Outdoor" }, "properties": [{ "id": "color", "value": { "fixedColor": "#33658a", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Zwift" }, "properties": [{ "id": "color", "value": { "fixedColor": "#fc4c02", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "E-Bike" }, "properties": [{ "id": "color", "value": { "fixedColor": "#73bf69", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Indoor" }, "properties": [{ "id": "color", "value": { "fixedColor": "#8b5cf6", "mode": "fixed" } }] }
+        ]
+      }
+    },
+    {
+      "id": 61,
+      "title": "Monthly Elevation",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 71 },
+      "datasource": { "type": "postgres", "uid": "veloai" },
+      "targets": [
+        {
+          "rawSql": "SELECT date_trunc('month', date) AS \"time\",\n  ROUND(SUM(elevation_m)::numeric, 0) AS \"Outdoor\"\nFROM activities\nWHERE sport_type = 'cycling_outdoor'\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
+          "format": "time_series",
+          "refId": "A"
+        },
+        {
+          "rawSql": "SELECT date_trunc('month', date) AS \"time\",\n  ROUND(SUM(elevation_m)::numeric, 0) AS \"Zwift\"\nFROM activities\nWHERE sport_type = 'zwift'\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
+          "format": "time_series",
+          "refId": "B"
+        },
+        {
+          "rawSql": "SELECT date_trunc('month', date) AS \"time\",\n  ROUND(SUM(elevation_m)::numeric, 0) AS \"E-Bike\"\nFROM activities\nWHERE sport_type = 'ebike'\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
+          "format": "time_series",
+          "refId": "C"
+        },
+        {
+          "rawSql": "SELECT date_trunc('month', date) AS \"time\",\n  ROUND(SUM(elevation_m)::numeric, 0) AS \"Indoor\"\nFROM activities\nWHERE sport_type = 'cycling_indoor'\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
+          "format": "time_series",
+          "refId": "D"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "lengthm",
+          "custom": { "drawStyle": "bars", "fillOpacity": 80, "stacking": { "mode": "normal" }, "barWidthFactor": 0.6 }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Outdoor" }, "properties": [{ "id": "color", "value": { "fixedColor": "#33658a", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Zwift" }, "properties": [{ "id": "color", "value": { "fixedColor": "#fc4c02", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "E-Bike" }, "properties": [{ "id": "color", "value": { "fixedColor": "#73bf69", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Indoor" }, "properties": [{ "id": "color", "value": { "fixedColor": "#8b5cf6", "mode": "fixed" } }] }
+        ]
+      }
+    },
+    {
+      "id": 62,
+      "title": "Monthly Rides",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 79 },
+      "datasource": { "type": "postgres", "uid": "veloai" },
+      "targets": [
+        {
+          "rawSql": "SELECT date_trunc('month', date) AS \"time\",\n  COUNT(*) AS \"Outdoor\"\nFROM activities\nWHERE sport_type = 'cycling_outdoor'\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
+          "format": "time_series",
+          "refId": "A"
+        },
+        {
+          "rawSql": "SELECT date_trunc('month', date) AS \"time\",\n  COUNT(*) AS \"Zwift\"\nFROM activities\nWHERE sport_type = 'zwift'\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
+          "format": "time_series",
+          "refId": "B"
+        },
+        {
+          "rawSql": "SELECT date_trunc('month', date) AS \"time\",\n  COUNT(*) AS \"E-Bike\"\nFROM activities\nWHERE sport_type = 'ebike'\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
+          "format": "time_series",
+          "refId": "C"
+        },
+        {
+          "rawSql": "SELECT date_trunc('month', date) AS \"time\",\n  COUNT(*) AS \"Indoor\"\nFROM activities\nWHERE sport_type = 'cycling_indoor'\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
+          "format": "time_series",
+          "refId": "D"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "bars", "fillOpacity": 80, "stacking": { "mode": "normal" }, "barWidthFactor": 0.6 }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Outdoor" }, "properties": [{ "id": "color", "value": { "fixedColor": "#33658a", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Zwift" }, "properties": [{ "id": "color", "value": { "fixedColor": "#fc4c02", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "E-Bike" }, "properties": [{ "id": "color", "value": { "fixedColor": "#73bf69", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Indoor" }, "properties": [{ "id": "color", "value": { "fixedColor": "#8b5cf6", "mode": "fixed" } }] }
+        ]
+      }
+    },
+    {
+      "id": 63,
+      "title": "Monthly Hours",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 79 },
+      "datasource": { "type": "postgres", "uid": "veloai" },
+      "targets": [
+        {
+          "rawSql": "SELECT date_trunc('month', date) AS \"time\",\n  ROUND(SUM(duration_s) / 3600.0::numeric, 1) AS \"Outdoor\"\nFROM activities\nWHERE sport_type = 'cycling_outdoor'\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
+          "format": "time_series",
+          "refId": "A"
+        },
+        {
+          "rawSql": "SELECT date_trunc('month', date) AS \"time\",\n  ROUND(SUM(duration_s) / 3600.0::numeric, 1) AS \"Zwift\"\nFROM activities\nWHERE sport_type = 'zwift'\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
+          "format": "time_series",
+          "refId": "B"
+        },
+        {
+          "rawSql": "SELECT date_trunc('month', date) AS \"time\",\n  ROUND(SUM(duration_s) / 3600.0::numeric, 1) AS \"E-Bike\"\nFROM activities\nWHERE sport_type = 'ebike'\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
+          "format": "time_series",
+          "refId": "C"
+        },
+        {
+          "rawSql": "SELECT date_trunc('month', date) AS \"time\",\n  ROUND(SUM(duration_s) / 3600.0::numeric, 1) AS \"Indoor\"\nFROM activities\nWHERE sport_type = 'cycling_indoor'\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
+          "format": "time_series",
+          "refId": "D"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "h",
+          "custom": { "drawStyle": "bars", "fillOpacity": 80, "stacking": { "mode": "normal" }, "barWidthFactor": 0.6 }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Outdoor" }, "properties": [{ "id": "color", "value": { "fixedColor": "#33658a", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Zwift" }, "properties": [{ "id": "color", "value": { "fixedColor": "#fc4c02", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "E-Bike" }, "properties": [{ "id": "color", "value": { "fixedColor": "#73bf69", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Indoor" }, "properties": [{ "id": "color", "value": { "fixedColor": "#8b5cf6", "mode": "fixed" } }] }
+        ]
+      }
+    },
+    {
+      "id": 106,
+      "type": "row",
+      "title": "Year-over-Year",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 87 },
+      "panels": []
+    },
+    {
+      "id": 70,
+      "title": "YoY Monthly Distance",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 88 },
+      "datasource": { "type": "postgres", "uid": "veloai" },
+      "targets": [
+        {
+          "rawSql": "SELECT date_trunc('month', date) AS \"time\",\n  ROUND(SUM(distance_m) / 1000::numeric, 0) AS \"This Year (km)\"\nFROM activities\nWHERE distance_m > 0\n  AND EXTRACT(YEAR FROM date) = EXTRACT(YEAR FROM CURRENT_DATE)\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
+          "format": "time_series",
+          "refId": "A"
+        },
+        {
+          "rawSql": "SELECT date_trunc('month', date) + interval '1 year' AS \"time\",\n  ROUND(SUM(distance_m) / 1000::numeric, 0) AS \"Last Year (km)\"\nFROM activities\nWHERE distance_m > 0\n  AND EXTRACT(YEAR FROM date) = EXTRACT(YEAR FROM CURRENT_DATE) - 1\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
+          "format": "time_series",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "lengthkm",
+          "custom": { "drawStyle": "bars", "fillOpacity": 80, "stacking": { "mode": "none" }, "barWidthFactor": 0.6 }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "This Year (km)" }, "properties": [{ "id": "color", "value": { "fixedColor": "#33658a", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Last Year (km)" }, "properties": [{ "id": "color", "value": { "fixedColor": "#33658a80", "mode": "fixed" } }] }
+        ]
+      }
+    },
+    {
+      "id": 71,
+      "title": "Annual Totals",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 88 },
+      "datasource": { "type": "postgres", "uid": "veloai" },
+      "targets": [
+        {
+          "rawSql": "SELECT EXTRACT(YEAR FROM date)::int AS \"Year\",\n  COUNT(*) AS \"Rides\",\n  ROUND((SUM(distance_m)/1000)::numeric, 0) AS \"Distance (km)\",\n  ROUND(SUM(elevation_m)::numeric, 0) AS \"Elevation (m)\",\n  ROUND((SUM(duration_s)/3600.0)::numeric, 1) AS \"Hours\",\n  ROUND((AVG(distance_m)/1000.0)::numeric, 1) AS \"Avg Ride (km)\",\n  ROUND((SUM(distance_m) / NULLIF(SUM(duration_s / 3600.0), 0) / 1000.0)::numeric, 1) AS \"Avg Speed\",\n  ROUND(SUM(tss)::numeric, 0) AS \"Total TSS\"\nFROM activities\nWHERE date IS NOT NULL\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1 DESC;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showHeader": true
+      }
+    },
+    {
+      "id": 107,
+      "type": "row",
+      "title": "Personal Records",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 96 },
+      "panels": []
+    },
+    {
+      "id": 80,
+      "title": "All-Time Records",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 97 },
+      "datasource": { "type": "postgres", "uid": "veloai" },
+      "targets": [
+        {
+          "rawSql": "SELECT * FROM (\n  SELECT 'Longest Ride' AS \"Record\",\n    ROUND((distance_m/1000)::numeric, 1) || ' km' AS \"Value\",\n    TO_CHAR(date, 'YYYY-MM-DD') AS \"Date\",\n    name AS \"Ride\"\n  FROM activities WHERE distance_m IS NOT NULL\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n  ORDER BY distance_m DESC LIMIT 1\n) a\nUNION ALL\nSELECT * FROM (\n  SELECT 'Most Elevation',\n    ROUND(elevation_m::numeric, 0) || ' m',\n    TO_CHAR(date, 'YYYY-MM-DD'),\n    name\n  FROM activities WHERE elevation_m IS NOT NULL\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n  ORDER BY elevation_m DESC LIMIT 1\n) b\nUNION ALL\nSELECT * FROM (\n  SELECT 'Fastest Avg Speed',\n    ROUND(avg_speed_kmh::numeric, 1) || ' km/h',\n    TO_CHAR(date, 'YYYY-MM-DD'),\n    name\n  FROM activities WHERE avg_speed_kmh IS NOT NULL AND is_indoor IS NOT TRUE AND distance_m > 5000\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n  ORDER BY avg_speed_kmh DESC LIMIT 1\n) c\nUNION ALL\nSELECT * FROM (\n  SELECT 'Highest Avg Power',\n    ROUND(avg_power::numeric, 0) || ' W',\n    TO_CHAR(date, 'YYYY-MM-DD'),\n    name\n  FROM activities WHERE avg_power IS NOT NULL AND avg_power > 0\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n  ORDER BY avg_power DESC LIMIT 1\n) d\nUNION ALL\nSELECT * FROM (\n  SELECT 'Longest Duration',\n    ROUND(duration_s / 3600.0::numeric, 1) || ' h',\n    TO_CHAR(date, 'YYYY-MM-DD'),\n    name\n  FROM activities WHERE duration_s IS NOT NULL\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n  ORDER BY duration_s DESC LIMIT 1\n) e\nUNION ALL\nSELECT * FROM (\n  SELECT 'Highest TSS',\n    ROUND(tss::numeric, 0) || '',\n    TO_CHAR(date, 'YYYY-MM-DD'),\n    name\n  FROM activities WHERE tss IS NOT NULL\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n  ORDER BY tss DESC LIMIT 1\n) f;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "filterable": false,
+        "showHeader": true
+      }
     }
   ]
 }
