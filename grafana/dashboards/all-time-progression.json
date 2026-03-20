@@ -682,7 +682,7 @@
       "targets": [
         {
           "rawSql": "WITH rolling AS (\n  SELECT s.activity_id,\n    AVG(s.power) OVER (\n      PARTITION BY s.activity_id\n      ORDER BY s.time_offset\n      RANGE BETWEEN 29 PRECEDING AND CURRENT ROW\n    ) AS rolling_30s\n  FROM activity_streams s\n  JOIN activities a ON a.id = s.activity_id\n  WHERE s.power IS NOT NULL AND s.power > 0\n    AND $__timeFilter(a.date)\n    AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')\n),\nnp_per_ride AS (\n  SELECT activity_id,\n    POWER(AVG(POWER(rolling_30s, 4)), 0.25) AS np\n  FROM rolling WHERE rolling_30s IS NOT NULL\n  GROUP BY activity_id\n)\nSELECT a.date::date AS time,\n  ROUND(n.np::numeric, 0) AS \"NP\",\n  ROUND(AVG(n.np) OVER (ORDER BY a.date ROWS BETWEEN 9 PRECEDING AND CURRENT ROW)::numeric, 0) AS \"10-ride avg\"\nFROM np_per_ride n\nJOIN activities a ON a.id = n.activity_id\nORDER BY a.date;",
-          "format": "time_series",
+          "format": "table",
           "refId": "A"
         }
       ],
@@ -752,7 +752,7 @@
       "targets": [
         {
           "rawSql": "WITH rolling AS (\n  SELECT s.activity_id,\n    AVG(s.power) OVER (\n      PARTITION BY s.activity_id\n      ORDER BY s.time_offset\n      RANGE BETWEEN 29 PRECEDING AND CURRENT ROW\n    ) AS rolling_30s\n  FROM activity_streams s\n  JOIN activities a ON a.id = s.activity_id\n  WHERE s.power IS NOT NULL AND s.power > 0\n    AND $__timeFilter(a.date)\n    AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')\n),\nnp_per_ride AS (\n  SELECT activity_id,\n    POWER(AVG(POWER(rolling_30s, 4)), 0.25) AS np\n  FROM rolling WHERE rolling_30s IS NOT NULL\n  GROUP BY activity_id\n)\nSELECT a.date::date AS time,\n  ROUND((n.np / a.avg_hr)::numeric, 2) AS \"EF\",\n  ROUND(AVG(n.np / a.avg_hr) OVER (ORDER BY a.date ROWS BETWEEN 9 PRECEDING AND CURRENT ROW)::numeric, 2) AS \"10-ride avg\"\nFROM np_per_ride n\nJOIN activities a ON a.id = n.activity_id\nWHERE a.avg_hr > 0\nORDER BY a.date;",
-          "format": "time_series",
+          "format": "table",
           "refId": "A"
         }
       ],
@@ -834,7 +834,7 @@
       "targets": [
         {
           "rawSql": "WITH monthly_ftp AS (\n  SELECT date_trunc('month', a.date) AS month,\n    ROUND(MAX(avg_20min) * 0.95) AS ftp_est\n  FROM (\n    SELECT s.activity_id,\n      AVG(s.power) OVER (\n        PARTITION BY s.activity_id\n        ORDER BY s.time_offset\n        RANGE BETWEEN 1199 PRECEDING AND CURRENT ROW\n      ) AS avg_20min\n    FROM activity_streams s\n    JOIN activities a ON a.id = s.activity_id\n    WHERE s.power IS NOT NULL AND s.power > 0\n      AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')\n  ) sub\n  JOIN activities a ON a.id = sub.activity_id\n  WHERE avg_20min IS NOT NULL\n  GROUP BY 1\n)\nSELECT month AS time, ftp_est AS \"Est. FTP (W)\"\nFROM monthly_ftp\nORDER BY month;",
-          "format": "time_series",
+          "format": "table",
           "refId": "A"
         },
         {
@@ -911,17 +911,17 @@
       "targets": [
         {
           "rawSql": "WITH rolling AS (\n  SELECT s.activity_id,\n    AVG(s.power) OVER (\n      PARTITION BY s.activity_id\n      ORDER BY s.time_offset\n      RANGE BETWEEN 59 PRECEDING AND CURRENT ROW\n    ) AS avg_1min\n  FROM activity_streams s\n  JOIN activities a ON a.id = s.activity_id\n  WHERE s.power IS NOT NULL AND s.power > 0\n    AND $__timeFilter(a.date)\n    AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')\n)\nSELECT a.date::date AS time,\n  ROUND(MAX(r.avg_1min)::numeric, 0) AS \"1-min\"\nFROM rolling r\nJOIN activities a ON a.id = r.activity_id\nGROUP BY a.date, a.id\nORDER BY a.date;",
-          "format": "time_series",
+          "format": "table",
           "refId": "A"
         },
         {
           "rawSql": "WITH rolling AS (\n  SELECT s.activity_id,\n    AVG(s.power) OVER (\n      PARTITION BY s.activity_id\n      ORDER BY s.time_offset\n      RANGE BETWEEN 299 PRECEDING AND CURRENT ROW\n    ) AS avg_5min\n  FROM activity_streams s\n  JOIN activities a ON a.id = s.activity_id\n  WHERE s.power IS NOT NULL AND s.power > 0\n    AND $__timeFilter(a.date)\n    AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')\n)\nSELECT a.date::date AS time,\n  ROUND(MAX(r.avg_5min)::numeric, 0) AS \"5-min\"\nFROM rolling r\nJOIN activities a ON a.id = r.activity_id\nGROUP BY a.date, a.id\nORDER BY a.date;",
-          "format": "time_series",
+          "format": "table",
           "refId": "B"
         },
         {
           "rawSql": "WITH rolling AS (\n  SELECT s.activity_id,\n    AVG(s.power) OVER (\n      PARTITION BY s.activity_id\n      ORDER BY s.time_offset\n      RANGE BETWEEN 1199 PRECEDING AND CURRENT ROW\n    ) AS avg_20min\n  FROM activity_streams s\n  JOIN activities a ON a.id = s.activity_id\n  WHERE s.power IS NOT NULL AND s.power > 0\n    AND $__timeFilter(a.date)\n    AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')\n)\nSELECT a.date::date AS time,\n  ROUND(MAX(r.avg_20min)::numeric, 0) AS \"20-min\"\nFROM rolling r\nJOIN activities a ON a.id = r.activity_id\nGROUP BY a.date, a.id\nORDER BY a.date;",
-          "format": "time_series",
+          "format": "table",
           "refId": "C"
         }
       ],
@@ -1014,7 +1014,7 @@
       "targets": [
         {
           "rawSql": "WITH zones AS (\n  SELECT date_trunc('month', a.date) AS month,\n    CASE\n      WHEN s.power < ftp.val * 0.55 THEN 'Z1 Recovery'\n      WHEN s.power < ftp.val * 0.75 THEN 'Z2 Endurance'\n      WHEN s.power < ftp.val * 0.90 THEN 'Z3 Tempo'\n      WHEN s.power < ftp.val * 1.05 THEN 'Z4 Threshold'\n      WHEN s.power < ftp.val * 1.20 THEN 'Z5 VO2max'\n      ELSE 'Z6 Anaerobic'\n    END AS zone\n  FROM activity_streams s\n  JOIN activities a ON a.id = s.activity_id\n  CROSS JOIN (\n    SELECT COALESCE(\n      NULLIF((SELECT value::numeric FROM sync_state WHERE key = 'configured_ftp'), 0),\n      150\n    ) AS val\n  ) ftp\n  WHERE s.power IS NOT NULL AND s.power > 0\n    AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')\n)\nSELECT month AS time,\n  ROUND(100.0 * SUM(CASE WHEN zone = 'Z1 Recovery' THEN 1 ELSE 0 END) / COUNT(*), 1) AS \"Z1 Recovery\",\n  ROUND(100.0 * SUM(CASE WHEN zone = 'Z2 Endurance' THEN 1 ELSE 0 END) / COUNT(*), 1) AS \"Z2 Endurance\",\n  ROUND(100.0 * SUM(CASE WHEN zone = 'Z3 Tempo' THEN 1 ELSE 0 END) / COUNT(*), 1) AS \"Z3 Tempo\",\n  ROUND(100.0 * SUM(CASE WHEN zone = 'Z4 Threshold' THEN 1 ELSE 0 END) / COUNT(*), 1) AS \"Z4 Threshold\",\n  ROUND(100.0 * SUM(CASE WHEN zone = 'Z5 VO2max' THEN 1 ELSE 0 END) / COUNT(*), 1) AS \"Z5 VO2max\",\n  ROUND(100.0 * SUM(CASE WHEN zone = 'Z6 Anaerobic' THEN 1 ELSE 0 END) / COUNT(*), 1) AS \"Z6 Anaerobic\"\nFROM zones\nGROUP BY 1 ORDER BY 1;",
-          "format": "time_series",
+          "format": "table",
           "refId": "A"
         }
       ],
@@ -1142,7 +1142,7 @@
       "targets": [
         {
           "rawSql": "WITH zones AS (\n  SELECT date_trunc('month', a.date) AS month,\n    CASE\n      WHEN s.hr < mhr.val * 0.60 THEN 'Z1 Recovery'\n      WHEN s.hr < mhr.val * 0.70 THEN 'Z2 Endurance'\n      WHEN s.hr < mhr.val * 0.80 THEN 'Z3 Tempo'\n      WHEN s.hr < mhr.val * 0.90 THEN 'Z4 Threshold'\n      ELSE 'Z5 VO2max'\n    END AS zone\n  FROM activity_streams s\n  JOIN activities a ON a.id = s.activity_id\n  CROSS JOIN (\n    SELECT COALESCE(\n      NULLIF((SELECT value::numeric FROM sync_state WHERE key = 'configured_max_hr'), 0),\n      185\n    ) AS val\n  ) mhr\n  WHERE s.hr IS NOT NULL AND s.hr > 0\n    AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')\n)\nSELECT month AS time,\n  ROUND(100.0 * SUM(CASE WHEN zone = 'Z1 Recovery' THEN 1 ELSE 0 END) / COUNT(*), 1) AS \"Z1 Recovery\",\n  ROUND(100.0 * SUM(CASE WHEN zone = 'Z2 Endurance' THEN 1 ELSE 0 END) / COUNT(*), 1) AS \"Z2 Endurance\",\n  ROUND(100.0 * SUM(CASE WHEN zone = 'Z3 Tempo' THEN 1 ELSE 0 END) / COUNT(*), 1) AS \"Z3 Tempo\",\n  ROUND(100.0 * SUM(CASE WHEN zone = 'Z4 Threshold' THEN 1 ELSE 0 END) / COUNT(*), 1) AS \"Z4 Threshold\",\n  ROUND(100.0 * SUM(CASE WHEN zone = 'Z5 VO2max' THEN 1 ELSE 0 END) / COUNT(*), 1) AS \"Z5 VO2max\"\nFROM zones\nGROUP BY 1 ORDER BY 1;",
-          "format": "time_series",
+          "format": "table",
           "refId": "A"
         }
       ],
