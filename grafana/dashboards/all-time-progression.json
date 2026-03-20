@@ -452,7 +452,7 @@
           }
         ]
       },
-      "description": "Average speed per ride (outdoor, >5km only).\n\nDots = individual rides. Line = 10-ride rolling average.\n\nDashed = linear regression trend."
+      "description": "Average speed per ride (outdoor, >5km only).\n\nDots = individual rides. Line = 10-ride rolling average."
     },
     {
       "id": 11,
