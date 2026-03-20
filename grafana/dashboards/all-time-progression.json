@@ -405,7 +405,7 @@
       "targets": [
         {
           "rawSql": "SELECT date::date AS time,\n  ROUND(avg_speed_kmh::numeric, 1) AS \"Avg Speed\",\n  ROUND(AVG(avg_speed_kmh) OVER (ORDER BY date ROWS BETWEEN 9 PRECEDING AND CURRENT ROW)::numeric, 1) AS \"10-ride avg\"\nFROM activities\nWHERE avg_speed_kmh > 0 AND distance_m > 5000 AND is_indoor IS NOT TRUE\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n  AND $__timeFilter(date)\nORDER BY date;",
-          "format": "table",
+          "format": "time_series",
           "refId": "A"
         }
       ],
@@ -449,7 +449,15 @@
           }
         ]
       },
-      "description": "Average speed per ride (outdoor, >5km only).\n\nDots = individual rides. Line = 10-ride rolling average."
+      "description": "Average speed per ride (outdoor, >5km only).\n\nDots = individual rides. Line = 10-ride rolling average.",
+      "transformations": [
+        {
+          "id": "regression",
+          "options": {
+            "modelType": "linear"
+          }
+        }
+      ]
     },
     {
       "id": 11,
@@ -468,7 +476,7 @@
       "targets": [
         {
           "rawSql": "SELECT date::date AS time,\n  ROUND(avg_power::numeric, 0) AS \"Avg Power\",\n  ROUND(AVG(avg_power) OVER (ORDER BY date ROWS BETWEEN 9 PRECEDING AND CURRENT ROW)::numeric, 0) AS \"10-ride avg\"\nFROM activities\nWHERE avg_power IS NOT NULL AND avg_power > 0 AND duration_s > 1200\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n  AND $__timeFilter(date)\nORDER BY date;",
-          "format": "table",
+          "format": "time_series",
           "refId": "A"
         }
       ],
@@ -512,7 +520,15 @@
           }
         ]
       },
-      "description": "Average power per ride (rides >20min with power data).\n\nDots = individual rides. Line = 10-ride rolling average."
+      "description": "Average power per ride (rides >20min with power data).\n\nDots = individual rides. Line = 10-ride rolling average.",
+      "transformations": [
+        {
+          "id": "regression",
+          "options": {
+            "modelType": "linear"
+          }
+        }
+      ]
     },
     {
       "id": 12,
@@ -531,7 +547,7 @@
       "targets": [
         {
           "rawSql": "SELECT date::date AS time,\n  avg_hr AS \"Avg HR\",\n  ROUND(AVG(avg_hr) OVER (ORDER BY date ROWS BETWEEN 9 PRECEDING AND CURRENT ROW)::numeric, 0) AS \"10-ride avg\"\nFROM activities\nWHERE avg_hr IS NOT NULL AND avg_hr > 0\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n  AND $__timeFilter(date)\nORDER BY date;",
-          "format": "table",
+          "format": "time_series",
           "refId": "A"
         }
       ],
@@ -573,7 +589,15 @@
             ]
           }
         ]
-      }
+      },
+      "transformations": [
+        {
+          "id": "regression",
+          "options": {
+            "modelType": "linear"
+          }
+        }
+      ]
     },
     {
       "id": 13,
@@ -592,7 +616,7 @@
       "targets": [
         {
           "rawSql": "SELECT date::date AS time,\n  ROUND((distance_m / 1000.0)::numeric, 1) AS \"Distance\",\n  ROUND(AVG(distance_m / 1000.0) OVER (ORDER BY date ROWS BETWEEN 9 PRECEDING AND CURRENT ROW)::numeric, 1) AS \"10-ride avg\"\nFROM activities\nWHERE distance_m > 0\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n  AND $__timeFilter(date)\nORDER BY date;",
-          "format": "table",
+          "format": "time_series",
           "refId": "A"
         }
       ],
@@ -635,7 +659,15 @@
             ]
           }
         ]
-      }
+      },
+      "transformations": [
+        {
+          "id": "regression",
+          "options": {
+            "modelType": "linear"
+          }
+        }
+      ]
     },
     {
       "id": 14,
@@ -698,7 +730,15 @@
           }
         ]
       },
-      "description": "Normalized Power accounts for variability in effort.\n\nA steady 200W ride and an interval ride averaging 200W have different NP.\n\nHigher NP = more intense effort pattern."
+      "description": "Normalized Power accounts for variability in effort.\n\nA steady 200W ride and an interval ride averaging 200W have different NP.\n\nHigher NP = more intense effort pattern.",
+      "transformations": [
+        {
+          "id": "regression",
+          "options": {
+            "modelType": "linear"
+          }
+        }
+      ]
     },
     {
       "id": 15,
@@ -760,7 +800,15 @@
           }
         ]
       },
-      "description": "Efficiency Factor = Normalized Power / Avg HR.\n\nRising EF = getting fitter (more power per heartbeat).\n\nOne of the best indicators of aerobic fitness improvement."
+      "description": "Efficiency Factor = Normalized Power / Avg HR.\n\nRising EF = getting fitter (more power per heartbeat).\n\nOne of the best indicators of aerobic fitness improvement.",
+      "transformations": [
+        {
+          "id": "regression",
+          "options": {
+            "modelType": "linear"
+          }
+        }
+      ]
     },
     {
       "id": 101,
