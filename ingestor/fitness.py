@@ -140,6 +140,51 @@ def recalculate_fitness(conn):
         with conn.cursor() as cur:
             cur.execute("UPDATE activities SET tss = %s WHERE id = %s", (round(tss, 1), act_id))
 
+    # Compute NP, EF, Work for activities with power data
+    print("[fitness] Computing NP/EF/Work...")
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT DISTINCT a.id, a.avg_hr, a.avg_power, a.duration_s
+            FROM activities a
+            JOIN activity_streams s ON s.activity_id = a.id
+            WHERE s.power IS NOT NULL AND s.power > 0
+            GROUP BY a.id, a.avg_hr, a.avg_power, a.duration_s
+            HAVING COUNT(*) > 30
+        """)
+        power_activities = cur.fetchall()
+
+    np_count = 0
+    for act_id, avg_hr, avg_power, duration_s in power_activities:
+        with conn.cursor() as cur:
+            # NP: 30s rolling avg -> 4th power -> mean -> 4th root
+            cur.execute("""
+                WITH rolling AS (
+                    SELECT AVG(power) OVER (
+                        ORDER BY time_offset
+                        RANGE BETWEEN 29 PRECEDING AND CURRENT ROW
+                    ) AS rolling_30s
+                    FROM activity_streams
+                    WHERE activity_id = %s AND power IS NOT NULL AND power > 0
+                )
+                SELECT POWER(AVG(POWER(rolling_30s, 4)), 0.25)
+                FROM rolling
+                WHERE rolling_30s IS NOT NULL
+            """, (act_id,))
+            row = cur.fetchone()
+            np_val = round(row[0], 1) if row and row[0] else None
+
+        if np_val:
+            ef_val = round(np_val / avg_hr, 2) if avg_hr and avg_hr > 0 else None
+            work_val = round(avg_power * duration_s / 1000.0, 1) if avg_power and duration_s else None
+
+            with conn.cursor() as cur:
+                cur.execute("""
+                    UPDATE activities SET np = %s, ef = %s, work_kj = %s WHERE id = %s
+                """, (np_val, ef_val, work_val, act_id))
+            np_count += 1
+
+    print(f"[fitness] Computed NP/EF/Work for {np_count} activities")
+
     # Read back stored TSS + distance/elevation (cycling only)
     with conn.cursor() as cur:
         cur.execute("""

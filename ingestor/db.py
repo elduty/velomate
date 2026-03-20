@@ -84,6 +84,9 @@ def create_schema(conn):
             ALTER TABLE activities ADD COLUMN IF NOT EXISTS is_indoor BOOLEAN;
             ALTER TABLE activities ADD COLUMN IF NOT EXISTS sport_type TEXT;
             ALTER TABLE activities ADD COLUMN IF NOT EXISTS tss FLOAT;
+            ALTER TABLE activities ADD COLUMN IF NOT EXISTS np FLOAT;
+            ALTER TABLE activities ADD COLUMN IF NOT EXISTS ef FLOAT;
+            ALTER TABLE activities ADD COLUMN IF NOT EXISTS work_kj FLOAT;
 
             CREATE INDEX IF NOT EXISTS idx_activities_date ON activities(date);
             CREATE INDEX IF NOT EXISTS idx_activity_streams_activity_id ON activity_streams(activity_id);
