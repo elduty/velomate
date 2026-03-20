@@ -417,7 +417,8 @@
             "mode": "fixed"
           },
           "custom": {
-            "drawStyle": "points",
+            "drawStyle": "line",
+            "lineWidth": 0,
             "pointSize": 5
           }
         },
@@ -429,10 +430,6 @@
             },
             "properties": [
               {
-                "id": "custom.drawStyle",
-                "value": "line"
-              },
-              {
                 "id": "custom.lineWidth",
                 "value": 2
               },
@@ -443,6 +440,10 @@
               {
                 "id": "custom.fillOpacity",
                 "value": 0
+              },
+              {
+                "id": "custom.spanNulls",
+                "value": true
               }
             ]
           }
@@ -487,7 +488,8 @@
             "mode": "fixed"
           },
           "custom": {
-            "drawStyle": "points",
+            "drawStyle": "line",
+            "lineWidth": 0,
             "pointSize": 5
           }
         },
@@ -499,10 +501,6 @@
             },
             "properties": [
               {
-                "id": "custom.drawStyle",
-                "value": "line"
-              },
-              {
                 "id": "custom.lineWidth",
                 "value": 2
               },
@@ -513,6 +511,10 @@
               {
                 "id": "custom.fillOpacity",
                 "value": 0
+              },
+              {
+                "id": "custom.spanNulls",
+                "value": true
               }
             ]
           }
@@ -556,7 +558,8 @@
             "mode": "fixed"
           },
           "custom": {
-            "drawStyle": "points",
+            "drawStyle": "line",
+            "lineWidth": 0,
             "pointSize": 5
           }
         },
@@ -568,10 +571,6 @@
             },
             "properties": [
               {
-                "id": "custom.drawStyle",
-                "value": "line"
-              },
-              {
                 "id": "custom.lineWidth",
                 "value": 2
               },
@@ -582,6 +581,10 @@
               {
                 "id": "custom.fillOpacity",
                 "value": 0
+              },
+              {
+                "id": "custom.spanNulls",
+                "value": true
               }
             ]
           }
@@ -625,7 +628,8 @@
             "mode": "fixed"
           },
           "custom": {
-            "drawStyle": "points",
+            "drawStyle": "line",
+            "lineWidth": 0,
             "pointSize": 5
           }
         },
@@ -637,10 +641,6 @@
             },
             "properties": [
               {
-                "id": "custom.drawStyle",
-                "value": "line"
-              },
-              {
                 "id": "custom.lineWidth",
                 "value": 2
               },
@@ -651,6 +651,10 @@
               {
                 "id": "custom.fillOpacity",
                 "value": 0
+              },
+              {
+                "id": "custom.spanNulls",
+                "value": true
               }
             ]
           }
@@ -694,7 +698,8 @@
             "mode": "fixed"
           },
           "custom": {
-            "drawStyle": "points",
+            "drawStyle": "line",
+            "lineWidth": 0,
             "pointSize": 5
           }
         },
@@ -706,10 +711,6 @@
             },
             "properties": [
               {
-                "id": "custom.drawStyle",
-                "value": "line"
-              },
-              {
                 "id": "custom.lineWidth",
                 "value": 2
               },
@@ -720,6 +721,10 @@
               {
                 "id": "custom.fillOpacity",
                 "value": 0
+              },
+              {
+                "id": "custom.spanNulls",
+                "value": true
               }
             ]
           }
@@ -763,7 +768,8 @@
             "mode": "fixed"
           },
           "custom": {
-            "drawStyle": "points",
+            "drawStyle": "line",
+            "lineWidth": 0,
             "pointSize": 5
           }
         },
@@ -775,10 +781,6 @@
             },
             "properties": [
               {
-                "id": "custom.drawStyle",
-                "value": "line"
-              },
-              {
                 "id": "custom.lineWidth",
                 "value": 2
               },
@@ -789,6 +791,10 @@
               {
                 "id": "custom.fillOpacity",
                 "value": 0
+              },
+              {
+                "id": "custom.spanNulls",
+                "value": true
               }
             ]
           }
