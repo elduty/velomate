@@ -122,7 +122,8 @@
         "defaults": {
           "color": {
             "mode": "continuous-GrYlRd"
-          }
+          },
+          "noValue": "No data"
         },
         "overrides": [
           {
@@ -141,7 +142,7 @@
           }
         ]
       },
-      "description": "GPS route with color overlay.\n\nUse the Map Color dropdown to switch between:\n\n• Speed — green (fast) to red (slow)\n\n• Heart Rate — green (low) to red (high)\n\n• Power — green (low) to red (high)"
+      "description": "GPS route with color overlay.\n\nUse the Map Color dropdown to switch between:\n\n\u2022 Speed \u2014 green (fast) to red (slow)\n\n\u2022 Heart Rate \u2014 green (low) to red (high)\n\n\u2022 Power \u2014 green (low) to red (high)"
     },
     {
       "id": 31,
@@ -151,7 +152,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 23
+        "y": 27
       },
       "datasource": {
         "type": "postgres",
@@ -182,7 +183,8 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "dthms"
+          "unit": "dthms",
+          "noValue": "No data"
         },
         "overrides": [
           {
@@ -262,7 +264,7 @@
           }
         ]
       },
-      "description": "Time in each heart rate zone.\n\nZones based on LTHR (lactate threshold HR),\n\nestimated as 95th percentile of your max HRs\n\nor configured via VELOAI_MAX_HR.\n\n🔘 Z1 < 68% — Recovery\n\n🔵 Z2 68-83% — Endurance\n\n🟢 Z3 83-94% — Tempo\n\n🟡 Z4 94-105% — Threshold\n\n🔴 Z5 > 105% — VO2max"
+      "description": "Time in each heart rate zone.\n\nZones based on LTHR (lactate threshold HR),\n\nestimated as 95th percentile of your max HRs\n\nor configured via VELOAI_MAX_HR.\n\n\ud83d\udd18 Z1 < 68% \u2014 Recovery\n\n\ud83d\udd35 Z2 68-83% \u2014 Endurance\n\n\ud83d\udfe2 Z3 83-94% \u2014 Tempo\n\n\ud83d\udfe1 Z4 94-105% \u2014 Threshold\n\n\ud83d\udd34 Z5 > 105% \u2014 VO2max"
     },
     {
       "id": 32,
@@ -272,7 +274,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 23
+        "y": 27
       },
       "datasource": {
         "type": "postgres",
@@ -303,7 +305,8 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "dthms"
+          "unit": "dthms",
+          "noValue": "No data"
         },
         "overrides": [
           {
@@ -398,7 +401,7 @@
           }
         ]
       },
-      "description": "Time in each power zone.\n\nZones based on FTP, estimated from best\n\n20-min power × 0.95 or configured via VELOAI_FTP.\n\n🔘 Z1 < 55% — Recovery\n\n🔵 Z2 55-75% — Endurance\n\n🟢 Z3 75-90% — Tempo\n\n🟡 Z4 90-105% — Threshold\n\n🟠 Z5 105-120% — VO2max\n\n🔴 Z6 > 120% — Anaerobic"
+      "description": "Time in each power zone.\n\nZones based on FTP, estimated from best\n\n20-min power \u00d7 0.95 or configured via VELOAI_FTP.\n\n\ud83d\udd18 Z1 < 55% \u2014 Recovery\n\n\ud83d\udd35 Z2 55-75% \u2014 Endurance\n\n\ud83d\udfe2 Z3 75-90% \u2014 Tempo\n\n\ud83d\udfe1 Z4 90-105% \u2014 Threshold\n\n\ud83d\udfe0 Z5 105-120% \u2014 VO2max\n\n\ud83d\udd34 Z6 > 120% \u2014 Anaerobic"
     },
     {
       "id": 33,
@@ -408,7 +411,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 49
+        "y": 53
       },
       "datasource": {
         "type": "postgres",
@@ -416,7 +419,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH deltas AS (SELECT time_offset, hr, power, speed_kmh, altitude_m, cadence, COALESCE(speed_kmh, 0) / 3600.0 * (time_offset - LAG(time_offset, 1, time_offset) OVER (ORDER BY time_offset)) AS dist_delta, altitude_m - LAG(altitude_m) OVER (ORDER BY time_offset) AS alt_delta FROM activity_streams WHERE activity_id = ${activity_id}), cumulative AS (SELECT time_offset, hr, power, speed_kmh, altitude_m, cadence, alt_delta, SUM(dist_delta) OVER (ORDER BY time_offset ROWS UNBOUNDED PRECEDING) AS dist_km FROM deltas), splits AS (SELECT FLOOR(dist_km)::int + 1 AS km, COUNT(*) AS seconds, ROUND(AVG(speed_kmh)::numeric, 1) AS avg_speed, ROUND(AVG(hr)::numeric, 0) AS avg_hr, ROUND(AVG(NULLIF(power, 0))::numeric, 0) AS avg_power, ROUND(AVG(NULLIF(cadence, 0))::numeric, 0) AS avg_cadence, ROUND(COALESCE(SUM(CASE WHEN alt_delta > 0 THEN alt_delta ELSE 0 END), 0)::numeric, 0) AS elev_gain FROM cumulative WHERE dist_km >= 0 GROUP BY FLOOR(dist_km)::int) SELECT km AS \"KM\", CASE WHEN seconds = MIN(seconds) OVER () THEN '🟢 ' WHEN seconds = MAX(seconds) OVER () THEN '🔴 ' ELSE '' END || TO_CHAR(seconds * interval '1 second', 'MI:SS') AS \"Pace\", CASE WHEN avg_speed = MAX(avg_speed) OVER () THEN '🟢 ' WHEN avg_speed = MIN(avg_speed) OVER () THEN '🔴 ' ELSE '' END || avg_speed::text AS \"Avg Speed\", CASE WHEN avg_hr IS NULL THEN '—' WHEN avg_hr = MIN(avg_hr) OVER () THEN '🟢 ' || avg_hr::text WHEN avg_hr = MAX(avg_hr) OVER () THEN '🔴 ' || avg_hr::text ELSE avg_hr::text END AS \"Avg HR\", CASE WHEN avg_power IS NULL THEN '—' WHEN avg_power = MAX(avg_power) OVER () THEN '🟢 ' || avg_power::text WHEN avg_power = MIN(avg_power) OVER () THEN '🔴 ' || avg_power::text ELSE avg_power::text END AS \"Avg Power\", CASE WHEN avg_cadence IS NULL THEN '—' WHEN avg_cadence = MAX(avg_cadence) OVER () THEN '🟢 ' || avg_cadence::text WHEN avg_cadence = MIN(avg_cadence) OVER () THEN '🔴 ' || avg_cadence::text ELSE avg_cadence::text END AS \"Cadence\", elev_gain AS \"Elev Gain (m)\" FROM splits WHERE km < (SELECT MAX(km) FROM splits) ORDER BY km;",
+          "rawSql": "WITH deltas AS (SELECT time_offset, hr, power, speed_kmh, altitude_m, cadence, COALESCE(speed_kmh, 0) / 3600.0 * (time_offset - LAG(time_offset, 1, time_offset) OVER (ORDER BY time_offset)) AS dist_delta, altitude_m - LAG(altitude_m) OVER (ORDER BY time_offset) AS alt_delta FROM activity_streams WHERE activity_id = ${activity_id}), cumulative AS (SELECT time_offset, hr, power, speed_kmh, altitude_m, cadence, alt_delta, SUM(dist_delta) OVER (ORDER BY time_offset ROWS UNBOUNDED PRECEDING) AS dist_km FROM deltas), splits AS (SELECT FLOOR(dist_km)::int + 1 AS km, COUNT(*) AS seconds, ROUND(AVG(speed_kmh)::numeric, 1) AS avg_speed, ROUND(AVG(hr)::numeric, 0) AS avg_hr, ROUND(AVG(NULLIF(power, 0))::numeric, 0) AS avg_power, ROUND(AVG(NULLIF(cadence, 0))::numeric, 0) AS avg_cadence, ROUND(COALESCE(SUM(CASE WHEN alt_delta > 0 THEN alt_delta ELSE 0 END), 0)::numeric, 0) AS elev_gain FROM cumulative WHERE dist_km >= 0 GROUP BY FLOOR(dist_km)::int) SELECT km AS \"KM\", CASE WHEN seconds = MIN(seconds) OVER () THEN '\ud83d\udfe2 ' WHEN seconds = MAX(seconds) OVER () THEN '\ud83d\udd34 ' ELSE '' END || TO_CHAR(seconds * interval '1 second', 'MI:SS') AS \"Pace\", CASE WHEN avg_speed = MAX(avg_speed) OVER () THEN '\ud83d\udfe2 ' WHEN avg_speed = MIN(avg_speed) OVER () THEN '\ud83d\udd34 ' ELSE '' END || avg_speed::text AS \"Avg Speed\", CASE WHEN avg_hr IS NULL THEN '\u2014' WHEN avg_hr = MIN(avg_hr) OVER () THEN '\ud83d\udfe2 ' || avg_hr::text WHEN avg_hr = MAX(avg_hr) OVER () THEN '\ud83d\udd34 ' || avg_hr::text ELSE avg_hr::text END AS \"Avg HR\", CASE WHEN avg_power IS NULL THEN '\u2014' WHEN avg_power = MAX(avg_power) OVER () THEN '\ud83d\udfe2 ' || avg_power::text WHEN avg_power = MIN(avg_power) OVER () THEN '\ud83d\udd34 ' || avg_power::text ELSE avg_power::text END AS \"Avg Power\", CASE WHEN avg_cadence IS NULL THEN '\u2014' WHEN avg_cadence = MAX(avg_cadence) OVER () THEN '\ud83d\udfe2 ' || avg_cadence::text WHEN avg_cadence = MIN(avg_cadence) OVER () THEN '\ud83d\udd34 ' || avg_cadence::text ELSE avg_cadence::text END AS \"Cadence\", elev_gain AS \"Elev Gain (m)\" FROM splits WHERE km < (SELECT MAX(km) FROM splits) ORDER BY km;",
           "format": "table",
           "refId": "A"
         }
@@ -426,11 +429,11 @@
       },
       "fieldConfig": {
         "defaults": {
-          "noValue": "—"
+          "noValue": "\u2014"
         },
         "overrides": []
       },
-      "description": "Performance breakdown per completed kilometer.\n\n🟢 = best value in that column\n\n🔴 = worst value in that column\n\nLast incomplete km excluded."
+      "description": "Performance breakdown per completed kilometer.\n\n\ud83d\udfe2 = best value in that column\n\n\ud83d\udd34 = worst value in that column\n\nLast incomplete km excluded."
     },
     {
       "id": 20,
@@ -440,7 +443,7 @@
         "h": 12,
         "w": 24,
         "x": 0,
-        "y": 57
+        "y": 61
       },
       "datasource": {
         "type": "postgres",
@@ -481,7 +484,8 @@
             "pointSize": 3,
             "showPoints": "never",
             "lineInterpolation": "smooth"
-          }
+          },
+          "noValue": "No data"
         },
         "overrides": [
           {
@@ -565,7 +569,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 69
+        "y": 73
       },
       "datasource": {
         "type": "postgres",
@@ -665,6 +669,44 @@
               {
                 "id": "custom.axisLabel",
                 "value": "Power (W)"
+              },
+              {
+                "id": "custom.thresholdsStyle",
+                "value": {
+                  "mode": "area"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "value": null,
+                      "color": "#6b728020"
+                    },
+                    {
+                      "value": 91,
+                      "color": "#3b82f620"
+                    },
+                    {
+                      "value": 124,
+                      "color": "#22c55e20"
+                    },
+                    {
+                      "value": 149,
+                      "color": "#eab30820"
+                    },
+                    {
+                      "value": 173,
+                      "color": "#f9731620"
+                    },
+                    {
+                      "value": 198,
+                      "color": "#ef444420"
+                    }
+                  ]
+                }
               }
             ]
           }
@@ -679,7 +721,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 79
+        "y": 83
       },
       "datasource": {
         "type": "postgres",
@@ -797,7 +839,7 @@
         "h": 4,
         "w": 4,
         "x": 0,
-        "y": 18
+        "y": 22
       },
       "datasource": {
         "type": "postgres",
@@ -831,7 +873,7 @@
         },
         "overrides": []
       },
-      "description": "Normalized Power (NP)\n\nWhat the ride \"felt like\" in watts\n\n\n\n30s rolling average raised to 4th power,\n\nthen root-averaged. Accounts for surges —\n\nhard efforts cost disproportionately more.\n\n\n\nNP > Avg Power = variable effort\n\nNP ≈ Avg Power = steady effort"
+      "description": "Normalized Power (NP)\n\nWhat the ride \"felt like\" in watts\n\n\n\n30s rolling average raised to 4th power,\n\nthen root-averaged. Accounts for surges \u2014\n\nhard efforts cost disproportionately more.\n\n\n\nNP > Avg Power = variable effort\n\nNP \u2248 Avg Power = steady effort"
     },
     {
       "id": 35,
@@ -841,7 +883,7 @@
         "h": 4,
         "w": 4,
         "x": 4,
-        "y": 18
+        "y": 22
       },
       "datasource": {
         "type": "postgres",
@@ -902,7 +944,7 @@
         },
         "overrides": []
       },
-      "description": "Intensity Factor (IF)\n\nNP ÷ FTP — how hard was this ride?\n\n\n\n🔘 < 0.6 — Recovery\n\n🔵 0.6-0.7 — Easy endurance\n\n🟢 0.7-0.85 — Tempo / group ride\n\n🟡 0.85-0.95 — Threshold work\n\n🟠 0.95-1.05 — Race effort\n\n🔴 > 1.05 — Short max effort"
+      "description": "Intensity Factor (IF)\n\nNP \u00f7 FTP \u2014 how hard was this ride?\n\n\n\n\ud83d\udd18 < 0.6 \u2014 Recovery\n\n\ud83d\udd35 0.6-0.7 \u2014 Easy endurance\n\n\ud83d\udfe2 0.7-0.85 \u2014 Tempo / group ride\n\n\ud83d\udfe1 0.85-0.95 \u2014 Threshold work\n\n\ud83d\udfe0 0.95-1.05 \u2014 Race effort\n\n\ud83d\udd34 > 1.05 \u2014 Short max effort"
     },
     {
       "id": 36,
@@ -912,7 +954,7 @@
         "h": 4,
         "w": 4,
         "x": 8,
-        "y": 18
+        "y": 22
       },
       "datasource": {
         "type": "postgres",
@@ -961,7 +1003,7 @@
         },
         "overrides": []
       },
-      "description": "Variability Index (VI)\n\nNP ÷ Avg Power — how steady was your pacing?\n\n\n\n🟢 1.00-1.05 — Very smooth (TT, ERG mode)\n\n🟡 1.05-1.15 — Normal (group ride, rolling terrain)\n\n🔴 > 1.15 — Very spiky (crits, stop-start)\n\n\n\nLower VI at same NP = more efficient pacing"
+      "description": "Variability Index (VI)\n\nNP \u00f7 Avg Power \u2014 how steady was your pacing?\n\n\n\n\ud83d\udfe2 1.00-1.05 \u2014 Very smooth (TT, ERG mode)\n\n\ud83d\udfe1 1.05-1.15 \u2014 Normal (group ride, rolling terrain)\n\n\ud83d\udd34 > 1.15 \u2014 Very spiky (crits, stop-start)\n\n\n\nLower VI at same NP = more efficient pacing"
     },
     {
       "id": 1,
@@ -1642,7 +1684,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 39
+        "y": 43
       },
       "datasource": {
         "type": "postgres",
@@ -1697,7 +1739,7 @@
         "h": 4,
         "w": 4,
         "x": 12,
-        "y": 18
+        "y": 22
       },
       "datasource": {
         "type": "postgres",
@@ -1729,7 +1771,7 @@
           }
         }
       },
-      "description": "Efficiency Factor (EF)\n\nNP ÷ Avg HR — aerobic efficiency\n\n\n\nHigher = fitter (more watts per heartbeat)\n\n\n\nTrack over months:\n\n📈 EF rising at same NP = fitness improving\n\n📉 EF dropping = fatigue, heat, or detraining\n\n\n\nCompare similar ride types and conditions"
+      "description": "Efficiency Factor (EF)\n\nNP \u00f7 Avg HR \u2014 aerobic efficiency\n\n\n\nHigher = fitter (more watts per heartbeat)\n\n\n\nTrack over months:\n\n\ud83d\udcc8 EF rising at same NP = fitness improving\n\n\ud83d\udcc9 EF dropping = fatigue, heat, or detraining\n\n\n\nCompare similar ride types and conditions"
     },
     {
       "id": 39,
@@ -1739,7 +1781,7 @@
         "h": 4,
         "w": 4,
         "x": 16,
-        "y": 18
+        "y": 22
       },
       "datasource": {
         "type": "postgres",
@@ -1772,7 +1814,7 @@
           }
         }
       },
-      "description": "Work (kJ)\n\nTotal mechanical energy output\n\n\n\nAvg Power × Duration ÷ 1000\n\n\n\nRoughly equals calories burned:\n\n1 kJ ≈ 1 kcal (at ~25% human efficiency)\n\n\n\nUseful for fueling: match kJ with food intake"
+      "description": "Work (kJ)\n\nTotal mechanical energy output\n\n\n\nAvg Power \u00d7 Duration \u00f7 1000\n\n\n\nRoughly equals calories burned:\n\n1 kJ \u2248 1 kcal (at ~25% human efficiency)\n\n\n\nUseful for fueling: match kJ with food intake"
     },
     {
       "id": 43,
@@ -1782,7 +1824,7 @@
         "h": 4,
         "w": 4,
         "x": 20,
-        "y": 18
+        "y": 22
       },
       "datasource": {
         "type": "postgres",
@@ -1842,7 +1884,7 @@
           }
         }
       },
-      "description": "TRIMP (Training Impulse)\n\nHR zone-weighted effort score\n\n\n\n🔘 < 50 — Easy ride\n\n🔵 50-75 — Light effort\n\n🟢 75-100 — Moderate\n\n🟡 100-125 — Hard\n\n🟠 125-150 — Very hard\n\n🔴 150+ — Race effort"
+      "description": "TRIMP (Training Impulse)\n\nHR zone-weighted effort score\n\n\n\n\ud83d\udd18 < 50 \u2014 Easy ride\n\n\ud83d\udd35 50-75 \u2014 Light effort\n\n\ud83d\udfe2 75-100 \u2014 Moderate\n\n\ud83d\udfe1 100-125 \u2014 Hard\n\n\ud83d\udfe0 125-150 \u2014 Very hard\n\n\ud83d\udd34 150+ \u2014 Race effort"
     },
     {
       "id": 41,
@@ -1852,7 +1894,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 31
+        "y": 35
       },
       "datasource": {
         "type": "postgres",
@@ -1872,7 +1914,9 @@
         "stacking": "normal"
       },
       "fieldConfig": {
-        "defaults": {},
+        "defaults": {
+          "noValue": "No data"
+        },
         "overrides": [
           {
             "matcher": {
@@ -1999,7 +2043,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 31
+        "y": 35
       },
       "datasource": {
         "type": "postgres",
@@ -2019,7 +2063,9 @@
         "stacking": "normal"
       },
       "fieldConfig": {
-        "defaults": {},
+        "defaults": {
+          "noValue": "No data"
+        },
         "overrides": [
           {
             "matcher": {
@@ -2118,6 +2164,181 @@
           }
         ]
       }
+    },
+    {
+      "id": 400,
+      "title": "HR Zone Timeline",
+      "type": "state-timeline",
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 18
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  (a.date + s.time_offset * interval '1 second') AS time,\n  CASE\n    WHEN s.hr < mhr.val * 0.60 THEN 'Z1 Recovery'\n    WHEN s.hr < mhr.val * 0.70 THEN 'Z2 Endurance'\n    WHEN s.hr < mhr.val * 0.80 THEN 'Z3 Tempo'\n    WHEN s.hr < mhr.val * 0.90 THEN 'Z4 Threshold'\n    ELSE 'Z5 VO2max'\n  END AS \"HR Zone\"\nFROM activity_streams s\nJOIN activities a ON a.id = s.activity_id\nCROSS JOIN (\n  SELECT COALESCE(\n    NULLIF((SELECT value::numeric FROM sync_state WHERE key = 'configured_max_hr'), 0),\n    185\n  ) AS val\n) mhr\nWHERE s.activity_id = ${activity_id}\n  AND s.hr IS NOT NULL AND s.hr > 0\nORDER BY s.time_offset;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "mergeValues": true,
+        "showValue": "never",
+        "alignValue": "left",
+        "tooltip": {
+          "mode": "single"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "custom": {
+            "fillOpacity": 80
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "Z1 Recovery": {
+                  "color": "#6b7280",
+                  "index": 0
+                },
+                "Z2 Endurance": {
+                  "color": "#3b82f6",
+                  "index": 1
+                },
+                "Z3 Tempo": {
+                  "color": "#22c55e",
+                  "index": 2
+                },
+                "Z4 Threshold": {
+                  "color": "#eab308",
+                  "index": 3
+                },
+                "Z5 VO2max": {
+                  "color": "#ef4444",
+                  "index": 4
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "fixed"
+          }
+        },
+        "overrides": []
+      },
+      "description": "Which heart rate zone you were in at each moment of the ride."
+    },
+    {
+      "id": 401,
+      "title": "Power Distribution",
+      "type": "histogram",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 91
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT power AS \"Power (W)\"\nFROM activity_streams\nWHERE activity_id = ${activity_id}\n  AND power IS NOT NULL AND power > 0;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "bucketSize": 20,
+        "fillOpacity": 80,
+        "tooltip": {
+          "mode": "single"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "color": {
+            "fixedColor": "#8b5cf6",
+            "mode": "fixed"
+          }
+        },
+        "overrides": []
+      },
+      "description": "Distribution of power output during the ride.\n\nShows how much time was spent at each power level."
+    },
+    {
+      "id": 402,
+      "title": "Power vs Heart Rate",
+      "type": "xychart",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 91
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  s.hr AS \"Heart Rate\",\n  s.power AS \"Power (W)\"\nFROM activity_streams s\nWHERE s.activity_id = ${activity_id}\n  AND s.hr IS NOT NULL AND s.hr > 0\n  AND s.power IS NOT NULL AND s.power > 0\n  AND s.time_offset % 5 = 0\nORDER BY s.time_offset;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "seriesMapping": "manual",
+        "series": [
+          {
+            "x": "Heart Rate",
+            "y": "Power (W)",
+            "pointSize": {
+              "fixed": 3
+            },
+            "pointColor": {
+              "fixed": "#8b5cf6"
+            }
+          }
+        ],
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "custom": {
+            "pointSize": {
+              "fixed": 3
+            },
+            "show": "points"
+          },
+          "color": {
+            "fixedColor": "#8b5cf6",
+            "mode": "fixed"
+          }
+        },
+        "overrides": []
+      },
+      "description": "Scatter plot showing power output vs heart rate.\n\nA tight cluster = good aerobic efficiency.\nPoints drifting right over time = cardiac drift."
     }
   ]
 }
