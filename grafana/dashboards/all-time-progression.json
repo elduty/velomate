@@ -836,11 +836,6 @@
           "rawSql": "SELECT date_trunc('month', a.date) AS time,\n  ROUND((MAX(sub.best_20min) * 0.95)::numeric, 0) AS \"Est. FTP (W)\"\nFROM (\n  SELECT activity_id, MAX(rolling_avg) AS best_20min\n  FROM (\n    SELECT s.activity_id,\n      AVG(s.power) OVER (\n        PARTITION BY s.activity_id\n        ORDER BY s.time_offset\n        RANGE BETWEEN 1199 PRECEDING AND CURRENT ROW\n      ) AS rolling_avg\n    FROM activity_streams s\n    WHERE s.power IS NOT NULL AND s.power > 0\n  ) t\n  GROUP BY activity_id\n) sub\nJOIN activities a ON a.id = sub.activity_id\nWHERE sub.best_20min IS NOT NULL\n  AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')\nGROUP BY 1\nORDER BY 1;",
           "format": "time_series",
           "refId": "A"
-        },
-        {
-          "rawSql": "SELECT $__timeFrom() AS time, value::numeric AS \"Configured FTP\"\nFROM sync_state WHERE key = 'configured_ftp' AND value::numeric > 0\nUNION ALL\nSELECT $__timeTo() AS time, value::numeric\nFROM sync_state WHERE key = 'configured_ftp' AND value::numeric > 0;",
-          "format": "time_series",
-          "refId": "B"
         }
       ],
       "fieldConfig": {
@@ -856,41 +851,7 @@
             "fillOpacity": 15
           }
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Configured FTP"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#8b5cf680",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "custom.lineStyle",
-                "value": {
-                  "fill": "dash",
-                  "dash": [
-                    6,
-                    4
-                  ]
-                }
-              },
-              {
-                "id": "custom.fillOpacity",
-                "value": 0
-              },
-              {
-                "id": "custom.lineWidth",
-                "value": 1
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "description": "Monthly estimated FTP (best 20-min power \u00d7 0.95).\n\nDashed line = configured FTP override (VELOAI_FTP)."
     },
