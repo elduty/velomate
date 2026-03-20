@@ -1599,22 +1599,22 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT date_trunc('month', date) AS time,\n  ROUND(SUM(distance_m)/1000.0, 1) AS \"Outdoor\"\nFROM activities\nWHERE sport_type = 'cycling_outdoor'\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
+          "rawSql": "SELECT date_trunc('month', date) AS time,\n  ROUND((SUM(distance_m)/1000.0)::numeric, 1) AS \"Outdoor\"\nFROM activities\nWHERE sport_type = 'cycling_outdoor'\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
           "format": "time_series",
           "refId": "A"
         },
         {
-          "rawSql": "SELECT date_trunc('month', date) AS time,\n  ROUND(SUM(distance_m)/1000.0, 1) AS \"Zwift\"\nFROM activities\nWHERE sport_type = 'zwift'\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
+          "rawSql": "SELECT date_trunc('month', date) AS time,\n  ROUND((SUM(distance_m)/1000.0)::numeric, 1) AS \"Zwift\"\nFROM activities\nWHERE sport_type = 'zwift'\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
           "format": "time_series",
           "refId": "B"
         },
         {
-          "rawSql": "SELECT date_trunc('month', date) AS time,\n  ROUND(SUM(distance_m)/1000.0, 1) AS \"E-Bike\"\nFROM activities\nWHERE sport_type = 'ebike'\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
+          "rawSql": "SELECT date_trunc('month', date) AS time,\n  ROUND((SUM(distance_m)/1000.0)::numeric, 1) AS \"E-Bike\"\nFROM activities\nWHERE sport_type = 'ebike'\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
           "format": "time_series",
           "refId": "C"
         },
         {
-          "rawSql": "SELECT date_trunc('month', date) AS time,\n  ROUND(SUM(distance_m)/1000.0, 1) AS \"Indoor\"\nFROM activities\nWHERE sport_type = 'cycling_indoor'\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
+          "rawSql": "SELECT date_trunc('month', date) AS time,\n  ROUND((SUM(distance_m)/1000.0)::numeric, 1) AS \"Indoor\"\nFROM activities\nWHERE sport_type = 'cycling_indoor'\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
           "format": "time_series",
           "refId": "D"
         }
@@ -1934,22 +1934,22 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT date_trunc('month', date) AS time,\n  ROUND(SUM(duration_s) / 3600.0, 1) AS \"Outdoor\"\nFROM activities\nWHERE sport_type = 'cycling_outdoor'\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
+          "rawSql": "SELECT date_trunc('month', date) AS time,\n  ROUND((SUM(duration_s) / 3600.0)::numeric, 1) AS \"Outdoor\"\nFROM activities\nWHERE sport_type = 'cycling_outdoor'\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
           "format": "time_series",
           "refId": "A"
         },
         {
-          "rawSql": "SELECT date_trunc('month', date) AS time,\n  ROUND(SUM(duration_s) / 3600.0, 1) AS \"Zwift\"\nFROM activities\nWHERE sport_type = 'zwift'\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
+          "rawSql": "SELECT date_trunc('month', date) AS time,\n  ROUND((SUM(duration_s) / 3600.0)::numeric, 1) AS \"Zwift\"\nFROM activities\nWHERE sport_type = 'zwift'\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
           "format": "time_series",
           "refId": "B"
         },
         {
-          "rawSql": "SELECT date_trunc('month', date) AS time,\n  ROUND(SUM(duration_s) / 3600.0, 1) AS \"E-Bike\"\nFROM activities\nWHERE sport_type = 'ebike'\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
+          "rawSql": "SELECT date_trunc('month', date) AS time,\n  ROUND((SUM(duration_s) / 3600.0)::numeric, 1) AS \"E-Bike\"\nFROM activities\nWHERE sport_type = 'ebike'\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
           "format": "time_series",
           "refId": "C"
         },
         {
-          "rawSql": "SELECT date_trunc('month', date) AS time,\n  ROUND(SUM(duration_s) / 3600.0, 1) AS \"Indoor\"\nFROM activities\nWHERE sport_type = 'cycling_indoor'\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
+          "rawSql": "SELECT date_trunc('month', date) AS time,\n  ROUND((SUM(duration_s) / 3600.0)::numeric, 1) AS \"Indoor\"\nFROM activities\nWHERE sport_type = 'cycling_indoor'\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
           "format": "time_series",
           "refId": "D"
         }
@@ -2059,12 +2059,12 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT date_trunc('month', date) AS time,\n  ROUND(SUM(distance_m)/1000.0, 1) AS \"This Year (km)\"\nFROM activities\nWHERE distance_m > 0\n  AND EXTRACT(YEAR FROM date) = EXTRACT(YEAR FROM CURRENT_DATE)\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
+          "rawSql": "SELECT date_trunc('month', date) AS time,\n  ROUND((SUM(distance_m)/1000.0)::numeric, 1) AS \"This Year (km)\"\nFROM activities\nWHERE distance_m > 0\n  AND EXTRACT(YEAR FROM date) = EXTRACT(YEAR FROM CURRENT_DATE)\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
           "format": "time_series",
           "refId": "A"
         },
         {
-          "rawSql": "SELECT date_trunc('month', date) + interval '1 year' AS time,\n  ROUND(SUM(distance_m)/1000.0, 1) AS \"Last Year (km)\"\nFROM activities\nWHERE distance_m > 0\n  AND EXTRACT(YEAR FROM date) = EXTRACT(YEAR FROM CURRENT_DATE) - 1\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
+          "rawSql": "SELECT date_trunc('month', date) + interval '1 year' AS time,\n  ROUND((SUM(distance_m)/1000.0)::numeric, 1) AS \"Last Year (km)\"\nFROM activities\nWHERE distance_m > 0\n  AND EXTRACT(YEAR FROM date) = EXTRACT(YEAR FROM CURRENT_DATE) - 1\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1;",
           "format": "time_series",
           "refId": "B"
         }
