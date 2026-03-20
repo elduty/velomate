@@ -152,6 +152,8 @@ ORDER BY month;
 
 Style: `drawStyle: "line"`, `lineWidth: 2`, `fillOpacity: 15`, color `#8b5cf6`. Unit: watt.
 
+**Note:** FTP query intentionally omits `$__timeFilter` to show all-time FTP progression regardless of the time picker.
+
 Configured FTP reference: second query returning horizontal line from `sync_state`:
 ```sql
 SELECT $__timeFrom() AS "time", value::numeric AS "Configured FTP"
@@ -162,45 +164,34 @@ FROM sync_state WHERE key = 'configured_ftp' AND value::numeric > 0;
 ```
 Override: dashed line, color `#8b5cf680`.
 
-**Best Efforts Progression** — 3 series on one chart:
+**Best Efforts Progression** — 3 series on one chart, each as a separate Grafana query (A/B/C):
 
-Per ride, compute rolling max power at 1min (59s), 5min (299s), 20min (1199s):
+Best 1-min power per ride (query A):
 ```sql
-WITH efforts AS (
-  SELECT a.date, a.id AS activity_id,
-    MAX(CASE WHEN dur = 59 THEN avg_p END) AS best_1min,
-    MAX(CASE WHEN dur = 299 THEN avg_p END) AS best_5min,
-    MAX(CASE WHEN dur = 1199 THEN avg_p END) AS best_20min
-  FROM activities a
-  JOIN LATERAL (
-    SELECT
-      w.dur,
-      AVG(s.power) OVER (
-        PARTITION BY s.activity_id
-        ORDER BY s.time_offset
-        RANGE BETWEEN w.dur PRECEDING AND CURRENT ROW
-      ) AS avg_p
-    FROM activity_streams s
-    CROSS JOIN (VALUES (59),(299),(1199)) AS w(dur)
-    WHERE s.activity_id = a.id
-      AND s.power IS NOT NULL AND s.power > 0
-  ) sub ON true
-  WHERE a.avg_power IS NOT NULL AND a.avg_power > 0
+WITH rolling AS (
+  SELECT s.activity_id,
+    AVG(s.power) OVER (
+      PARTITION BY s.activity_id
+      ORDER BY s.time_offset
+      RANGE BETWEEN 59 PRECEDING AND CURRENT ROW
+    ) AS avg_1min
+  FROM activity_streams s
+  JOIN activities a ON a.id = s.activity_id
+  WHERE s.power IS NOT NULL AND s.power > 0
     AND $__timeFilter(a.date)
     AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')
-  GROUP BY a.date, a.id
 )
-SELECT date::date AS "time",
-  ROUND(best_1min::numeric, 0) AS "1-min",
-  ROUND(best_5min::numeric, 0) AS "5-min",
-  ROUND(best_20min::numeric, 0) AS "20-min"
-FROM efforts
-ORDER BY date;
+SELECT a.date::date AS "time",
+  ROUND(MAX(r.avg_1min)::numeric, 0) AS "1-min"
+FROM rolling r
+JOIN activities a ON a.id = r.activity_id
+GROUP BY a.date, a.id
+ORDER BY a.date;
 ```
 
-Colors: 1-min `#F2495C`, 5-min `#ff9830`, 20-min `#8b5cf6`. Unit: watt. Style: points + line, `lineWidth: 1`, `pointSize: 4`.
+Best 5-min (query B) and best 20-min (query C) use identical structure with `RANGE BETWEEN 299 PRECEDING` and `RANGE BETWEEN 1199 PRECEDING` respectively, and column aliases `"5-min"` / `"20-min"`.
 
-**Note:** The LATERAL + CROSS JOIN approach may be slow with many activities. If query performance is poor, fall back to 3 separate queries (one per duration) or pre-compute in the ingestor. Test with actual data first.
+Colors: 1-min `#F2495C`, 5-min `#ff9830`, 20-min `#8b5cf6`. Unit: watt. Style: points + line, `lineWidth: 1`, `pointSize: 4`.
 
 ### Section 4: Training Zones Over Time (row y=36)
 
@@ -242,10 +233,41 @@ GROUP BY 1 ORDER BY 1;
 
 Stacked bars, each zone in Coggan color: Z1 `#6b7280`, Z2 `#3b82f6`, Z3 `#22c55e`, Z4 `#eab308`, Z5 `#f97316`, Z6 `#ef4444`. Unit: percent.
 
-**Monthly HR Zone Distribution:** Same pattern but with HR thresholds (5-zone model):
-- Z1 < 60% max HR, Z2 60-70%, Z3 70-80%, Z4 80-90%, Z5 90-100%.
-- Max HR from `sync_state` key `configured_max_hr`, fallback 185.
-- Colors: Z1 `#6b7280`, Z2 `#3b82f6`, Z3 `#22c55e`, Z4 `#eab308`, Z5 `#ef4444`.
+**Monthly HR Zone Distribution:**
+```sql
+WITH zones AS (
+  SELECT date_trunc('month', a.date) AS month,
+    CASE
+      WHEN s.hr < mhr.val * 0.60 THEN 'Z1 Recovery'
+      WHEN s.hr < mhr.val * 0.70 THEN 'Z2 Endurance'
+      WHEN s.hr < mhr.val * 0.80 THEN 'Z3 Tempo'
+      WHEN s.hr < mhr.val * 0.90 THEN 'Z4 Threshold'
+      ELSE 'Z5 VO2max'
+    END AS zone
+  FROM activity_streams s
+  JOIN activities a ON a.id = s.activity_id
+  CROSS JOIN (
+    SELECT COALESCE(
+      NULLIF((SELECT value::numeric FROM sync_state WHERE key = 'configured_max_hr'), 0),
+      185
+    ) AS val
+  ) mhr
+  WHERE s.hr IS NOT NULL AND s.hr > 0
+    AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')
+)
+SELECT month AS "time",
+  ROUND(100.0 * SUM(CASE WHEN zone = 'Z1 Recovery' THEN 1 ELSE 0 END) / COUNT(*), 1) AS "Z1 Recovery",
+  ROUND(100.0 * SUM(CASE WHEN zone = 'Z2 Endurance' THEN 1 ELSE 0 END) / COUNT(*), 1) AS "Z2 Endurance",
+  ROUND(100.0 * SUM(CASE WHEN zone = 'Z3 Tempo' THEN 1 ELSE 0 END) / COUNT(*), 1) AS "Z3 Tempo",
+  ROUND(100.0 * SUM(CASE WHEN zone = 'Z4 Threshold' THEN 1 ELSE 0 END) / COUNT(*), 1) AS "Z4 Threshold",
+  ROUND(100.0 * SUM(CASE WHEN zone = 'Z5 VO2max' THEN 1 ELSE 0 END) / COUNT(*), 1) AS "Z5 VO2max"
+FROM zones
+GROUP BY 1 ORDER BY 1;
+```
+
+Colors: Z1 `#6b7280`, Z2 `#3b82f6`, Z3 `#22c55e`, Z4 `#eab308`, Z5 `#ef4444`. Unit: percent.
+
+**Note:** Both zone charts intentionally omit `$__timeFilter` to show all-time monthly polarization regardless of the time picker. This lets the user see training intensity trends across their full history.
 
 ### Section 5: Fitness History (row y=44)
 
@@ -296,19 +318,31 @@ Sport type filter still applies to all queries (when filtered to e.g. "Outdoor",
 
 Two panels side by side.
 
-**YoY Monthly Distance** — grouped bar chart comparing current year vs previous year:
+**YoY Monthly Distance** — grouped bar chart comparing current year vs previous year. Two separate queries so Grafana plots them as grouped bars on the same month axis:
+
+Query A (This Year):
 ```sql
 SELECT date_trunc('month', date) AS "time",
-  ROUND(SUM(CASE WHEN EXTRACT(YEAR FROM date) = EXTRACT(YEAR FROM CURRENT_DATE) THEN distance_m ELSE 0 END) / 1000::numeric, 0) AS "This Year",
-  ROUND(SUM(CASE WHEN EXTRACT(YEAR FROM date) = EXTRACT(YEAR FROM CURRENT_DATE) - 1 THEN distance_m ELSE 0 END) / 1000::numeric, 0) AS "Last Year"
+  ROUND(SUM(distance_m) / 1000::numeric, 0) AS "This Year (km)"
 FROM activities
 WHERE distance_m > 0
-  AND date >= date_trunc('year', CURRENT_DATE - interval '1 year')
+  AND EXTRACT(YEAR FROM date) = EXTRACT(YEAR FROM CURRENT_DATE)
   AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')
 GROUP BY 1 ORDER BY 1;
 ```
 
-Colors: This Year `#33658a`, Last Year `#33658a40` (same hue, lower opacity).
+Query B (Last Year, shifted forward 1 year to align on same X axis):
+```sql
+SELECT date_trunc('month', date) + interval '1 year' AS "time",
+  ROUND(SUM(distance_m) / 1000::numeric, 0) AS "Last Year (km)"
+FROM activities
+WHERE distance_m > 0
+  AND EXTRACT(YEAR FROM date) = EXTRACT(YEAR FROM CURRENT_DATE) - 1
+  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')
+GROUP BY 1 ORDER BY 1;
+```
+
+Colors: This Year `#33658a`, Last Year `#33658a80` (same hue, lower opacity). Style: bars, `barWidthFactor: 0.6`.
 
 **Annual Totals** — table (same as current but with sport filter):
 ```sql
@@ -318,7 +352,7 @@ SELECT EXTRACT(YEAR FROM date)::int AS "Year",
   ROUND(SUM(elevation_m)::numeric, 0) AS "Elevation (m)",
   ROUND((SUM(duration_s)/3600.0)::numeric, 1) AS "Hours",
   ROUND((AVG(distance_m)/1000.0)::numeric, 1) AS "Avg Ride (km)",
-  ROUND(AVG(avg_speed_kmh)::numeric, 1) AS "Avg Speed",
+  ROUND((SUM(distance_m) / NULLIF(SUM(duration_s / 3600.0), 0) / 1000.0)::numeric, 1) AS "Avg Speed",
   ROUND(SUM(tss)::numeric, 0) AS "Total TSS"
 FROM activities
 WHERE date IS NOT NULL
@@ -399,7 +433,7 @@ Table config: `filterable: false`, enable HTML sanitization for links. Column ov
 Stream-heavy queries (NP, EF, best efforts, zone polarization, FTP) scan `activity_streams` which can be large. Mitigations:
 
 1. **NP/EF progression** — already works in current dashboard (EF panel). Scoping to `$__timeFilter` limits data scanned.
-2. **Best efforts** — the LATERAL + CROSS JOIN may be slow. If so, simplify to 3 separate queries or pre-compute best efforts in the ingestor.
+2. **Best efforts** — 3 separate queries (one per duration), each scanning streams within the time range. Bounded by `$__timeFilter`.
 3. **Zone polarization** — aggregates to monthly buckets, so even large stream tables produce small result sets. Should be fast.
 4. **FTP progression** — one scan per month. Bounded by number of months with data.
 
@@ -423,3 +457,5 @@ Stream-heavy queries (NP, EF, best efforts, zone polarization, FTP) scan `activi
 | EF ignores time filter | EF respects $__timeFilter |
 | HR filtered to outdoor >5km | HR includes all rides |
 | Distance filtered to outdoor >5km | Distance includes all rides with distance > 0 |
+| Speed chart color #73bf69 (green) | Speed chart color #33658a (blue=volume, consistent with distance) |
+| Avg Speed in annual table: unweighted | Avg Speed: distance-weighted (total km / total hours) |
