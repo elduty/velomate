@@ -404,45 +404,28 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT date::date AS \"time\", ROUND(avg_speed_kmh::numeric, 1) AS \"Avg Speed\" FROM activities WHERE avg_speed_kmh > 0 AND distance_m > 5000 AND is_indoor IS NOT TRUE AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}') AND $__timeFilter(date) ORDER BY date;",
+          "rawSql": "SELECT date::date AS \"time\", ROUND(avg_speed_kmh::numeric, 1) AS \"Avg Speed\", ROUND(AVG(avg_speed_kmh) OVER (ORDER BY date ROWS BETWEEN 9 PRECEDING AND CURRENT ROW)::numeric, 1) AS \"10-ride avg\" FROM activities WHERE avg_speed_kmh > 0 AND distance_m > 5000 AND is_indoor IS NOT TRUE AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}') AND $__timeFilter(date) ORDER BY date;",
           "format": "time_series",
           "refId": "A"
-        },
-        {
-          "rawSql": "SELECT date::date AS \"time\", ROUND(AVG(avg_speed_kmh) OVER (ORDER BY date ROWS BETWEEN 9 PRECEDING AND CURRENT ROW)::numeric, 1) AS \"10-ride avg\" FROM activities WHERE avg_speed_kmh > 0 AND distance_m > 5000 AND is_indoor IS NOT TRUE AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}') AND $__timeFilter(date) ORDER BY date;",
-          "format": "time_series",
-          "refId": "B"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "velocitykmh",
           "color": {
             "fixedColor": "#33658a",
             "mode": "fixed"
-          }
+          },
+          "custom": {
+            "drawStyle": "points",
+            "pointSize": 5
+          },
+          "unit": "velocitykmh"
         },
         "overrides": [
           {
             "matcher": {
-              "id": "byFrameRefID",
-              "options": "A"
-            },
-            "properties": [
-              {
-                "id": "custom.drawStyle",
-                "value": "points"
-              },
-              {
-                "id": "custom.pointSize",
-                "value": 5
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byFrameRefID",
-              "options": "B"
+              "id": "byName",
+              "options": "10-ride avg"
             },
             "properties": [
               {
@@ -460,20 +443,16 @@
               {
                 "id": "custom.fillOpacity",
                 "value": 0
+              },
+              {
+                "id": "custom.spanNulls",
+                "value": true
               }
             ]
           }
         ]
       },
-      "transformations": [
-        {
-          "id": "regression",
-          "options": {
-            "modelType": "linear"
-          }
-        }
-      ],
-      "description": "Average speed per ride (outdoor, >5km only).\n\nDots = individual rides. Line = 10-ride rolling average.\n\nDashed = linear regression trend."
+      "description": "Average speed per ride (outdoor, >5km only).\n\nDots = individual rides. Line = 10-ride rolling average."
     },
     {
       "id": 11,
@@ -491,45 +470,28 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT date::date AS \"time\", ROUND(avg_power::numeric, 0) AS \"Avg Power\" FROM activities WHERE avg_power IS NOT NULL AND avg_power > 0 AND duration_s > 1200 AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}') AND $__timeFilter(date) ORDER BY date;",
+          "rawSql": "SELECT date::date AS \"time\", ROUND(avg_power::numeric, 0) AS \"Avg Power\", ROUND(AVG(avg_power) OVER (ORDER BY date ROWS BETWEEN 9 PRECEDING AND CURRENT ROW)::numeric, 0) AS \"10-ride avg\" FROM activities WHERE avg_power IS NOT NULL AND avg_power > 0 AND duration_s > 1200 AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}') AND $__timeFilter(date) ORDER BY date;",
           "format": "time_series",
           "refId": "A"
-        },
-        {
-          "rawSql": "SELECT date::date AS \"time\", ROUND(AVG(avg_power) OVER (ORDER BY date ROWS BETWEEN 9 PRECEDING AND CURRENT ROW)::numeric, 0) AS \"10-ride avg\" FROM activities WHERE avg_power IS NOT NULL AND avg_power > 0 AND duration_s > 1200 AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}') AND $__timeFilter(date) ORDER BY date;",
-          "format": "time_series",
-          "refId": "B"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "watt",
           "color": {
             "fixedColor": "#8b5cf6",
             "mode": "fixed"
-          }
+          },
+          "custom": {
+            "drawStyle": "points",
+            "pointSize": 5
+          },
+          "unit": "watt"
         },
         "overrides": [
           {
             "matcher": {
-              "id": "byFrameRefID",
-              "options": "A"
-            },
-            "properties": [
-              {
-                "id": "custom.drawStyle",
-                "value": "points"
-              },
-              {
-                "id": "custom.pointSize",
-                "value": 5
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byFrameRefID",
-              "options": "B"
+              "id": "byName",
+              "options": "10-ride avg"
             },
             "properties": [
               {
@@ -547,19 +509,15 @@
               {
                 "id": "custom.fillOpacity",
                 "value": 0
+              },
+              {
+                "id": "custom.spanNulls",
+                "value": true
               }
             ]
           }
         ]
       },
-      "transformations": [
-        {
-          "id": "regression",
-          "options": {
-            "modelType": "linear"
-          }
-        }
-      ],
       "description": "Average power per ride (rides >20min with power data).\n\nDots = individual rides. Line = 10-ride rolling average."
     },
     {
@@ -578,14 +536,9 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT date::date AS \"time\", avg_hr AS \"Avg HR\" FROM activities WHERE avg_hr IS NOT NULL AND avg_hr > 0 AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}') AND $__timeFilter(date) ORDER BY date;",
+          "rawSql": "SELECT date::date AS \"time\", avg_hr AS \"Avg HR\", ROUND(AVG(avg_hr) OVER (ORDER BY date ROWS BETWEEN 9 PRECEDING AND CURRENT ROW)::numeric, 0) AS \"10-ride avg\" FROM activities WHERE avg_hr IS NOT NULL AND avg_hr > 0 AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}') AND $__timeFilter(date) ORDER BY date;",
           "format": "time_series",
           "refId": "A"
-        },
-        {
-          "rawSql": "SELECT date::date AS \"time\", ROUND(AVG(avg_hr) OVER (ORDER BY date ROWS BETWEEN 9 PRECEDING AND CURRENT ROW)::numeric, 0) AS \"10-ride avg\" FROM activities WHERE avg_hr IS NOT NULL AND avg_hr > 0 AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}') AND $__timeFilter(date) ORDER BY date;",
-          "format": "time_series",
-          "refId": "B"
         }
       ],
       "fieldConfig": {
@@ -593,29 +546,17 @@
           "color": {
             "fixedColor": "#F2495C",
             "mode": "fixed"
+          },
+          "custom": {
+            "drawStyle": "points",
+            "pointSize": 5
           }
         },
         "overrides": [
           {
             "matcher": {
-              "id": "byFrameRefID",
-              "options": "A"
-            },
-            "properties": [
-              {
-                "id": "custom.drawStyle",
-                "value": "points"
-              },
-              {
-                "id": "custom.pointSize",
-                "value": 5
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byFrameRefID",
-              "options": "B"
+              "id": "byName",
+              "options": "10-ride avg"
             },
             "properties": [
               {
@@ -633,19 +574,15 @@
               {
                 "id": "custom.fillOpacity",
                 "value": 0
+              },
+              {
+                "id": "custom.spanNulls",
+                "value": true
               }
             ]
           }
         ]
-      },
-      "transformations": [
-        {
-          "id": "regression",
-          "options": {
-            "modelType": "linear"
-          }
-        }
-      ]
+      }
     },
     {
       "id": 13,
@@ -663,45 +600,28 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT date::date AS \"time\", ROUND((distance_m / 1000.0)::numeric, 1) AS \"Distance\" FROM activities WHERE distance_m > 0 AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}') AND $__timeFilter(date) ORDER BY date;",
+          "rawSql": "SELECT date::date AS \"time\", ROUND((distance_m / 1000.0)::numeric, 1) AS \"Distance\", ROUND(AVG(distance_m / 1000.0) OVER (ORDER BY date ROWS BETWEEN 9 PRECEDING AND CURRENT ROW)::numeric, 1) AS \"10-ride avg\" FROM activities WHERE distance_m > 0 AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}') AND $__timeFilter(date) ORDER BY date;",
           "format": "time_series",
           "refId": "A"
-        },
-        {
-          "rawSql": "SELECT date::date AS \"time\", ROUND(AVG(distance_m / 1000.0) OVER (ORDER BY date ROWS BETWEEN 9 PRECEDING AND CURRENT ROW)::numeric, 1) AS \"10-ride avg\" FROM activities WHERE distance_m > 0 AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}') AND $__timeFilter(date) ORDER BY date;",
-          "format": "time_series",
-          "refId": "B"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "lengthkm",
           "color": {
             "fixedColor": "#33658a",
             "mode": "fixed"
-          }
+          },
+          "custom": {
+            "drawStyle": "points",
+            "pointSize": 5
+          },
+          "unit": "lengthkm"
         },
         "overrides": [
           {
             "matcher": {
-              "id": "byFrameRefID",
-              "options": "A"
-            },
-            "properties": [
-              {
-                "id": "custom.drawStyle",
-                "value": "points"
-              },
-              {
-                "id": "custom.pointSize",
-                "value": 5
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byFrameRefID",
-              "options": "B"
+              "id": "byName",
+              "options": "10-ride avg"
             },
             "properties": [
               {
@@ -719,19 +639,15 @@
               {
                 "id": "custom.fillOpacity",
                 "value": 0
+              },
+              {
+                "id": "custom.spanNulls",
+                "value": true
               }
             ]
           }
         ]
-      },
-      "transformations": [
-        {
-          "id": "regression",
-          "options": {
-            "modelType": "linear"
-          }
-        }
-      ]
+      }
     },
     {
       "id": 14,
@@ -749,45 +665,28 @@
       },
       "targets": [
         {
-          "rawSql": "WITH rolling AS (\n  SELECT s.activity_id,\n    AVG(s.power) OVER (\n      PARTITION BY s.activity_id\n      ORDER BY s.time_offset\n      RANGE BETWEEN 29 PRECEDING AND CURRENT ROW\n    ) AS rolling_30s\n  FROM activity_streams s\n  JOIN activities a ON a.id = s.activity_id\n  WHERE s.power IS NOT NULL AND s.power > 0\n    AND $__timeFilter(a.date)\n    AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')\n),\nnp_per_ride AS (\n  SELECT activity_id,\n    POWER(AVG(POWER(rolling_30s, 4)), 0.25) AS np\n  FROM rolling WHERE rolling_30s IS NOT NULL\n  GROUP BY activity_id\n)\nSELECT a.date::date AS \"time\",\n  ROUND(n.np::numeric, 0) AS \"NP\"\nFROM np_per_ride n\nJOIN activities a ON a.id = n.activity_id\nORDER BY a.date;",
+          "rawSql": "WITH rolling AS (\n  SELECT s.activity_id,\n    AVG(s.power) OVER (\n      PARTITION BY s.activity_id\n      ORDER BY s.time_offset\n      RANGE BETWEEN 29 PRECEDING AND CURRENT ROW\n    ) AS rolling_30s\n  FROM activity_streams s\n  JOIN activities a ON a.id = s.activity_id\n  WHERE s.power IS NOT NULL AND s.power > 0\n    AND $__timeFilter(a.date)\n    AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')\n),\nnp_per_ride AS (\n  SELECT activity_id,\n    POWER(AVG(POWER(rolling_30s, 4)), 0.25) AS np\n  FROM rolling WHERE rolling_30s IS NOT NULL\n  GROUP BY activity_id\n)\nSELECT a.date::date AS \"time\",\n  ROUND(n.np::numeric, 0) AS \"NP\",\n  ROUND(AVG(n.np) OVER (ORDER BY a.date ROWS BETWEEN 9 PRECEDING AND CURRENT ROW)::numeric, 0) AS \"10-ride avg\"\nFROM np_per_ride n\nJOIN activities a ON a.id = n.activity_id\nORDER BY a.date;",
           "format": "time_series",
           "refId": "A"
-        },
-        {
-          "rawSql": "WITH rolling AS (\n  SELECT s.activity_id,\n    AVG(s.power) OVER (\n      PARTITION BY s.activity_id\n      ORDER BY s.time_offset\n      RANGE BETWEEN 29 PRECEDING AND CURRENT ROW\n    ) AS rolling_30s\n  FROM activity_streams s\n  JOIN activities a ON a.id = s.activity_id\n  WHERE s.power IS NOT NULL AND s.power > 0\n    AND $__timeFilter(a.date)\n    AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')\n),\nnp_per_ride AS (\n  SELECT activity_id,\n    POWER(AVG(POWER(rolling_30s, 4)), 0.25) AS np\n  FROM rolling WHERE rolling_30s IS NOT NULL\n  GROUP BY activity_id\n)\nSELECT a.date::date AS \"time\",\n  ROUND(AVG(n.np) OVER (ORDER BY a.date ROWS BETWEEN 9 PRECEDING AND CURRENT ROW)::numeric, 0) AS \"10-ride avg\"\nFROM np_per_ride n\nJOIN activities a ON a.id = n.activity_id\nORDER BY a.date;",
-          "format": "time_series",
-          "refId": "B"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "watt",
           "color": {
             "fixedColor": "#8b5cf6",
             "mode": "fixed"
-          }
+          },
+          "custom": {
+            "drawStyle": "points",
+            "pointSize": 5
+          },
+          "unit": "watt"
         },
         "overrides": [
           {
             "matcher": {
-              "id": "byFrameRefID",
-              "options": "A"
-            },
-            "properties": [
-              {
-                "id": "custom.drawStyle",
-                "value": "points"
-              },
-              {
-                "id": "custom.pointSize",
-                "value": 5
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byFrameRefID",
-              "options": "B"
+              "id": "byName",
+              "options": "10-ride avg"
             },
             "properties": [
               {
@@ -805,19 +704,15 @@
               {
                 "id": "custom.fillOpacity",
                 "value": 0
+              },
+              {
+                "id": "custom.spanNulls",
+                "value": true
               }
             ]
           }
         ]
       },
-      "transformations": [
-        {
-          "id": "regression",
-          "options": {
-            "modelType": "linear"
-          }
-        }
-      ],
       "description": "Normalized Power accounts for variability in effort.\n\nA steady 200W ride and an interval ride averaging 200W have different NP.\n\nHigher NP = more intense effort pattern."
     },
     {
@@ -836,14 +731,9 @@
       },
       "targets": [
         {
-          "rawSql": "WITH rolling AS (\n  SELECT s.activity_id,\n    AVG(s.power) OVER (\n      PARTITION BY s.activity_id\n      ORDER BY s.time_offset\n      RANGE BETWEEN 29 PRECEDING AND CURRENT ROW\n    ) AS rolling_30s\n  FROM activity_streams s\n  JOIN activities a ON a.id = s.activity_id\n  WHERE s.power IS NOT NULL AND s.power > 0\n    AND $__timeFilter(a.date)\n    AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')\n),\nnp_per_ride AS (\n  SELECT activity_id,\n    POWER(AVG(POWER(rolling_30s, 4)), 0.25) AS np\n  FROM rolling WHERE rolling_30s IS NOT NULL\n  GROUP BY activity_id\n)\nSELECT a.date::date AS \"time\",\n  ROUND((n.np / a.avg_hr)::numeric, 2) AS \"EF\"\nFROM np_per_ride n\nJOIN activities a ON a.id = n.activity_id\nWHERE a.avg_hr > 0\nORDER BY a.date;",
+          "rawSql": "WITH rolling AS (\n  SELECT s.activity_id,\n    AVG(s.power) OVER (\n      PARTITION BY s.activity_id\n      ORDER BY s.time_offset\n      RANGE BETWEEN 29 PRECEDING AND CURRENT ROW\n    ) AS rolling_30s\n  FROM activity_streams s\n  JOIN activities a ON a.id = s.activity_id\n  WHERE s.power IS NOT NULL AND s.power > 0\n    AND $__timeFilter(a.date)\n    AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')\n),\nnp_per_ride AS (\n  SELECT activity_id,\n    POWER(AVG(POWER(rolling_30s, 4)), 0.25) AS np\n  FROM rolling WHERE rolling_30s IS NOT NULL\n  GROUP BY activity_id\n)\nSELECT a.date::date AS \"time\",\n  ROUND((n.np / a.avg_hr)::numeric, 2) AS \"EF\",\n  ROUND(AVG(n.np / a.avg_hr) OVER (ORDER BY a.date ROWS BETWEEN 9 PRECEDING AND CURRENT ROW)::numeric, 2) AS \"10-ride avg\"\nFROM np_per_ride n\nJOIN activities a ON a.id = n.activity_id\nWHERE a.avg_hr > 0\nORDER BY a.date;",
           "format": "time_series",
           "refId": "A"
-        },
-        {
-          "rawSql": "WITH rolling AS (\n  SELECT s.activity_id,\n    AVG(s.power) OVER (\n      PARTITION BY s.activity_id\n      ORDER BY s.time_offset\n      RANGE BETWEEN 29 PRECEDING AND CURRENT ROW\n    ) AS rolling_30s\n  FROM activity_streams s\n  JOIN activities a ON a.id = s.activity_id\n  WHERE s.power IS NOT NULL AND s.power > 0\n    AND $__timeFilter(a.date)\n    AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')\n),\nnp_per_ride AS (\n  SELECT activity_id,\n    POWER(AVG(POWER(rolling_30s, 4)), 0.25) AS np\n  FROM rolling WHERE rolling_30s IS NOT NULL\n  GROUP BY activity_id\n)\nSELECT a.date::date AS \"time\",\n  ROUND(AVG(n.np / a.avg_hr) OVER (ORDER BY a.date ROWS BETWEEN 9 PRECEDING AND CURRENT ROW)::numeric, 2) AS \"10-ride avg\"\nFROM np_per_ride n\nJOIN activities a ON a.id = n.activity_id\nWHERE a.avg_hr > 0\nORDER BY a.date;",
-          "format": "time_series",
-          "refId": "B"
         }
       ],
       "fieldConfig": {
@@ -851,29 +741,17 @@
           "color": {
             "fixedColor": "#73bf69",
             "mode": "fixed"
+          },
+          "custom": {
+            "drawStyle": "points",
+            "pointSize": 5
           }
         },
         "overrides": [
           {
             "matcher": {
-              "id": "byFrameRefID",
-              "options": "A"
-            },
-            "properties": [
-              {
-                "id": "custom.drawStyle",
-                "value": "points"
-              },
-              {
-                "id": "custom.pointSize",
-                "value": 5
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byFrameRefID",
-              "options": "B"
+              "id": "byName",
+              "options": "10-ride avg"
             },
             "properties": [
               {
@@ -891,19 +769,15 @@
               {
                 "id": "custom.fillOpacity",
                 "value": 0
+              },
+              {
+                "id": "custom.spanNulls",
+                "value": true
               }
             ]
           }
         ]
       },
-      "transformations": [
-        {
-          "id": "regression",
-          "options": {
-            "modelType": "linear"
-          }
-        }
-      ],
       "description": "Efficiency Factor = Normalized Power / Avg HR.\n\nRising EF = getting fitter (more power per heartbeat).\n\nOne of the best indicators of aerobic fitness improvement."
     },
     {
@@ -935,7 +809,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH monthly_ftp AS (\n  SELECT date_trunc('month', a.date) AS month,\n    ROUND(MAX(avg_20min) * 0.95) AS ftp_est\n  FROM (\n    SELECT s.activity_id,\n      AVG(s.power) OVER (\n        PARTITION BY s.activity_id\n        ORDER BY s.time_offset\n        RANGE BETWEEN 1199 PRECEDING AND CURRENT ROW\n      ) AS avg_20min\n    FROM activity_streams s\n    JOIN activities a ON a.id = s.activity_id\n    WHERE s.power IS NOT NULL AND s.power > 0\n      AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')\n  ) sub\n  JOIN activities a ON a.id = sub.activity_id\n  WHERE avg_20min IS NOT NULL\n  GROUP BY 1\n)\nSELECT month::timestamptz AS \"time\", ftp_est AS \"Est. FTP (W)\"\nFROM monthly_ftp\nORDER BY month;",
+          "rawSql": "SELECT date_trunc('month', a.date)::timestamptz AS \"time\",\n  ROUND(MAX(sub.best_20min) * 0.95) AS \"Est. FTP (W)\"\nFROM (\n  SELECT activity_id, MAX(rolling_avg) AS best_20min\n  FROM (\n    SELECT s.activity_id,\n      AVG(s.power) OVER (\n        PARTITION BY s.activity_id\n        ORDER BY s.time_offset\n        RANGE BETWEEN 1199 PRECEDING AND CURRENT ROW\n      ) AS rolling_avg\n    FROM activity_streams s\n    WHERE s.power IS NOT NULL AND s.power > 0\n  ) t\n  GROUP BY activity_id\n) sub\nJOIN activities a ON a.id = sub.activity_id\nWHERE sub.best_20min IS NOT NULL\n  AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')\nGROUP BY 1\nORDER BY 1;",
           "format": "table",
           "refId": "A"
         },
@@ -1731,7 +1605,8 @@
               "mode": "normal"
             },
             "barWidthFactor": 0.6
-          }
+          },
+          "decimals": 1
         },
         "overrides": [
           {
@@ -1843,7 +1718,8 @@
               "mode": "normal"
             },
             "barWidthFactor": 0.6
-          }
+          },
+          "decimals": 1
         },
         "overrides": [
           {
@@ -2181,7 +2057,8 @@
               "mode": "none"
             },
             "barWidthFactor": 0.6
-          }
+          },
+          "decimals": 1
         },
         "overrides": [
           {
