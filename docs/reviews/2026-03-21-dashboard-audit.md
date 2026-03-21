@@ -6,26 +6,10 @@ Results from UX layout review + functionality/value review.
 
 ### Must Fix
 
-**A1+A2 (Activity): Overlapping panels + 4-row gap**
-- Panels id=31, 32, 42, 41 overlap with id=403 (Power Zones by Kilometer) at y=34-48
-- 4-row empty gap at y=24-28 between stat cards and zone-by-km panels
-- Full relayout needed — corrected y-positions:
-
-| Panel | Title | Fixed gridPos |
-|---|---|---|
-| 400 | HR Zones by Km | h=6 w=24 x=0 y=24 |
-| 403 | Power Zones by Km | h=6 w=24 x=0 y=30 |
-| 31 | HR Zones | h=8 w=12 x=0 y=36 |
-| 32 | Power Zones | h=8 w=12 x=12 y=36 |
-| 42 | HR Distribution | h=8 w=12 x=0 y=44 |
-| 41 | Power Distribution | h=8 w=12 x=12 y=44 |
-| 40 | Power Duration Curve | h=8 w=24 x=0 y=52 |
-| 33 | Per-km Splits | h=8 w=24 x=0 y=60 |
-| 20 | Speed & Elevation | h=10 w=24 x=0 y=68 |
-| 21 | HR & Power | h=10 w=24 x=0 y=78 |
-| 22 | Cadence & Grade | h=10 w=24 x=0 y=88 |
-| 401 | Power Distribution (histogram) | h=8 w=12 x=0 y=98 |
-| 402 | Power vs HR | h=8 w=12 x=12 y=98 |
+**A1+A2 (Activity): Overlapping panels + 4-row gap** — DONE (PR #37)
+- ~~Panels id=31, 32, 42, 41 overlap with id=403 at y=34-48~~
+- ~~4-row empty gap at y=24-28~~
+- Fixed: full relayout with correct y-positions, no overlaps
 
 ### Should Fix
 
@@ -33,9 +17,9 @@ Results from UX layout review + functionality/value review.
 - Wall of numbers — first chart doesn't appear until y=18
 - Fix: Collapse "vs Previous Period" row by default (`collapsed: true`)
 
-**A5 (Activity): No row headers**
-- 100+ grid unit dashboard with no visual section separators
-- Add row headers: Route, Power Quality, Zone Analysis, Splits, Ride Telemetry, Distributions
+**A5 (Activity): No row headers** — DONE (PR #37)
+- ~~100+ grid unit dashboard with no visual section separators~~
+- Added 7 row headers: Route, Power Quality, Zone Analysis, Power Duration, Splits, Ride Telemetry, Distributions
 
 **P2 (Progression): No collapsed rows**
 - 132 grid units total, all sections expanded
@@ -51,9 +35,11 @@ Results from UX layout review + functionality/value review.
 - id=41 (zone-colored barchart) and id=401 (plain histogram) show same data
 - Remove id=401 or rename to "Power Histogram"
 
-**A6/O4 (Activity/Overview): Oversized maps**
-- Activity Route h=12, Overview Ride Map h=14
-- Trim to h=10/h=12
+**A6 (Activity): Oversized route map** — DONE (PR #37)
+- ~~Activity Route h=12~~ → trimmed to h=10
+
+**O4 (Overview): Oversized ride map**
+- Overview Ride Map h=14 — trim to h=12
 
 ## Panel Removal Candidates
 
