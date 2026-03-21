@@ -563,6 +563,101 @@
       "description": "Fitness Curves\n\n\ud83d\udd35 CTL (Chronic Training Load) \u2014 42-day rolling fitness.\n\n\ud83d\udfe0 ATL (Acute Training Load) \u2014 7-day rolling fatigue.\n\n\ud83d\udfe2 TSB (Form) \u2014 CTL minus ATL.\n\nCTL rising = getting fitter.\n\nATL spiking = recent hard training.\n\nTSB negative = fatigued, positive = fresh."
     },
     {
+      "id": 610,
+      "title": "Rolling Weekly Volume",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 82
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT date AS time,\n  ROUND((weekly_distance_m / 1000.0)::numeric, 1) AS \"Weekly Distance (km)\",\n  ROUND(weekly_elevation_m::numeric, 0) AS \"Weekly Elevation (m)\"\nFROM athlete_stats\nWHERE $__timeFilter(date)\nORDER BY date;",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": 604800000,
+            "stacking": {
+              "mode": "none"
+            }
+          },
+          "noValue": "No data"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Weekly Distance (km)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#33658a",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "left"
+              },
+              {
+                "id": "unit",
+                "value": "lengthkm"
+              },
+              {
+                "id": "min",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Weekly Elevation (m)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#ff9830",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "unit",
+                "value": "lengthm"
+              },
+              {
+                "id": "min",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "description": "7-day rolling distance and elevation from daily fitness calculations.\n\nSmoother than per-ride charts \u2014 shows your training volume trend."
+    },
+    {
       "id": 102,
       "type": "row",
       "title": "Outdoor Records",
@@ -571,7 +666,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 82
+        "y": 90
       },
       "panels": []
     },
@@ -583,7 +678,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 83
+        "y": 91
       },
       "datasource": {
         "type": "postgres",
@@ -662,7 +757,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 104
+        "y": 112
       },
       "panels": []
     },
@@ -675,7 +770,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 93
+        "y": 101
       },
       "panels": []
     },
@@ -687,7 +782,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 94
+        "y": 102
       },
       "datasource": {
         "type": "postgres",
@@ -2021,7 +2116,7 @@
         "h": 14,
         "w": 24,
         "x": 0,
-        "y": 105
+        "y": 113
       },
       "datasource": {
         "type": "postgres",
