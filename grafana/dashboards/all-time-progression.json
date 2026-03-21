@@ -420,7 +420,8 @@
             "drawStyle": "line",
             "lineWidth": 0,
             "pointSize": 5
-          }
+          },
+          "noValue": "No data"
         },
         "overrides": [
           {
@@ -456,7 +457,7 @@
           }
         ]
       },
-      "description": "Average speed per ride (outdoor, >5km only).\n\nDots = individual rides. Line = 10-ride rolling average.",
+      "description": "Outdoor rides only, >5km (excludes short trips).\n\nDots = individual rides. Line = 10-ride rolling average.",
       "transformations": [
         {
           "id": "regression",
@@ -498,7 +499,8 @@
             "drawStyle": "line",
             "lineWidth": 0,
             "pointSize": 5
-          }
+          },
+          "noValue": "No data"
         },
         "overrides": [
           {
@@ -575,7 +577,8 @@
             "drawStyle": "line",
             "lineWidth": 0,
             "pointSize": 5
-          }
+          },
+          "noValue": "No data"
         },
         "overrides": [
           {
@@ -652,7 +655,8 @@
             "drawStyle": "line",
             "lineWidth": 0,
             "pointSize": 5
-          }
+          },
+          "noValue": "No data"
         },
         "overrides": [
           {
@@ -729,7 +733,8 @@
             "drawStyle": "line",
             "lineWidth": 0,
             "pointSize": 5
-          }
+          },
+          "noValue": "No data"
         },
         "overrides": [
           {
@@ -806,7 +811,8 @@
             "drawStyle": "line",
             "lineWidth": 0,
             "pointSize": 5
-          }
+          },
+          "noValue": "No data"
         },
         "overrides": [
           {
@@ -853,6 +859,38 @@
       ]
     },
     {
+      "id": 500,
+      "title": "Weekly Power Range",
+      "type": "candlestick",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 28
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  week AS time,\n  COALESCE(prev_avg, avg_p) AS \"open\",\n  max_p AS \"high\",\n  min_p AS \"low\",\n  avg_p AS \"close\"\nFROM (\n  SELECT\n    date_trunc('week', date) AS week,\n    ROUND(AVG(avg_power)::numeric, 0) AS avg_p,\n    MAX(avg_power) AS max_p,\n    MIN(avg_power) AS min_p,\n    LAG(ROUND(AVG(avg_power)::numeric, 0)) OVER (ORDER BY date_trunc('week', date)) AS prev_avg\n  FROM activities\n  WHERE avg_power IS NOT NULL AND avg_power > 0\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n    AND $__timeFilter(date)\n  GROUP BY 1\n) sub\nORDER BY 1;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "custom": {
+            "colorUp": "#73bf69",
+            "colorDown": "#F2495C"
+          }
+        }
+      },
+      "description": "Min/avg/max power per week.\n\nGreen = avg power rising week-over-week.\nRed = avg power falling."
+    },
+    {
       "id": 101,
       "type": "row",
       "title": "FTP & Best Efforts",
@@ -861,7 +899,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 28
+        "y": 36
       },
       "panels": []
     },
@@ -873,7 +911,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 29
+        "y": 37
       },
       "datasource": {
         "type": "postgres",
@@ -897,7 +935,8 @@
             "drawStyle": "line",
             "lineWidth": 2,
             "fillOpacity": 15
-          }
+          },
+          "noValue": "No data"
         },
         "overrides": []
       },
@@ -911,7 +950,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 29
+        "y": 37
       },
       "datasource": {
         "type": "postgres",
@@ -941,7 +980,8 @@
             "drawStyle": "line",
             "pointSize": 4,
             "lineWidth": 1
-          }
+          },
+          "noValue": "No data"
         },
         "overrides": [
           {
@@ -1002,7 +1042,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 37
+        "y": 45
       },
       "panels": []
     },
@@ -1014,7 +1054,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 38
+        "y": 46
       },
       "datasource": {
         "type": "postgres",
@@ -1037,7 +1077,8 @@
               "mode": "normal"
             },
             "barWidthFactor": 0.6
-          }
+          },
+          "noValue": "No data"
         },
         "overrides": [
           {
@@ -1142,7 +1183,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 38
+        "y": 46
       },
       "datasource": {
         "type": "postgres",
@@ -1165,7 +1206,8 @@
               "mode": "normal"
             },
             "barWidthFactor": 0.6
-          }
+          },
+          "noValue": "No data"
         },
         "overrides": [
           {
@@ -1256,7 +1298,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 46
+        "y": 54
       },
       "panels": []
     },
@@ -1268,7 +1310,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 47
+        "y": 55
       },
       "datasource": {
         "type": "postgres",
@@ -1287,7 +1329,8 @@
             "drawStyle": "line",
             "lineWidth": 2,
             "fillOpacity": 0
-          }
+          },
+          "noValue": "No data"
         },
         "overrides": [
           {
@@ -1317,6 +1360,10 @@
                   "fixedColor": "#ff9830",
                   "mode": "fixed"
                 }
+              },
+              {
+                "id": "custom.fillBelowTo",
+                "value": "Fitness (CTL)"
               }
             ]
           },
@@ -1362,7 +1409,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 55
+        "y": 63
       },
       "panels": []
     },
@@ -1374,7 +1421,7 @@
         "h": 7,
         "w": 8,
         "x": 0,
-        "y": 56
+        "y": 64
       },
       "datasource": {
         "type": "postgres",
@@ -1398,7 +1445,8 @@
             "drawStyle": "line",
             "fillOpacity": 15,
             "lineWidth": 2
-          }
+          },
+          "noValue": "No data"
         }
       }
     },
@@ -1410,7 +1458,7 @@
         "h": 7,
         "w": 8,
         "x": 8,
-        "y": 56
+        "y": 64
       },
       "datasource": {
         "type": "postgres",
@@ -1434,7 +1482,8 @@
             "drawStyle": "line",
             "fillOpacity": 15,
             "lineWidth": 2
-          }
+          },
+          "noValue": "No data"
         }
       }
     },
@@ -1446,7 +1495,7 @@
         "h": 7,
         "w": 8,
         "x": 16,
-        "y": 56
+        "y": 64
       },
       "datasource": {
         "type": "postgres",
@@ -1470,7 +1519,8 @@
             "drawStyle": "line",
             "fillOpacity": 15,
             "lineWidth": 2
-          }
+          },
+          "noValue": "No data"
         }
       }
     },
@@ -1482,7 +1532,7 @@
         "h": 7,
         "w": 8,
         "x": 0,
-        "y": 63
+        "y": 71
       },
       "datasource": {
         "type": "postgres",
@@ -1505,7 +1555,8 @@
             "drawStyle": "line",
             "fillOpacity": 15,
             "lineWidth": 2
-          }
+          },
+          "noValue": "No data"
         }
       }
     },
@@ -1517,7 +1568,7 @@
         "h": 7,
         "w": 8,
         "x": 8,
-        "y": 63
+        "y": 71
       },
       "datasource": {
         "type": "postgres",
@@ -1540,7 +1591,8 @@
             "drawStyle": "line",
             "fillOpacity": 15,
             "lineWidth": 2
-          }
+          },
+          "noValue": "No data"
         }
       }
     },
@@ -1552,7 +1604,7 @@
         "h": 7,
         "w": 8,
         "x": 16,
-        "y": 63
+        "y": 71
       },
       "datasource": {
         "type": "postgres",
@@ -1575,7 +1627,8 @@
             "drawStyle": "line",
             "fillOpacity": 15,
             "lineWidth": 2
-          }
+          },
+          "noValue": "No data"
         }
       }
     },
@@ -1588,7 +1641,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 70
+        "y": 78
       },
       "panels": []
     },
@@ -1600,7 +1653,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 71
+        "y": 79
       },
       "datasource": {
         "type": "postgres",
@@ -1638,7 +1691,8 @@
               "mode": "normal"
             },
             "barWidthFactor": 0.6
-          }
+          },
+          "noValue": "No data"
         },
         "overrides": [
           {
@@ -1712,7 +1766,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 71
+        "y": 79
       },
       "datasource": {
         "type": "postgres",
@@ -1750,7 +1804,8 @@
               "mode": "normal"
             },
             "barWidthFactor": 0.6
-          }
+          },
+          "noValue": "No data"
         },
         "overrides": [
           {
@@ -1824,7 +1879,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 79
+        "y": 87
       },
       "datasource": {
         "type": "postgres",
@@ -1861,7 +1916,8 @@
               "mode": "normal"
             },
             "barWidthFactor": 0.6
-          }
+          },
+          "noValue": "No data"
         },
         "overrides": [
           {
@@ -1935,7 +1991,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 79
+        "y": 87
       },
       "datasource": {
         "type": "postgres",
@@ -1973,7 +2029,8 @@
               "mode": "normal"
             },
             "barWidthFactor": 0.6
-          }
+          },
+          "noValue": "No data"
         },
         "overrides": [
           {
@@ -2048,7 +2105,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 87
+        "y": 95
       },
       "panels": []
     },
@@ -2060,7 +2117,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 88
+        "y": 96
       },
       "datasource": {
         "type": "postgres",
@@ -2088,7 +2145,8 @@
               "mode": "none"
             },
             "barWidthFactor": 0.6
-          }
+          },
+          "noValue": "No data"
         },
         "overrides": [
           {
@@ -2132,7 +2190,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 88
+        "y": 96
       },
       "datasource": {
         "type": "postgres",
@@ -2147,6 +2205,11 @@
       ],
       "options": {
         "showHeader": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data"
+        }
       }
     },
     {
@@ -2158,7 +2221,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 96
+        "y": 104
       },
       "panels": []
     },
@@ -2170,7 +2233,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 97
+        "y": 105
       },
       "datasource": {
         "type": "postgres",
@@ -2188,7 +2251,9 @@
         "showHeader": true
       },
       "fieldConfig": {
-        "defaults": {},
+        "defaults": {
+          "noValue": "No data"
+        },
         "overrides": [
           {
             "matcher": {
@@ -2231,7 +2296,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 105
+        "y": 113
       },
       "panels": []
     },
@@ -2243,7 +2308,7 @@
         "h": 14,
         "w": 24,
         "x": 0,
-        "y": 106
+        "y": 114
       },
       "datasource": {
         "type": "postgres",
