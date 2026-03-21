@@ -2306,13 +2306,20 @@
       "options": {
         "pieType": "donut",
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
+          "values": true,
+          "calcs": [],
+          "fields": "/^Rides$/"
         },
         "legend": {
           "displayMode": "list",
-          "placement": "right"
+          "placement": "right",
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "tooltip": {
+          "mode": "single"
         }
       },
       "fieldConfig": {
