@@ -2216,7 +2216,8 @@
           "custom": {
             "fillOpacity": 80
           },
-          "noValue": "No data"
+          "noValue": "No data",
+          "decimals": 0
         }
       },
       "description": "Ride count by day of week."
