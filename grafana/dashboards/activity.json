@@ -2182,7 +2182,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT\n  (a.date + s.time_offset * interval '1 second') AS time,\n  CASE\n    WHEN s.hr < mhr.val * 0.68 THEN 'Z1 Recovery'\n    WHEN s.hr < mhr.val * 0.83 THEN 'Z2 Endurance'\n    WHEN s.hr < mhr.val * 0.94 THEN 'Z3 Tempo'\n    WHEN s.hr < mhr.val * 1.05 THEN 'Z4 Threshold'\n    ELSE 'Z5 VO2max'\n  END AS \"HR Zone\"\nFROM activity_streams s\nJOIN activities a ON a.id = s.activity_id\nCROSS JOIN (\n  SELECT COALESCE(\n    NULLIF((SELECT value::numeric FROM sync_state WHERE key = 'configured_max_hr'), 0),\n    185\n  ) AS val\n) mhr\nWHERE s.activity_id = ${activity_id}\n  AND s.hr IS NOT NULL AND s.hr > 0\nORDER BY s.time_offset;",
+          "rawSql": "SELECT\n  (a.date + s.time_offset * interval '1 second') AS time,\n  CASE\n    WHEN s.hr < mhr.val * 0.68 THEN 'Z1 Recovery'\n    WHEN s.hr < mhr.val * 0.83 THEN 'Z2 Endurance'\n    WHEN s.hr < mhr.val * 0.94 THEN 'Z3 Tempo'\n    WHEN s.hr < mhr.val * 1.05 THEN 'Z4 Threshold'\n    ELSE 'Z5 VO2max'\n  END AS \"HR Zone\"\nFROM activity_streams s\nJOIN activities a ON a.id = s.activity_id\nCROSS JOIN (\n  SELECT COALESCE(\n    NULLIF((SELECT value::numeric FROM sync_state WHERE key = 'configured_max_hr'), 0),\n    185\n  ) AS val\n) mhr\nWHERE s.activity_id = ${activity_id}\n  AND s.hr IS NOT NULL AND s.hr > 0\n  AND s.time_offset % 5 = 0\nORDER BY s.time_offset;",
           "format": "table",
           "refId": "A"
         }

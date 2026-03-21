@@ -2075,7 +2075,7 @@
     {
       "id": 400,
       "title": "When You Ride",
-      "type": "heatmap",
+      "type": "barchart",
       "gridPos": {
         "h": 8,
         "w": 24,
@@ -2088,28 +2088,30 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT\n  EXTRACT(ISODOW FROM date)::int AS \"Day\",\n  EXTRACT(HOUR FROM date)::int AS \"Hour\",\n  COUNT(*) AS \"Rides\"\nFROM activities\nWHERE $__timeFilter(date)\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1, 2;",
+          "rawSql": "SELECT\n  CASE EXTRACT(ISODOW FROM date)::int\n    WHEN 1 THEN 'Mon' WHEN 2 THEN 'Tue' WHEN 3 THEN 'Wed'\n    WHEN 4 THEN 'Thu' WHEN 5 THEN 'Fri' WHEN 6 THEN 'Sat' WHEN 7 THEN 'Sun'\n  END AS \"Day\",\n  COUNT(*) AS \"Rides\"\nFROM activities\nWHERE $__timeFilter(date)\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1, EXTRACT(ISODOW FROM date)::int\nORDER BY EXTRACT(ISODOW FROM date)::int;",
           "format": "table",
           "refId": "A"
         }
       ],
       "options": {
-        "calculate": false,
-        "color": {
-          "mode": "scheme",
-          "scheme": "Blues",
-          "steps": 128
-        },
-        "cellGap": 2,
-        "yAxis": {
-          "reverse": false
-        }
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "stacking": "none",
+        "barWidth": 0.8
       },
       "fieldConfig": {
         "defaults": {
+          "color": {
+            "fixedColor": "#33658a",
+            "mode": "fixed"
+          },
+          "custom": {
+            "fillOpacity": 80
+          },
           "noValue": "No data"
         }
-      }
+      },
+      "description": "Ride count by day of week."
     },
     {
       "id": 401,

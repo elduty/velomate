@@ -17,13 +17,6 @@ def calculate_tss(duration_s: int, avg_hr: int, threshold_hr: int) -> float:
     return duration_h * (intensity ** 2) * 100
 
 
-def compute_work_kj(total_power_sum: float) -> float:
-    """Work in kJ = sum of per-second power / 1000."""
-    if not total_power_sum:
-        return 0.0
-    return round(total_power_sum / 1000.0, 1)
-
-
 def compute_ef(np: float, avg_hr: int) -> float | None:
     """Efficiency Factor = NP / avg HR."""
     if not np or not avg_hr or avg_hr <= 0:
