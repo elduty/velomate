@@ -20,6 +20,12 @@
       "url": "/d/veloai-main/overview",
       "type": "link",
       "icon": "dashboard"
+    },
+    {
+      "title": "All Time Progression",
+      "url": "/d/veloai-progression/all-time-progression",
+      "type": "link",
+      "icon": "dashboard"
     }
   ],
   "templating": {
@@ -152,7 +158,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 27
+        "y": 25
       },
       "datasource": {
         "type": "postgres",
@@ -274,7 +280,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 27
+        "y": 25
       },
       "datasource": {
         "type": "postgres",
@@ -411,7 +417,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 53
+        "y": 49
       },
       "datasource": {
         "type": "postgres",
@@ -440,10 +446,10 @@
       "title": "Speed & Elevation",
       "type": "trend",
       "gridPos": {
-        "h": 12,
+        "h": 10,
         "w": 24,
         "x": 0,
-        "y": 61
+        "y": 57
       },
       "datasource": {
         "type": "postgres",
@@ -569,7 +575,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 73
+        "y": 67
       },
       "datasource": {
         "type": "postgres",
@@ -719,10 +725,10 @@
       "title": "Cadence & Grade",
       "type": "trend",
       "gridPos": {
-        "h": 8,
+        "h": 10,
         "w": 24,
         "x": 0,
-        "y": 83
+        "y": 77
       },
       "datasource": {
         "type": "postgres",
@@ -837,7 +843,7 @@
       "title": "Normalized Power",
       "type": "stat",
       "gridPos": {
-        "h": 4,
+        "h": 3,
         "w": 4,
         "x": 0,
         "y": 22
@@ -881,7 +887,7 @@
       "title": "Intensity Factor",
       "type": "stat",
       "gridPos": {
-        "h": 4,
+        "h": 3,
         "w": 4,
         "x": 4,
         "y": 22
@@ -952,7 +958,7 @@
       "title": "Variability Index",
       "type": "stat",
       "gridPos": {
-        "h": 4,
+        "h": 3,
         "w": 4,
         "x": 8,
         "y": 22
@@ -1682,10 +1688,10 @@
       "title": "Power Duration Curve",
       "type": "barchart",
       "gridPos": {
-        "h": 10,
+        "h": 8,
         "w": 24,
         "x": 0,
-        "y": 43
+        "y": 41
       },
       "datasource": {
         "type": "postgres",
@@ -1737,7 +1743,7 @@
       "title": "Efficiency Factor",
       "type": "stat",
       "gridPos": {
-        "h": 4,
+        "h": 3,
         "w": 4,
         "x": 12,
         "y": 22
@@ -1779,7 +1785,7 @@
       "title": "Work",
       "type": "stat",
       "gridPos": {
-        "h": 4,
+        "h": 3,
         "w": 4,
         "x": 16,
         "y": 22
@@ -1822,7 +1828,7 @@
       "title": "TRIMP",
       "type": "stat",
       "gridPos": {
-        "h": 4,
+        "h": 3,
         "w": 4,
         "x": 20,
         "y": 22
@@ -1895,7 +1901,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 35
+        "y": 33
       },
       "datasource": {
         "type": "postgres",
@@ -2044,7 +2050,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 35
+        "y": 33
       },
       "datasource": {
         "type": "postgres",
@@ -2248,7 +2254,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 91
+        "y": 87
       },
       "datasource": {
         "type": "postgres",
@@ -2292,7 +2298,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 91
+        "y": 87
       },
       "datasource": {
         "type": "postgres",

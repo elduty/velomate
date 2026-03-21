@@ -864,7 +864,7 @@
       "type": "candlestick",
       "gridPos": {
         "h": 8,
-        "w": 12,
+        "w": 24,
         "x": 0,
         "y": 28
       },
@@ -1418,7 +1418,7 @@
       "title": "Cumulative Distance",
       "type": "timeseries",
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 8,
         "x": 0,
         "y": 64
@@ -1455,7 +1455,7 @@
       "title": "Cumulative Elevation",
       "type": "timeseries",
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 8,
         "x": 8,
         "y": 64
@@ -1492,7 +1492,7 @@
       "title": "Cumulative Duration",
       "type": "timeseries",
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 8,
         "x": 16,
         "y": 64
@@ -1529,10 +1529,10 @@
       "title": "Cumulative Rides",
       "type": "timeseries",
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 8,
         "x": 0,
-        "y": 71
+        "y": 72
       },
       "datasource": {
         "type": "postgres",
@@ -1565,10 +1565,10 @@
       "title": "Cumulative TSS",
       "type": "timeseries",
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 8,
         "x": 8,
-        "y": 71
+        "y": 72
       },
       "datasource": {
         "type": "postgres",
@@ -1601,10 +1601,10 @@
       "title": "Cumulative Calories",
       "type": "timeseries",
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 8,
         "x": 16,
-        "y": 71
+        "y": 72
       },
       "datasource": {
         "type": "postgres",
@@ -1641,7 +1641,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 78
+        "y": 80
       },
       "panels": []
     },
@@ -1653,7 +1653,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 79
+        "y": 81
       },
       "datasource": {
         "type": "postgres",
@@ -1766,7 +1766,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 79
+        "y": 81
       },
       "datasource": {
         "type": "postgres",
@@ -1879,7 +1879,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 87
+        "y": 89
       },
       "datasource": {
         "type": "postgres",
@@ -1991,7 +1991,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 87
+        "y": 89
       },
       "datasource": {
         "type": "postgres",
@@ -2105,7 +2105,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 95
+        "y": 97
       },
       "panels": []
     },
@@ -2117,7 +2117,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 96
+        "y": 98
       },
       "datasource": {
         "type": "postgres",
@@ -2190,7 +2190,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 96
+        "y": 98
       },
       "datasource": {
         "type": "postgres",
@@ -2221,7 +2221,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 104
+        "y": 106
       },
       "panels": []
     },
@@ -2230,10 +2230,10 @@
       "title": "All-Time Records",
       "type": "table",
       "gridPos": {
-        "h": 8,
+        "h": 10,
         "w": 24,
         "x": 0,
-        "y": 105
+        "y": 107
       },
       "datasource": {
         "type": "postgres",
@@ -2296,7 +2296,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 113
+        "y": 117
       },
       "panels": []
     },
@@ -2308,7 +2308,7 @@
         "h": 14,
         "w": 24,
         "x": 0,
-        "y": 114
+        "y": 118
       },
       "datasource": {
         "type": "postgres",

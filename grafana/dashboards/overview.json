@@ -472,7 +472,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 21
+        "y": 24
       },
       "datasource": {
         "type": "postgres",
@@ -571,7 +571,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 78
+        "y": 82
       },
       "panels": []
     },
@@ -583,7 +583,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 79
+        "y": 83
       },
       "datasource": {
         "type": "postgres",
@@ -662,7 +662,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 100
+        "y": 104
       },
       "panels": []
     },
@@ -675,7 +675,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 89
+        "y": 93
       },
       "panels": []
     },
@@ -687,7 +687,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 90
+        "y": 94
       },
       "datasource": {
         "type": "postgres",
@@ -1419,7 +1419,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 37
+        "y": 41
       },
       "panels": []
     },
@@ -1549,7 +1549,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 38
+        "y": 42
       },
       "datasource": {
         "type": "postgres",
@@ -1649,7 +1649,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 46
+        "y": 50
       },
       "datasource": {
         "type": "postgres",
@@ -1745,7 +1745,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 54
+        "y": 58
       },
       "datasource": {
         "type": "postgres",
@@ -1837,7 +1837,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 62
+        "y": 66
       },
       "datasource": {
         "type": "postgres",
@@ -1929,7 +1929,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 70
+        "y": 74
       },
       "datasource": {
         "type": "postgres",
@@ -2021,7 +2021,7 @@
         "h": 14,
         "w": 24,
         "x": 0,
-        "y": 101
+        "y": 105
       },
       "datasource": {
         "type": "postgres",
@@ -2073,6 +2073,19 @@
       }
     },
     {
+      "id": 450,
+      "type": "row",
+      "title": "Ride Patterns",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 32
+      },
+      "panels": []
+    },
+    {
       "id": 400,
       "title": "When You Ride",
       "type": "barchart",
@@ -2080,7 +2093,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 29
+        "y": 33
       },
       "datasource": {
         "type": "postgres",
@@ -2118,8 +2131,8 @@
       "title": "Form",
       "type": "gauge",
       "gridPos": {
-        "h": 3,
-        "w": 6,
+        "h": 6,
+        "w": 8,
         "x": 0,
         "y": 18
       },
@@ -2180,8 +2193,8 @@
       "type": "piechart",
       "gridPos": {
         "h": 6,
-        "w": 6,
-        "x": 6,
+        "w": 8,
+        "x": 8,
         "y": 18
       },
       "datasource": {
@@ -2280,9 +2293,9 @@
       "title": "6w Fitness \u0394",
       "type": "stat",
       "gridPos": {
-        "h": 3,
-        "w": 6,
-        "x": 18,
+        "h": 6,
+        "w": 8,
+        "x": 16,
         "y": 18
       },
       "datasource": {
