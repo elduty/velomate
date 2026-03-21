@@ -9,6 +9,8 @@ import requests
 TOKEN_URL = "https://www.strava.com/oauth/token"
 API_BASE = "https://www.strava.com/api/v3"
 
+CYCLING_STRAVA_TYPES = {"Ride", "VirtualRide", "EBikeRide", "Handcycle", "Velomobile"}
+
 
 def _request_with_retry(method, url, max_retries=3, **kwargs):
     """Make an HTTP request with exponential backoff on 429."""
@@ -67,6 +69,13 @@ def refresh_access_token(client_id: str, client_secret: str, refresh_token: str)
             # reuse the old (now-invalid) token. Token will be lost on restart.
             _current_refresh_token = new_refresh
             print(f"[strava] WARNING: Could not persist new refresh token: {e}")
+            # Fallback: write to file so token survives restart
+            try:
+                import pathlib
+                pathlib.Path("/app/.strava_refresh_token").write_text(new_refresh)
+                print(f"[strava] Fallback: token written to /app/.strava_refresh_token")
+            except Exception:
+                pass
 
     return _access_token
 
@@ -74,6 +83,17 @@ def refresh_access_token(client_id: str, client_secret: str, refresh_token: str)
 def _get_token() -> str:
     """Get a valid access token, using persisted refresh token if available."""
     global _current_refresh_token
+
+    # Check file fallback before env var
+    if not _current_refresh_token:
+        try:
+            import pathlib
+            token_path = pathlib.Path("/app/.strava_refresh_token")
+            if token_path.exists():
+                _current_refresh_token = token_path.read_text().strip()
+                print("[strava] Loaded refresh token from file fallback")
+        except Exception:
+            pass
 
     # Prefer DB-stored refresh token over env var (Strava rotates them)
     refresh_token = _current_refresh_token or os.environ["STRAVA_REFRESH_TOKEN"]
@@ -271,7 +291,7 @@ def sync_activities(conn, after_epoch: int = None):
     activities = fetch_recent_activities(token, after_epoch)
     print(f"[strava] Fetched {len(activities)} activities since epoch {after_epoch}")
 
-    CYCLING_STRAVA_TYPES = {"Ride", "VirtualRide", "EBikeRide", "Handcycle", "Velomobile"}
+    ingested = 0
 
     latest_epoch = after_epoch
     for raw in activities:
@@ -318,12 +338,13 @@ def sync_activities(conn, after_epoch: int = None):
             except (ValueError, TypeError):
                 pass
 
+        ingested += 1
         print(f"  → {data['name']} ({(data.get('date') or '')[:10]}) — {(data.get('distance_m') or 0)/1000:.1f}km")
 
     if latest_epoch > after_epoch:
         set_sync_state(conn, "strava_last_activity_epoch", str(latest_epoch))
 
-    return len(activities)
+    return ingested
 
 
 def backfill(conn, months: int = 12):
@@ -338,7 +359,6 @@ def reclassify_activities(conn):
     """Re-fetch Strava type for all activities. Reclassify cycling, delete non-cycling."""
     from db import classify_activity
 
-    CYCLING_STRAVA_TYPES = {"Ride", "VirtualRide", "EBikeRide", "Handcycle", "Velomobile"}
     token = _get_token()
 
     with conn.cursor() as cur:
@@ -350,55 +370,63 @@ def reclassify_activities(conn):
     updated = 0
     deleted = 0
     skipped = 0
-    for db_id, strava_id in db_activities:
-        time.sleep(0.5)
-        try:
-            resp = _request_with_retry(
-                requests.get,
-                f"{API_BASE}/activities/{strava_id}",
-                headers={"Authorization": f"Bearer {token}"},
-            )
-            if resp.status_code == 404:
-                print(f"  [reclassify] Activity {strava_id} not found on Strava, skipping")
+    conn.autocommit = False
+    try:
+        for db_id, strava_id in db_activities:
+            time.sleep(0.5)
+            try:
+                resp = _request_with_retry(
+                    requests.get,
+                    f"{API_BASE}/activities/{strava_id}",
+                    headers={"Authorization": f"Bearer {token}"},
+                )
+                if resp.status_code == 404:
+                    print(f"  [reclassify] Activity {strava_id} not found on Strava, skipping")
+                    skipped += 1
+                    continue
+                resp.raise_for_status()
+                raw = resp.json()
+            except Exception as e:
+                print(f"  [reclassify] Error fetching {strava_id}: {e}")
                 skipped += 1
                 continue
-            resp.raise_for_status()
-            raw = resp.json()
-        except Exception as e:
-            print(f"  [reclassify] Error fetching {strava_id}: {e}")
-            skipped += 1
-            continue
 
-        strava_type = raw.get("type", "")
-        name = raw.get("name", "")
+            strava_type = raw.get("type", "")
+            name = raw.get("name", "")
 
-        # Delete non-cycling activities
-        if strava_type and strava_type not in CYCLING_STRAVA_TYPES:
-            with conn.cursor() as cur:
-                cur.execute("DELETE FROM activities WHERE id = %s", (db_id,))
-            deleted += 1
-            print(f"  ✕ {name[:40]:40s} ({strava_type}) — deleted")
-            continue
-
-        # Reclassify cycling activities
-        trainer = raw.get("trainer", False)
-        with conn.cursor() as cur:
-            cur.execute("SELECT name, distance_m, device FROM activities WHERE id = %s", (db_id,))
-            row = cur.fetchone()
-            if not row:
+            # Delete non-cycling activities
+            if strava_type and strava_type not in CYCLING_STRAVA_TYPES:
+                with conn.cursor() as cur:
+                    cur.execute("DELETE FROM activities WHERE id = %s", (db_id,))
+                deleted += 1
+                print(f"  ✕ {name[:40]:40s} ({strava_type}) — deleted")
                 continue
 
-        classified = classify_activity({
-            "strava_type": strava_type, "trainer": trainer,
-            "name": row[0], "distance_m": row[1], "device": row[2],
-        })
+            # Reclassify cycling activities
+            trainer = raw.get("trainer", False)
+            with conn.cursor() as cur:
+                cur.execute("SELECT name, distance_m, device FROM activities WHERE id = %s", (db_id,))
+                row = cur.fetchone()
+                if not row:
+                    continue
 
-        with conn.cursor() as cur:
-            cur.execute(
-                "UPDATE activities SET sport_type = %s, is_indoor = %s WHERE id = %s",
-                (classified["sport_type"], classified["is_indoor"], db_id),
-            )
-        updated += 1
-        print(f"  → {row[0][:40]:40s} {strava_type:20s} → {classified['sport_type']}")
+            classified = classify_activity({
+                "strava_type": strava_type, "trainer": trainer,
+                "name": row[0], "distance_m": row[1], "device": row[2],
+            })
 
-    print(f"[reclassify] Done: {updated} updated, {deleted} deleted, {skipped} skipped")
+            with conn.cursor() as cur:
+                cur.execute(
+                    "UPDATE activities SET sport_type = %s, is_indoor = %s WHERE id = %s",
+                    (classified["sport_type"], classified["is_indoor"], db_id),
+                )
+            updated += 1
+            print(f"  → {row[0][:40]:40s} {strava_type:20s} → {classified['sport_type']}")
+
+        conn.commit()
+        print(f"[reclassify] Done: {deleted} deleted, {updated} updated, {skipped} skipped")
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.autocommit = True
