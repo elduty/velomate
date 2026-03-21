@@ -151,6 +151,121 @@
       "description": "GPS route with color overlay.\n\nUse the Map Color dropdown to switch between:\n\n\u2022 Speed \u2014 green (fast) to red (slow)\n\n\u2022 Heart Rate \u2014 green (low) to red (high)\n\n\u2022 Power \u2014 green (low) to red (high)"
     },
     {
+      "id": 410,
+      "title": "Suffer Score",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 0,
+        "y": 25
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT COALESCE(suffer_score, 0) AS \"Suffer Score\" FROM activities WHERE id = ${activity_id};",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 28,
+          "titleSize": 14
+        },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-orange"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-orange",
+                "value": null
+              }
+            ]
+          }
+        }
+      },
+      "description": "Strava's proprietary effort score based on HR zones and duration."
+    },
+    {
+      "id": 411,
+      "title": "Aerobic Decoupling",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 4,
+        "y": 25
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "WITH half AS (\n  SELECT MAX(time_offset) / 2 AS mid\n  FROM activity_streams\n  WHERE activity_id = ${activity_id}\n),\nhalves AS (\n  SELECT\n    CASE WHEN s.time_offset <= h.mid THEN 'first' ELSE 'second' END AS half,\n    s.power, s.hr\n  FROM activity_streams s\n  CROSS JOIN half h\n  WHERE s.activity_id = ${activity_id}\n    AND s.power IS NOT NULL AND s.power > 0\n    AND s.hr IS NOT NULL AND s.hr > 0\n)\nSELECT ROUND((\n  (SELECT AVG(power)::float / NULLIF(AVG(hr), 0) FROM halves WHERE half = 'second') /\n  NULLIF((SELECT AVG(power)::float / NULLIF(AVG(hr), 0) FROM halves WHERE half = 'first'), 0)\n  - 1) * 100::numeric, 1) AS \"Decoupling %\";",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "unit": "percent",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 5
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          }
+        }
+      },
+      "description": "Power-to-HR ratio change from first half to second half of ride.\n\n< 5% = good aerobic fitness.\n> 10% = significant drift, base fitness needs work."
+    },
+    {
       "id": 31,
       "title": "HR Zones",
       "type": "barchart",
@@ -158,7 +273,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 25
+        "y": 28
       },
       "datasource": {
         "type": "postgres",
@@ -280,7 +395,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 25
+        "y": 28
       },
       "datasource": {
         "type": "postgres",
@@ -417,7 +532,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 49
+        "y": 52
       },
       "datasource": {
         "type": "postgres",
@@ -449,7 +564,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 57
+        "y": 60
       },
       "datasource": {
         "type": "postgres",
@@ -575,7 +690,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 67
+        "y": 70
       },
       "datasource": {
         "type": "postgres",
@@ -728,7 +843,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 77
+        "y": 80
       },
       "datasource": {
         "type": "postgres",
@@ -1691,7 +1806,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 41
+        "y": 44
       },
       "datasource": {
         "type": "postgres",
@@ -1796,7 +1911,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND((avg_power * duration_s / 1000.0)::numeric, 0) AS \"Work (kJ)\" FROM activities WHERE id = ${activity_id} AND avg_power > 0;",
+          "rawSql": "SELECT ROUND(COALESCE(work_kj, avg_power * duration_s / 1000.0)::numeric, 1) AS \"Work\" FROM activities WHERE id = ${activity_id};",
           "format": "table",
           "refId": "A"
         }
@@ -1901,7 +2016,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 33
+        "y": 36
       },
       "datasource": {
         "type": "postgres",
@@ -2050,7 +2165,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 33
+        "y": 36
       },
       "datasource": {
         "type": "postgres",
@@ -2188,7 +2303,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT\n  (a.date + s.time_offset * interval '1 second') AS time,\n  CASE\n    WHEN s.hr < mhr.val * 0.68 THEN 'Z1 Recovery'\n    WHEN s.hr < mhr.val * 0.83 THEN 'Z2 Endurance'\n    WHEN s.hr < mhr.val * 0.94 THEN 'Z3 Tempo'\n    WHEN s.hr < mhr.val * 1.05 THEN 'Z4 Threshold'\n    ELSE 'Z5 VO2max'\n  END AS \"HR Zone\"\nFROM activity_streams s\nJOIN activities a ON a.id = s.activity_id\nCROSS JOIN (\n  SELECT COALESCE(\n    NULLIF((SELECT value::numeric FROM sync_state WHERE key = 'configured_max_hr'), 0),\n    185\n  ) AS val\n) mhr\nWHERE s.activity_id = ${activity_id}\n  AND s.hr IS NOT NULL AND s.hr > 0\n  AND s.time_offset % 5 = 0\nORDER BY s.time_offset;",
+          "rawSql": "SELECT\n  (a.date + s.time_offset * interval '1 second') AS time,\n  CASE\n    WHEN s.hr < mhr.val * 0.68 THEN 'Z1 Recovery'\n    WHEN s.hr < mhr.val * 0.83 THEN 'Z2 Endurance'\n    WHEN s.hr < mhr.val * 0.94 THEN 'Z3 Tempo'\n    WHEN s.hr < mhr.val * 1.05 THEN 'Z4 Threshold'\n    ELSE 'Z5 VO2max'\n  END AS \"HR Zone\"\nFROM activity_streams s\nJOIN activities a ON a.id = s.activity_id\nCROSS JOIN (\n  SELECT COALESCE(\n    NULLIF((SELECT value::numeric FROM sync_state WHERE key = 'configured_max_hr'), 0),\n    (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY max_hr) FROM activities WHERE max_hr IS NOT NULL AND max_hr > 0),\n    185\n  ) AS val\n) mhr\nWHERE s.activity_id = ${activity_id}\n  AND s.hr IS NOT NULL AND s.hr > 0\n  AND s.time_offset % 5 = 0\nORDER BY s.time_offset;",
           "format": "table",
           "refId": "A"
         }
@@ -2254,7 +2369,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 87
+        "y": 90
       },
       "datasource": {
         "type": "postgres",
@@ -2298,7 +2413,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 87
+        "y": 90
       },
       "datasource": {
         "type": "postgres",
