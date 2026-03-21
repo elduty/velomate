@@ -13,17 +13,17 @@ Results from UX layout review + functionality/value review.
 
 ### Should Fix
 
-**O1 (Overview): 20 stat cards before any chart**
-- Wall of numbers — first chart doesn't appear until y=18
-- Fix: Collapse "vs Previous Period" row by default (`collapsed: true`)
+**O1 (Overview): Stat cards before first chart** — WON'T FIX
+- 8 summary + 8 delta + 4 fitness stat cards before the first chart
+- User prefers all sections expanded — no collapsing
 
 **A5 (Activity): No row headers** — DONE (PR #37)
 - ~~100+ grid unit dashboard with no visual section separators~~
 - Added 7 row headers: Route, Power Quality, Zone Analysis, Power Duration, Splits, Ride Telemetry, Distributions
 
-**P2 (Progression): No collapsed rows**
+**P2 (Progression): Long dashboard, no collapsed rows** — WON'T FIX
 - 132 grid units total, all sections expanded
-- Collapse lower-priority sections by default: Cumulative Totals, Monthly Trends, Year-over-Year, Ride Map
+- User prefers all sections expanded — no collapsing
 
 ### Nice to Fix
 
