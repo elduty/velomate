@@ -35,6 +35,36 @@ class TestDetectDevice:
     def test_missing_device_name(self):
         assert _detect_device({"name": "Morning Ride"}) == "unknown"
 
+    def test_trainer_true_non_zwift_device_returns_zwift(self):
+        """P3-4 finding: _detect_device returns 'zwift' for ALL trainer=True,
+        regardless of actual device. This is because trainer check happens in
+        the elif branch after karoo/watch, and returns 'zwift' unconditionally.
+        classify_activity (in db.py) handles the trainer-vs-zwift distinction
+        at a higher level using the device field."""
+        result = _detect_device({"device_name": "Wahoo KICKR", "trainer": True})
+        assert result == "zwift"
+
+    def test_none_device_name(self):
+        assert _detect_device({"device_name": None}) == "unknown"
+
+    def test_garmin_edge_is_unknown(self):
+        """Garmin Edge doesn't match karoo or watch patterns."""
+        assert _detect_device({"device_name": "Garmin Edge 540"}) == "unknown"
+
+    def test_garmin_edge_1040_is_unknown(self):
+        assert _detect_device({"device_name": "Garmin Edge 1040"}) == "unknown"
+
+    def test_hammerhead_karoo_2(self):
+        assert _detect_device({"device_name": "Hammerhead Karoo 2"}) == "karoo"
+
+    def test_empty_device_name_no_trainer(self):
+        """Empty device name without trainer flag -> unknown."""
+        assert _detect_device({"device_name": ""}) == "unknown"
+
+    def test_empty_device_name_with_zwift_name(self):
+        """Empty device, but activity name contains 'Zwift' -> zwift."""
+        assert _detect_device({"device_name": "", "name": "Zwift - Road to Sky"}) == "zwift"
+
 
 # --- _parse_activity ---
 
