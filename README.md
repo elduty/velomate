@@ -16,10 +16,46 @@ Inspired by [TeslaMate](https://github.com/teslamate-org/teslamate). Works with 
 - Daily fitness recalculation at 00:05 (rest days show CTL/ATL decay)
 - Smart deduplication when multiple devices record the same ride
 
-### Grafana Dashboards (3 dashboards)
-- **Overview** — 12 stat cards with period comparison and sport type filter, 10 daily charts split by ride type (Outdoor/Zwift/E-Bike/Indoor), fitness section (CTL/ATL/TSB with fill-between, FTP, streak, TSB gauge, 6-week fitness delta), ride type donut chart, ride frequency bar chart, outdoor records table, activities table with drill-down, lifetime ride heatmap. Manual annotations for marking events (races, FTP tests, injuries)
-- **Activity Details** — 12 stat cards, GPS route map with speed/HR/power color overlay, HR zone state timeline (colored bar showing zone per second), HR and power zones (Coggan model, zone-colored), power histogram, power vs HR scatter plot (cardiac drift detection), power zone bands on telemetry, speed & elevation / HR & power / cadence & grade telemetry, per-km splits with best/worst markers, power metrics (NP, IF, VI, EF, Work, TRIMP)
-- **All Time Progression** — 6 stat cards (totals + FTP + peak CTL), speed/power/NP/EF/HR/distance progression with 10-ride rolling averages and regression lines, FTP progression (monthly estimated), best efforts (1/5/20min peak power per ride), training zone polarization (monthly power + HR zone distribution), CTL/ATL/TSB with fill-between, cumulative distance/elevation/duration/rides/TSS/calories, monthly trends stacked by ride type, year-over-year comparison, weekly power range (candlestick), personal records with drill-down, all-time ride map
+### Grafana Dashboards
+
+Three dashboards with 98 panels across 12 visualization types.
+
+**Overview** (34 panels) — your training hub
+- 12 stat cards with period comparison + sport type filter
+- 8 delta comparison cards (vs previous period)
+- Fitness section: CTL/ATL/TSB with fill-between shading, FTP, TSB gauge, weekly streak, 6-week fitness delta
+- 10 daily charts split by ride type (Outdoor/Zwift/E-Bike/Indoor)
+- Ride type donut, ride frequency bar chart
+- Outdoor records table (period best vs all-time best)
+- Activities table with drill-down to Activity Details
+- Lifetime ride heatmap
+- Manual annotations for marking events (races, FTP tests, injuries)
+
+**Activity Details** (32 panels) — per-ride deep dive
+- 12 summary stat cards + 7 advanced metrics (NP, IF, VI, EF, Work, TRIMP, aerobic decoupling)
+- GPS route map with speed/HR/power color overlay
+- HR and power zones by kilometer (stacked bar charts)
+- HR and power zone distribution (Coggan model, zone-colored)
+- Power vs HR scatter plot (cardiac drift detection)
+- Power zone bands on HR & Power telemetry
+- Speed & elevation / HR & power / cadence & grade telemetry (distance-based x-axis)
+- Per-km splits table with best/worst markers
+- Power duration curve
+
+**All Time Progression** (32 panels) — long-term trends
+- 6 stat cards: total distance, elevation, rides, hours, current FTP, peak CTL
+- 6 progression scatter plots with 10-ride rolling averages and regression lines (speed, power, NP, EF, HR, distance)
+- FTP progression (monthly estimated from stream data)
+- Best efforts (1min/5min/20min peak power per ride)
+- Weekly power range (candlestick — week-over-week comparison)
+- Training zone polarization (monthly power + HR zone stacked bars)
+- CTL/ATL/TSB fitness history with fill-between shading
+- 6 cumulative totals (distance, elevation, duration, rides, TSS, calories)
+- Monthly trends stacked by ride type
+- Year-over-year distance comparison
+- Annual totals table
+- Personal records with drill-down links
+- All-time ride map
 
 ### Intelligent Route Planning
 - Generates real road-following GPX loops via [Valhalla](https://github.com/valhalla/valhalla) (free, OpenStreetMap-based)

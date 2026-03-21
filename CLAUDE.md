@@ -64,12 +64,12 @@ python3 -m veloai.cli
 ## Important Patterns
 
 - **Schema lives in code**: `ingestor/db.py:create_schema()` is the source of truth for DDL. No migration tool — schema changes go there with `IF NOT EXISTS` / `ADD COLUMN IF NOT EXISTS`
-- **Dedup logic**: Two strategies in `ingestor/db.py` — `find_duplicate()` (time-window + duration) for cross-device like Zwift+Watch, `find_duplicate_by_distance()` (same-day ±10% distance) for matching duplicate Strava uploads
+- **Dedup logic**: `find_duplicate()` in `ingestor/db.py` — time-window + duration matching for cross-device duplicates (e.g., Zwift + Watch recording the same session). Data richness scoring determines which record to keep
 - **Activity classification**: Only cycling activities are ingested (Ride, VirtualRide, EBikeRide filtered at Strava sync). `classify_activity()` in `ingestor/db.py` classifies into: `cycling_outdoor`, `cycling_indoor`, `zwift`, `ebike` based on device/trainer/distance
 - **Fitness TSS**: Power-based TSS preferred over HR-based; thresholds auto-estimated from 95th percentile of historical data. `VELOAI_FTP` and `VELOAI_MAX_HR` env vars override auto-estimation and are persisted to `sync_state` for dashboard queries
 - **Fitness recalculation**: Runs on startup, after each sync, and daily at 00:05 — ensures rest days show CTL/ATL decay through today. Also pre-calculates NP, EF, Work (kJ) per activity from stream data (skips already-computed activities)
-- **Grafana dashboards**: Three dashboards (Overview, Activity Details, All Time Progression). Hand-edited JSON. Overview uses `graphTooltip: 2` for shared crosshair. Activity Details uses `trend` panel type with distance-based x-axis, `state-timeline` for HR zone timeline, `xychart` for power vs HR scatter, `histogram` for power distribution. All Time Progression uses `candlestick` for weekly power ranges. Stat cards use semantic background colors (dark-blue = volume, dark-purple = power, dark-orange = body metrics)
-- **Dashboard panel types**: `stat`, `timeseries`, `table`, `geomap`, `barchart`, `trend`, `piechart`, `gauge`, `histogram`, `xychart`, `state-timeline`, `candlestick`
+- **Grafana dashboards**: Three dashboards (Overview, Activity Details, All Time Progression). Hand-edited JSON. All use `graphTooltip: 2` for shared crosshair. Activity Details uses `trend` panel type with distance-based x-axis, `barchart` for HR/power zones by kilometer, `xychart` for power vs HR scatter. All Time Progression uses `candlestick` for weekly power ranges. Stat cards use semantic background colors (dark-blue = volume, dark-purple = power, dark-orange = body metrics)
+- **Dashboard panel types**: `stat`, `timeseries`, `table`, `geomap`, `barchart`, `trend`, `piechart`, `gauge`, `xychart`, `candlestick`, `row`
 - **Dashboard color palette**: Outdoor=#33658a, Zwift=#fc4c02, E-Bike=#73bf69, Indoor=#8b5cf6. Zone colors follow Coggan standard (gray→blue→green→yellow→orange→red). Green/red reserved for delta comparisons only
 
 ## Environment
@@ -78,7 +78,7 @@ python3 -m veloai.cli
 
 **CLI (local):** Configuration in `~/.config/veloai/config.yaml` (see `config.example.yaml`). Supports env var overrides and `password_cmd` for secret managers (Keychain, 1Password, Vault, etc.). No hardcoded credentials or personal data in codebase.
 
-219 pytest tests covering pure functions and fitness calculations (requires Python 3.10+ for union type syntax). No CI/CD. Deployment is manual git pull + `docker compose up -d`.
+260 pytest tests covering pure functions, fitness calculations, and dashboard structure validation (requires Python 3.10+ for union type syntax). No CI/CD. Deployment is manual git pull + `docker compose up -d`.
 
 ## Known Limitations
 
