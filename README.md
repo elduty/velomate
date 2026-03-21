@@ -11,14 +11,15 @@ Inspired by [TeslaMate](https://github.com/teslamate-org/teslamate). Works with 
 - Stores full per-second telemetry (HR, power, cadence, speed, altitude, GPS)
 - Calculates CTL/ATL/TSB fitness metrics locally (no Strava Premium needed)
 - TRIMP (Training Impulse) computed from HR stream data (no Strava Premium needed)
+- Normalized Power (NP), Efficiency Factor (EF), and Work (kJ) pre-calculated per activity from stream data
 - FTP auto-estimated from rolling 90-day best 20-minute power, or configured manually
 - Daily fitness recalculation at 00:05 (rest days show CTL/ATL decay)
 - Smart deduplication when multiple devices record the same ride
 
 ### Grafana Dashboards (3 dashboards)
-- **Overview** — 12 stat cards with period comparison, 10 daily charts (distance, duration, elevation, speed, power, cadence, HR, calories, rides, TSS — all split by ride type), fitness section (CTL/ATL/TSB/FTP/streak), outdoor records table, activities table with drill-down, lifetime ride heatmap
-- **Activity Details** — 12 stat cards, GPS route map with speed/HR/power color overlay, HR and power zones (Coggan model, zone-colored), power and HR distributions, power duration curve, speed & elevation / HR & power / cadence & grade telemetry, per-km splits with best/worst markers, power metrics (NP, IF, VI, EF, Work, TRIMP)
-- **All Time Progression** — speed, power, HR, distance, efficiency factor progression with regression lines, cumulative distance/elevation/duration/rides/TSS, all-time fitness history, monthly trends, year-over-year comparison
+- **Overview** — 12 stat cards with period comparison and sport type filter, 10 daily charts split by ride type (Outdoor/Zwift/E-Bike/Indoor), fitness section (CTL/ATL/TSB with fill-between, FTP, streak, TSB gauge, 6-week fitness delta), ride type donut chart, ride frequency bar chart, outdoor records table, activities table with drill-down, lifetime ride heatmap. Manual annotations for marking events (races, FTP tests, injuries)
+- **Activity Details** — 12 stat cards, GPS route map with speed/HR/power color overlay, HR zone state timeline (colored bar showing zone per second), HR and power zones (Coggan model, zone-colored), power histogram, power vs HR scatter plot (cardiac drift detection), power zone bands on telemetry, speed & elevation / HR & power / cadence & grade telemetry, per-km splits with best/worst markers, power metrics (NP, IF, VI, EF, Work, TRIMP)
+- **All Time Progression** — 6 stat cards (totals + FTP + peak CTL), speed/power/NP/EF/HR/distance progression with 10-ride rolling averages and regression lines, FTP progression (monthly estimated), best efforts (1/5/20min peak power per ride), training zone polarization (monthly power + HR zone distribution), CTL/ATL/TSB with fill-between, cumulative distance/elevation/duration/rides/TSS/calories, monthly trends stacked by ride type, year-over-year comparison, weekly power range (candlestick), personal records with drill-down, all-time ride map
 
 ### Intelligent Route Planning
 - Generates real road-following GPX loops via [Valhalla](https://github.com/valhalla/valhalla) (free, OpenStreetMap-based)
@@ -188,6 +189,9 @@ TSB       = CTL − ATL                 (training stress balance / form)
 ```
 
 - **FTP**: auto-estimated from rolling 90-day best 20-minute power × 0.95, or configured via `VELOAI_FTP` / `config.yaml`
+- **NP**: Normalized Power — 30s rolling average, 4th power, mean, 4th root. Pre-calculated from stream data per activity
+- **EF**: Efficiency Factor = NP / avg HR. Rising EF indicates improving aerobic fitness
+- **Work**: Total energy output in kJ = sum of per-second power from stream data
 - **Threshold HR**: 95th percentile of your max HRs, or configured via `VELOAI_MAX_HR` / `config.yaml`
 - **TSB interpretation**: > +10 fresh · -10 to +10 neutral · < -10 fatigued
 
@@ -195,7 +199,7 @@ TSB       = CTL − ATL                 (training stress balance / form)
 
 | Table | Contents |
 |-------|----------|
-| `activities` | Every ride — distance, duration, HR, power, cadence, elevation, calories, TSS, sport type, device |
+| `activities` | Every ride — distance, duration, HR, power, cadence, elevation, calories, TSS, NP, EF, Work (kJ), sport type, device |
 | `activity_streams` | Per-second telemetry — HR, power, cadence, speed, altitude, lat/lng |
 | `athlete_stats` | Daily fitness metrics — CTL, ATL, TSB, weekly volume |
 | `routes` | Legacy — created by schema but not actively written to |

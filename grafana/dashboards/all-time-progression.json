@@ -864,7 +864,7 @@
       "type": "candlestick",
       "gridPos": {
         "h": 8,
-        "w": 12,
+        "w": 24,
         "x": 0,
         "y": 28
       },
@@ -1062,7 +1062,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH zones AS (\n  SELECT date_trunc('month', a.date) AS month,\n    CASE\n      WHEN s.power < ftp.val * 0.55 THEN 'Z1 Recovery'\n      WHEN s.power < ftp.val * 0.75 THEN 'Z2 Endurance'\n      WHEN s.power < ftp.val * 0.90 THEN 'Z3 Tempo'\n      WHEN s.power < ftp.val * 1.05 THEN 'Z4 Threshold'\n      WHEN s.power < ftp.val * 1.20 THEN 'Z5 VO2max'\n      ELSE 'Z6 Anaerobic'\n    END AS zone\n  FROM activity_streams s\n  JOIN activities a ON a.id = s.activity_id\n  CROSS JOIN (\n    SELECT COALESCE(\n      NULLIF((SELECT value::numeric FROM sync_state WHERE key = 'configured_ftp'), 0),\n      150\n    ) AS val\n  ) ftp\n  WHERE s.power IS NOT NULL AND s.power > 0\n    AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')\n)\nSELECT month AS time,\n  ROUND(100.0 * SUM(CASE WHEN zone = 'Z1 Recovery' THEN 1 ELSE 0 END) / COUNT(*), 1) AS \"Z1 Recovery\",\n  ROUND(100.0 * SUM(CASE WHEN zone = 'Z2 Endurance' THEN 1 ELSE 0 END) / COUNT(*), 1) AS \"Z2 Endurance\",\n  ROUND(100.0 * SUM(CASE WHEN zone = 'Z3 Tempo' THEN 1 ELSE 0 END) / COUNT(*), 1) AS \"Z3 Tempo\",\n  ROUND(100.0 * SUM(CASE WHEN zone = 'Z4 Threshold' THEN 1 ELSE 0 END) / COUNT(*), 1) AS \"Z4 Threshold\",\n  ROUND(100.0 * SUM(CASE WHEN zone = 'Z5 VO2max' THEN 1 ELSE 0 END) / COUNT(*), 1) AS \"Z5 VO2max\",\n  ROUND(100.0 * SUM(CASE WHEN zone = 'Z6 Anaerobic' THEN 1 ELSE 0 END) / COUNT(*), 1) AS \"Z6 Anaerobic\"\nFROM zones\nGROUP BY 1 ORDER BY 1;",
+          "rawSql": "WITH zones AS (\n  SELECT date_trunc('month', a.date) AS month,\n    CASE\n      WHEN s.power < ftp.val * 0.55 THEN 'Z1 Recovery'\n      WHEN s.power < ftp.val * 0.75 THEN 'Z2 Endurance'\n      WHEN s.power < ftp.val * 0.90 THEN 'Z3 Tempo'\n      WHEN s.power < ftp.val * 1.05 THEN 'Z4 Threshold'\n      WHEN s.power < ftp.val * 1.20 THEN 'Z5 VO2max'\n      ELSE 'Z6 Anaerobic'\n    END AS zone\n  FROM activity_streams s\n  JOIN activities a ON a.id = s.activity_id\n  CROSS JOIN (\n    SELECT COALESCE(\n      NULLIF((SELECT value::numeric FROM sync_state WHERE key = 'configured_ftp'), 0),\n      (SELECT ROUND(MAX(avg_20min) * 0.95) FROM (\n        SELECT AVG(s2.power) OVER (PARTITION BY s2.activity_id ORDER BY s2.time_offset RANGE BETWEEN 1199 PRECEDING AND CURRENT ROW) AS avg_20min\n        FROM activity_streams s2\n        WHERE s2.power IS NOT NULL AND s2.power > 0\n      ) sub2 WHERE avg_20min IS NOT NULL),\n      (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY avg_power) FROM activities WHERE avg_power IS NOT NULL AND avg_power > 0),\n      150\n    ) AS val\n  ) ftp\n  WHERE s.power IS NOT NULL AND s.power > 0\n    AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')\n)\nSELECT month AS time,\n  ROUND(100.0 * SUM(CASE WHEN zone = 'Z1 Recovery' THEN 1 ELSE 0 END) / COUNT(*), 1) AS \"Z1 Recovery\",\n  ROUND(100.0 * SUM(CASE WHEN zone = 'Z2 Endurance' THEN 1 ELSE 0 END) / COUNT(*), 1) AS \"Z2 Endurance\",\n  ROUND(100.0 * SUM(CASE WHEN zone = 'Z3 Tempo' THEN 1 ELSE 0 END) / COUNT(*), 1) AS \"Z3 Tempo\",\n  ROUND(100.0 * SUM(CASE WHEN zone = 'Z4 Threshold' THEN 1 ELSE 0 END) / COUNT(*), 1) AS \"Z4 Threshold\",\n  ROUND(100.0 * SUM(CASE WHEN zone = 'Z5 VO2max' THEN 1 ELSE 0 END) / COUNT(*), 1) AS \"Z5 VO2max\",\n  ROUND(100.0 * SUM(CASE WHEN zone = 'Z6 Anaerobic' THEN 1 ELSE 0 END) / COUNT(*), 1) AS \"Z6 Anaerobic\"\nFROM zones\nGROUP BY 1 ORDER BY 1;",
           "format": "table",
           "refId": "A"
         }
@@ -1191,7 +1191,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH zones AS (\n  SELECT date_trunc('month', a.date) AS month,\n    CASE\n      WHEN s.hr < mhr.val * 0.60 THEN 'Z1 Recovery'\n      WHEN s.hr < mhr.val * 0.70 THEN 'Z2 Endurance'\n      WHEN s.hr < mhr.val * 0.80 THEN 'Z3 Tempo'\n      WHEN s.hr < mhr.val * 0.90 THEN 'Z4 Threshold'\n      ELSE 'Z5 VO2max'\n    END AS zone\n  FROM activity_streams s\n  JOIN activities a ON a.id = s.activity_id\n  CROSS JOIN (\n    SELECT COALESCE(\n      NULLIF((SELECT value::numeric FROM sync_state WHERE key = 'configured_max_hr'), 0),\n      185\n    ) AS val\n  ) mhr\n  WHERE s.hr IS NOT NULL AND s.hr > 0\n    AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')\n)\nSELECT month AS time,\n  ROUND(100.0 * SUM(CASE WHEN zone = 'Z1 Recovery' THEN 1 ELSE 0 END) / COUNT(*), 1) AS \"Z1 Recovery\",\n  ROUND(100.0 * SUM(CASE WHEN zone = 'Z2 Endurance' THEN 1 ELSE 0 END) / COUNT(*), 1) AS \"Z2 Endurance\",\n  ROUND(100.0 * SUM(CASE WHEN zone = 'Z3 Tempo' THEN 1 ELSE 0 END) / COUNT(*), 1) AS \"Z3 Tempo\",\n  ROUND(100.0 * SUM(CASE WHEN zone = 'Z4 Threshold' THEN 1 ELSE 0 END) / COUNT(*), 1) AS \"Z4 Threshold\",\n  ROUND(100.0 * SUM(CASE WHEN zone = 'Z5 VO2max' THEN 1 ELSE 0 END) / COUNT(*), 1) AS \"Z5 VO2max\"\nFROM zones\nGROUP BY 1 ORDER BY 1;",
+          "rawSql": "WITH zones AS (\n  SELECT date_trunc('month', a.date) AS month,\n    CASE\n      WHEN s.hr < mhr.val * 0.60 THEN 'Z1 Recovery'\n      WHEN s.hr < mhr.val * 0.70 THEN 'Z2 Endurance'\n      WHEN s.hr < mhr.val * 0.80 THEN 'Z3 Tempo'\n      WHEN s.hr < mhr.val * 0.90 THEN 'Z4 Threshold'\n      ELSE 'Z5 VO2max'\n    END AS zone\n  FROM activity_streams s\n  JOIN activities a ON a.id = s.activity_id\n  CROSS JOIN (\n    SELECT COALESCE(\n      NULLIF((SELECT value::numeric FROM sync_state WHERE key = 'configured_max_hr'), 0),\n      (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY max_hr) FROM activities WHERE max_hr IS NOT NULL AND max_hr > 0),\n      185\n    ) AS val\n  ) mhr\n  WHERE s.hr IS NOT NULL AND s.hr > 0\n    AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')\n)\nSELECT month AS time,\n  ROUND(100.0 * SUM(CASE WHEN zone = 'Z1 Recovery' THEN 1 ELSE 0 END) / COUNT(*), 1) AS \"Z1 Recovery\",\n  ROUND(100.0 * SUM(CASE WHEN zone = 'Z2 Endurance' THEN 1 ELSE 0 END) / COUNT(*), 1) AS \"Z2 Endurance\",\n  ROUND(100.0 * SUM(CASE WHEN zone = 'Z3 Tempo' THEN 1 ELSE 0 END) / COUNT(*), 1) AS \"Z3 Tempo\",\n  ROUND(100.0 * SUM(CASE WHEN zone = 'Z4 Threshold' THEN 1 ELSE 0 END) / COUNT(*), 1) AS \"Z4 Threshold\",\n  ROUND(100.0 * SUM(CASE WHEN zone = 'Z5 VO2max' THEN 1 ELSE 0 END) / COUNT(*), 1) AS \"Z5 VO2max\"\nFROM zones\nGROUP BY 1 ORDER BY 1;",
           "format": "table",
           "refId": "A"
         }
@@ -1418,7 +1418,7 @@
       "title": "Cumulative Distance",
       "type": "timeseries",
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 8,
         "x": 0,
         "y": 64
@@ -1455,7 +1455,7 @@
       "title": "Cumulative Elevation",
       "type": "timeseries",
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 8,
         "x": 8,
         "y": 64
@@ -1492,7 +1492,7 @@
       "title": "Cumulative Duration",
       "type": "timeseries",
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 8,
         "x": 16,
         "y": 64
@@ -1529,10 +1529,10 @@
       "title": "Cumulative Rides",
       "type": "timeseries",
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 8,
         "x": 0,
-        "y": 71
+        "y": 72
       },
       "datasource": {
         "type": "postgres",
@@ -1565,10 +1565,10 @@
       "title": "Cumulative TSS",
       "type": "timeseries",
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 8,
         "x": 8,
-        "y": 71
+        "y": 72
       },
       "datasource": {
         "type": "postgres",
@@ -1601,10 +1601,10 @@
       "title": "Cumulative Calories",
       "type": "timeseries",
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 8,
         "x": 16,
-        "y": 71
+        "y": 72
       },
       "datasource": {
         "type": "postgres",
@@ -1641,7 +1641,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 78
+        "y": 80
       },
       "panels": []
     },
@@ -1653,7 +1653,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 79
+        "y": 81
       },
       "datasource": {
         "type": "postgres",
@@ -1766,7 +1766,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 79
+        "y": 81
       },
       "datasource": {
         "type": "postgres",
@@ -1879,7 +1879,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 87
+        "y": 89
       },
       "datasource": {
         "type": "postgres",
@@ -1991,7 +1991,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 87
+        "y": 89
       },
       "datasource": {
         "type": "postgres",
@@ -2105,7 +2105,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 95
+        "y": 97
       },
       "panels": []
     },
@@ -2117,7 +2117,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 96
+        "y": 98
       },
       "datasource": {
         "type": "postgres",
@@ -2190,7 +2190,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 96
+        "y": 98
       },
       "datasource": {
         "type": "postgres",
@@ -2198,7 +2198,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT EXTRACT(YEAR FROM date)::int AS \"Year\",\n  COUNT(*) AS \"Rides\",\n  ROUND((SUM(distance_m)/1000)::numeric, 0) AS \"Distance (km)\",\n  ROUND(SUM(elevation_m)::numeric, 1) AS \"Elevation (m)\",\n  ROUND((SUM(duration_s)/3600.0)::numeric, 1) AS \"Hours\",\n  ROUND((AVG(distance_m)/1000.0)::numeric, 1) AS \"Avg Ride (km)\",\n  ROUND((SUM(distance_m) / NULLIF(SUM(duration_s / 3600.0), 0) / 1000.0)::numeric, 1) AS \"Avg Speed\",\n  ROUND(SUM(tss)::numeric, 0) AS \"Total TSS\"\nFROM activities\nWHERE date IS NOT NULL\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1 DESC;",
+          "rawSql": "SELECT EXTRACT(YEAR FROM date)::int AS \"Year\",\n  COUNT(*) AS \"Rides\",\n  ROUND((SUM(distance_m)/1000)::numeric, 0) AS \"Distance (km)\",\n  ROUND(SUM(elevation_m)::numeric, 1) AS \"Elevation (m)\",\n  ROUND((SUM(duration_s)/3600.0)::numeric, 1) AS \"Hours\",\n  ROUND((AVG(distance_m)/1000.0)::numeric, 1) AS \"Avg Ride (km)\",\n  ROUND(((SUM(distance_m) / 1000.0) / NULLIF(SUM(duration_s / 3600.0), 0))::numeric, 1) AS \"Avg Speed\",\n  ROUND(SUM(tss)::numeric, 0) AS \"Total TSS\"\nFROM activities\nWHERE date IS NOT NULL\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1 ORDER BY 1 DESC;",
           "format": "table",
           "refId": "A"
         }
@@ -2221,7 +2221,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 104
+        "y": 106
       },
       "panels": []
     },
@@ -2230,10 +2230,10 @@
       "title": "All-Time Records",
       "type": "table",
       "gridPos": {
-        "h": 8,
+        "h": 10,
         "w": 24,
         "x": 0,
-        "y": 105
+        "y": 107
       },
       "datasource": {
         "type": "postgres",
@@ -2296,7 +2296,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 113
+        "y": 117
       },
       "panels": []
     },
@@ -2308,7 +2308,7 @@
         "h": 14,
         "w": 24,
         "x": 0,
-        "y": 114
+        "y": 118
       },
       "datasource": {
         "type": "postgres",

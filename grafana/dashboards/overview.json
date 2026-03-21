@@ -472,7 +472,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 21
+        "y": 24
       },
       "datasource": {
         "type": "postgres",
@@ -563,6 +563,101 @@
       "description": "Fitness Curves\n\n\ud83d\udd35 CTL (Chronic Training Load) \u2014 42-day rolling fitness.\n\n\ud83d\udfe0 ATL (Acute Training Load) \u2014 7-day rolling fatigue.\n\n\ud83d\udfe2 TSB (Form) \u2014 CTL minus ATL.\n\nCTL rising = getting fitter.\n\nATL spiking = recent hard training.\n\nTSB negative = fatigued, positive = fresh."
     },
     {
+      "id": 610,
+      "title": "Rolling Weekly Volume",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 82
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "veloai"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT date AS time,\n  ROUND((weekly_distance_m / 1000.0)::numeric, 1) AS \"Weekly Distance (km)\",\n  ROUND(weekly_elevation_m::numeric, 0) AS \"Weekly Elevation (m)\"\nFROM athlete_stats\nWHERE $__timeFilter(date)\nORDER BY date;",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": 604800000,
+            "stacking": {
+              "mode": "none"
+            }
+          },
+          "noValue": "No data"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Weekly Distance (km)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#33658a",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "left"
+              },
+              {
+                "id": "unit",
+                "value": "lengthkm"
+              },
+              {
+                "id": "min",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Weekly Elevation (m)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#ff9830",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "unit",
+                "value": "lengthm"
+              },
+              {
+                "id": "min",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "description": "7-day rolling distance and elevation from daily fitness calculations.\n\nSmoother than per-ride charts \u2014 shows your training volume trend."
+    },
+    {
       "id": 102,
       "type": "row",
       "title": "Outdoor Records",
@@ -571,7 +666,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 78
+        "y": 90
       },
       "panels": []
     },
@@ -583,7 +678,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 79
+        "y": 91
       },
       "datasource": {
         "type": "postgres",
@@ -662,7 +757,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 100
+        "y": 112
       },
       "panels": []
     },
@@ -675,7 +770,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 89
+        "y": 101
       },
       "panels": []
     },
@@ -687,7 +782,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 90
+        "y": 102
       },
       "datasource": {
         "type": "postgres",
@@ -1419,7 +1514,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 37
+        "y": 41
       },
       "panels": []
     },
@@ -1549,7 +1644,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 38
+        "y": 42
       },
       "datasource": {
         "type": "postgres",
@@ -1649,7 +1744,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 46
+        "y": 50
       },
       "datasource": {
         "type": "postgres",
@@ -1745,7 +1840,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 54
+        "y": 58
       },
       "datasource": {
         "type": "postgres",
@@ -1837,7 +1932,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 62
+        "y": 66
       },
       "datasource": {
         "type": "postgres",
@@ -1929,7 +2024,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 70
+        "y": 74
       },
       "datasource": {
         "type": "postgres",
@@ -2021,7 +2116,7 @@
         "h": 14,
         "w": 24,
         "x": 0,
-        "y": 101
+        "y": 113
       },
       "datasource": {
         "type": "postgres",
@@ -2073,6 +2168,19 @@
       }
     },
     {
+      "id": 450,
+      "type": "row",
+      "title": "Ride Patterns",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 32
+      },
+      "panels": []
+    },
+    {
       "id": 400,
       "title": "When You Ride",
       "type": "barchart",
@@ -2080,7 +2188,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 29
+        "y": 33
       },
       "datasource": {
         "type": "postgres",
@@ -2108,7 +2216,8 @@
           "custom": {
             "fillOpacity": 80
           },
-          "noValue": "No data"
+          "noValue": "No data",
+          "decimals": 0
         }
       },
       "description": "Ride count by day of week."
@@ -2118,8 +2227,8 @@
       "title": "Form",
       "type": "gauge",
       "gridPos": {
-        "h": 3,
-        "w": 6,
+        "h": 6,
+        "w": 8,
         "x": 0,
         "y": 18
       },
@@ -2180,8 +2289,8 @@
       "type": "piechart",
       "gridPos": {
         "h": 6,
-        "w": 6,
-        "x": 6,
+        "w": 8,
+        "x": 8,
         "y": 18
       },
       "datasource": {
@@ -2198,13 +2307,20 @@
       "options": {
         "pieType": "donut",
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
+          "values": true,
+          "calcs": [],
+          "fields": "/^Rides$/"
         },
         "legend": {
           "displayMode": "list",
-          "placement": "right"
+          "placement": "right",
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "tooltip": {
+          "mode": "single"
         }
       },
       "fieldConfig": {
@@ -2280,9 +2396,9 @@
       "title": "6w Fitness \u0394",
       "type": "stat",
       "gridPos": {
-        "h": 3,
-        "w": 6,
-        "x": 18,
+        "h": 6,
+        "w": 8,
+        "x": 16,
         "y": 18
       },
       "datasource": {
