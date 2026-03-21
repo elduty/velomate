@@ -92,6 +92,8 @@ def create_schema(conn):
             CREATE INDEX IF NOT EXISTS idx_activity_streams_activity_id ON activity_streams(activity_id);
             CREATE UNIQUE INDEX IF NOT EXISTS idx_activities_komoot_tour_id
                 ON activities(komoot_tour_id) WHERE komoot_tour_id IS NOT NULL;
+
+            CREATE INDEX IF NOT EXISTS idx_streams_power ON activity_streams(activity_id, time_offset) WHERE power IS NOT NULL;
         """)
 
 
