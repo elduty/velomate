@@ -17,6 +17,13 @@ def calculate_tss(duration_s: int, avg_hr: int, threshold_hr: int) -> float:
     return duration_h * (intensity ** 2) * 100
 
 
+def compute_ef(np: float, avg_hr: int) -> float | None:
+    """Efficiency Factor = NP / avg HR."""
+    if not np or not avg_hr or avg_hr <= 0:
+        return None
+    return round(np / avg_hr, 2)
+
+
 def calculate_tss_power(duration_s: int, avg_power: int, ftp: int) -> float:
     """Power-based TSS = (duration_s × avg_power × IF) / (FTP × 3600) × 100
     where IF (Intensity Factor) = avg_power / FTP"""
@@ -139,6 +146,60 @@ def recalculate_fitness(conn):
             tss = 0
         with conn.cursor() as cur:
             cur.execute("UPDATE activities SET tss = %s WHERE id = %s", (round(tss, 1), act_id))
+
+    # Compute NP, EF, Work for activities with power data
+    print("[fitness] Computing NP/EF/Work...")
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT a.id, a.avg_hr, a.avg_power, a.duration_s
+            FROM activities a
+            JOIN activity_streams s ON s.activity_id = a.id
+            WHERE s.power IS NOT NULL AND s.power > 0
+              AND a.np IS NULL
+            GROUP BY a.id, a.avg_hr, a.avg_power, a.duration_s
+            HAVING COUNT(*) > 30
+        """)
+        power_activities = cur.fetchall()
+
+    np_count = 0
+    for act_id, avg_hr, avg_power, duration_s in power_activities:
+        with conn.cursor() as cur:
+            # NP: 30s rolling avg -> 4th power -> mean -> 4th root
+            cur.execute("""
+                WITH rolling AS (
+                    SELECT AVG(power) OVER (
+                        ORDER BY time_offset
+                        RANGE BETWEEN 29 PRECEDING AND CURRENT ROW
+                    ) AS rolling_30s
+                    FROM activity_streams
+                    WHERE activity_id = %s AND power IS NOT NULL
+                )
+                SELECT POWER(AVG(POWER(rolling_30s, 4)), 0.25)
+                FROM rolling
+                WHERE rolling_30s IS NOT NULL
+            """, (act_id,))
+            row = cur.fetchone()
+            np_val = round(row[0], 1) if row and row[0] else None
+
+        if np_val:
+            ef_val = compute_ef(np_val, avg_hr)
+
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT ROUND((SUM(power) / 1000.0)::numeric, 1)
+                    FROM activity_streams
+                    WHERE activity_id = %s AND power IS NOT NULL
+                """, (act_id,))
+                work_row = cur.fetchone()
+                work_val = float(work_row[0]) if work_row and work_row[0] else None
+
+            with conn.cursor() as cur:
+                cur.execute("""
+                    UPDATE activities SET np = %s, ef = %s, work_kj = %s WHERE id = %s
+                """, (np_val, ef_val, work_val, act_id))
+            np_count += 1
+
+    print(f"[fitness] Computed NP/EF/Work for {np_count} activities")
 
     # Read back stored TSS + distance/elevation (cycling only)
     with conn.cursor() as cur:
