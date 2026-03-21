@@ -156,8 +156,8 @@
       "type": "stat",
       "gridPos": {
         "h": 3,
-        "w": 4,
-        "x": 4,
+        "w": 8,
+        "x": 16,
         "y": 25
       },
       "datasource": {
@@ -166,7 +166,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH half AS (\n  SELECT MAX(time_offset) / 2 AS mid\n  FROM activity_streams\n  WHERE activity_id = ${activity_id}\n),\nhalves AS (\n  SELECT\n    CASE WHEN s.time_offset <= h.mid THEN 'first' ELSE 'second' END AS half,\n    s.power, s.hr\n  FROM activity_streams s\n  CROSS JOIN half h\n  WHERE s.activity_id = ${activity_id}\n    AND s.power IS NOT NULL AND s.power > 0\n    AND s.hr IS NOT NULL AND s.hr > 0\n)\nSELECT ROUND((\n  (SELECT AVG(power)::float / NULLIF(AVG(hr), 0) FROM halves WHERE half = 'second') /\n  NULLIF((SELECT AVG(power)::float / NULLIF(AVG(hr), 0) FROM halves WHERE half = 'first'), 0)\n  - 1) * 100::numeric, 1) AS \"Decoupling %\";",
+          "rawSql": "WITH half AS (\n  SELECT MAX(time_offset) / 2 AS mid\n  FROM activity_streams\n  WHERE activity_id = ${activity_id}\n),\nhalves AS (\n  SELECT\n    CASE WHEN s.time_offset <= h.mid THEN 'first' ELSE 'second' END AS half,\n    s.power, s.hr\n  FROM activity_streams s\n  CROSS JOIN half h\n  WHERE s.activity_id = ${activity_id}\n    AND s.power IS NOT NULL AND s.power > 0\n    AND s.hr IS NOT NULL AND s.hr > 0\n)\nSELECT ROUND(((\n  (SELECT AVG(power)::float / NULLIF(AVG(hr), 0) FROM halves WHERE half = 'second') /\n  NULLIF((SELECT AVG(power)::float / NULLIF(AVG(hr), 0) FROM halves WHERE half = 'first'), 0)\n  - 1) * 100)::numeric, 1) AS \"Decoupling %\";",
           "format": "table",
           "refId": "A"
         }
@@ -903,7 +903,7 @@
       "type": "stat",
       "gridPos": {
         "h": 3,
-        "w": 4,
+        "w": 6,
         "x": 0,
         "y": 22
       },
@@ -947,8 +947,8 @@
       "type": "stat",
       "gridPos": {
         "h": 3,
-        "w": 4,
-        "x": 4,
+        "w": 6,
+        "x": 6,
         "y": 22
       },
       "datasource": {
@@ -1018,8 +1018,8 @@
       "type": "stat",
       "gridPos": {
         "h": 3,
-        "w": 4,
-        "x": 8,
+        "w": 6,
+        "x": 12,
         "y": 22
       },
       "datasource": {
@@ -1803,8 +1803,8 @@
       "type": "stat",
       "gridPos": {
         "h": 3,
-        "w": 4,
-        "x": 12,
+        "w": 6,
+        "x": 18,
         "y": 22
       },
       "datasource": {
@@ -1845,9 +1845,9 @@
       "type": "stat",
       "gridPos": {
         "h": 3,
-        "w": 4,
-        "x": 16,
-        "y": 22
+        "w": 8,
+        "x": 0,
+        "y": 25
       },
       "datasource": {
         "type": "postgres",
@@ -1888,9 +1888,9 @@
       "type": "stat",
       "gridPos": {
         "h": 3,
-        "w": 4,
-        "x": 20,
-        "y": 22
+        "w": 8,
+        "x": 8,
+        "y": 25
       },
       "datasource": {
         "type": "postgres",
