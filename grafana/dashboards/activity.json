@@ -2578,57 +2578,13 @@
       "panels": []
     },
     {
-      "id": 401,
-      "title": "Power Distribution",
-      "type": "histogram",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 103
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "veloai"
-      },
-      "targets": [
-        {
-          "rawSql": "SELECT power AS \"Power (W)\"\nFROM activity_streams\nWHERE activity_id = ${activity_id}\n  AND power IS NOT NULL AND power > 0;",
-          "format": "table",
-          "refId": "A"
-        }
-      ],
-      "options": {
-        "bucketSize": 20,
-        "fillOpacity": 80,
-        "tooltip": {
-          "mode": "single"
-        },
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        }
-      },
-      "fieldConfig": {
-        "defaults": {
-          "noValue": "No data",
-          "color": {
-            "fixedColor": "#8b5cf6",
-            "mode": "fixed"
-          }
-        },
-        "overrides": []
-      },
-      "description": "Distribution of power output during the ride.\n\nShows how much time was spent at each power level."
-    },
-    {
       "id": 402,
       "title": "Power vs Heart Rate",
       "type": "xychart",
       "gridPos": {
         "h": 8,
-        "w": 12,
-        "x": 12,
+        "w": 24,
+        "x": 0,
         "y": 103
       },
       "datasource": {
