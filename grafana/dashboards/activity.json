@@ -2233,10 +2233,10 @@
     },
     {
       "id": 400,
-      "title": "HR Zone Timeline",
-      "type": "state-timeline",
+      "title": "HR Zones by Kilometer",
+      "type": "barchart",
       "gridPos": {
-        "h": 4,
+        "h": 6,
         "w": 24,
         "x": 0,
         "y": 28
@@ -2247,63 +2247,109 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT\n  (a.date + s.time_offset * interval '1 second') AS time,\n  CASE\n    WHEN s.hr < mhr.val * 0.68 THEN 'Z1 Recovery'\n    WHEN s.hr < mhr.val * 0.83 THEN 'Z2 Endurance'\n    WHEN s.hr < mhr.val * 0.94 THEN 'Z3 Tempo'\n    WHEN s.hr < mhr.val * 1.05 THEN 'Z4 Threshold'\n    ELSE 'Z5 VO2max'\n  END AS \"HR Zone\"\nFROM activity_streams s\nJOIN activities a ON a.id = s.activity_id\nCROSS JOIN (\n  SELECT COALESCE(\n    NULLIF((SELECT value::numeric FROM sync_state WHERE key = 'configured_max_hr'), 0),\n    (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY max_hr) FROM activities WHERE max_hr IS NOT NULL AND max_hr > 0),\n    185\n  ) AS val\n) mhr\nWHERE s.activity_id = ${activity_id}\n  AND s.hr IS NOT NULL AND s.hr > 0\n  AND s.time_offset % 5 = 0\nORDER BY s.time_offset;",
+          "rawSql": "WITH dist AS (\n  SELECT s.time_offset, s.hr,\n    SUM(s.speed_kmh / 3600.0) OVER (ORDER BY s.time_offset) AS km\n  FROM activity_streams s\n  WHERE s.activity_id = ${activity_id}\n    AND s.speed_kmh IS NOT NULL\n),\nzoned AS (\n  SELECT FLOOR(km)::int + 1 AS km,\n    CASE\n      WHEN d.hr < mhr.val * 0.68 THEN 'Z1 Recovery'\n      WHEN d.hr < mhr.val * 0.83 THEN 'Z2 Endurance'\n      WHEN d.hr < mhr.val * 0.94 THEN 'Z3 Tempo'\n      WHEN d.hr < mhr.val * 1.05 THEN 'Z4 Threshold'\n      ELSE 'Z5 VO2max'\n    END AS zone\n  FROM dist d\n  CROSS JOIN (\n    SELECT COALESCE(\n      NULLIF((SELECT value::numeric FROM sync_state WHERE key = 'configured_max_hr'), 0),\n      (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY max_hr) FROM activities WHERE max_hr IS NOT NULL AND max_hr > 0),\n      185\n    ) AS val\n  ) mhr\n  WHERE d.hr IS NOT NULL AND d.hr > 0\n)\nSELECT km || ' km' AS \"Kilometer\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z1 Recovery' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z1 Recovery\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z2 Endurance' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z2 Endurance\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z3 Tempo' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z3 Tempo\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z4 Threshold' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z4 Threshold\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z5 VO2max' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z5 VO2max\"\nFROM zoned\nGROUP BY km\nORDER BY km;",
           "format": "table",
           "refId": "A"
         }
       ],
       "options": {
-        "mergeValues": true,
+        "orientation": "vertical",
         "showValue": "never",
-        "alignValue": "left",
-        "tooltip": {
-          "mode": "single"
-        },
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        }
+        "stacking": "normal",
+        "barWidth": 0.8,
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
       },
       "fieldConfig": {
         "defaults": {
+          "unit": "percent",
           "noValue": "No data",
           "custom": {
-            "fillOpacity": 80
-          },
-          "mappings": [
-            {
-              "type": "value",
-              "options": {
-                "Z1 Recovery": {
-                  "color": "#6b7280",
-                  "index": 0
-                },
-                "Z2 Endurance": {
-                  "color": "#3b82f6",
-                  "index": 1
-                },
-                "Z3 Tempo": {
-                  "color": "#22c55e",
-                  "index": 2
-                },
-                "Z4 Threshold": {
-                  "color": "#eab308",
-                  "index": 3
-                },
-                "Z5 VO2max": {
-                  "color": "#ef4444",
-                  "index": 4
-                }
-              }
+            "fillOpacity": 80,
+            "stacking": {
+              "mode": "normal"
             }
-          ],
-          "color": {
-            "mode": "fixed"
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z1 Recovery"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#6b7280",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z2 Endurance"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#3b82f6",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z3 Tempo"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#22c55e",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z4 Threshold"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#eab308",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z5 VO2max"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#ef4444",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
       },
-      "description": "Which heart rate zone you were in at each moment of the ride."
+      "description": "HR zone distribution per kilometer.\n\nShows where on the route you were working hard.\nStacked to 100% \u2014 each bar shows the zone split for that km."
     },
     {
       "id": 401,
