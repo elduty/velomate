@@ -217,7 +217,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 32
+        "y": 38
       },
       "datasource": {
         "type": "postgres",
@@ -339,7 +339,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 32
+        "y": 38
       },
       "datasource": {
         "type": "postgres",
@@ -2237,7 +2237,7 @@
       "type": "barchart",
       "gridPos": {
         "h": 6,
-        "w": 12,
+        "w": 24,
         "x": 0,
         "y": 28
       },
@@ -2458,9 +2458,9 @@
       "type": "barchart",
       "gridPos": {
         "h": 6,
-        "w": 12,
-        "x": 12,
-        "y": 28
+        "w": 24,
+        "x": 0,
+        "y": 34
       },
       "datasource": {
         "type": "postgres",
