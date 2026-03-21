@@ -151,62 +151,6 @@
       "description": "GPS route with color overlay.\n\nUse the Map Color dropdown to switch between:\n\n\u2022 Speed \u2014 green (fast) to red (slow)\n\n\u2022 Heart Rate \u2014 green (low) to red (high)\n\n\u2022 Power \u2014 green (low) to red (high)"
     },
     {
-      "id": 410,
-      "title": "Suffer Score",
-      "type": "stat",
-      "gridPos": {
-        "h": 3,
-        "w": 4,
-        "x": 0,
-        "y": 25
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "veloai"
-      },
-      "targets": [
-        {
-          "rawSql": "SELECT COALESCE(suffer_score, 0) AS \"Suffer Score\" FROM activities WHERE id = ${activity_id};",
-          "format": "table",
-          "refId": "A"
-        }
-      ],
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "textMode": "auto",
-        "justifyMode": "center",
-        "text": {
-          "valueSize": 28,
-          "titleSize": 14
-        },
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        }
-      },
-      "fieldConfig": {
-        "defaults": {
-          "noValue": "No data",
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "dark-orange"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "dark-orange",
-                "value": null
-              }
-            ]
-          }
-        }
-      },
-      "description": "Strava's proprietary effort score based on HR zones and duration."
-    },
-    {
       "id": 411,
       "title": "Aerobic Decoupling",
       "type": "stat",
