@@ -183,7 +183,7 @@ def fetch_activity_streams(access_token: str, activity_id: int) -> dict:
 
 def _detect_device(raw: dict) -> str:
     """Detect recording device from Strava activity metadata."""
-    device_name = raw.get("device_name", "").lower()
+    device_name = (raw.get("device_name") or "").lower()
     if "karoo" in device_name:
         return "karoo"
     elif "watch" in device_name or "apple" in device_name:
