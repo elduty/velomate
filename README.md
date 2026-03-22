@@ -2,7 +2,6 @@
 
 [![Tests](https://github.com/elduty/velomate/actions/workflows/test.yml/badge.svg)](https://github.com/elduty/velomate/actions/workflows/test.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/downloads/)
-[![260 tests](https://img.shields.io/badge/tests-260_passing-brightgreen)](tests/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Grafana 12.4](https://img.shields.io/badge/grafana-12.4-orange)](https://grafana.com/)
 
