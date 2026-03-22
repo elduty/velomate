@@ -120,23 +120,26 @@ def classify_activity(data: dict) -> dict:
     return {**data, "is_indoor": is_indoor, "sport_type": sport_type}
 
 
-def find_duplicate(conn, date_str: str, duration_s: int, tolerance_seconds: int = 300) -> tuple | None:
+def find_duplicate(conn, date_str: str, duration_s: int, distance_m: float = 0,
+                   tolerance_seconds: int = 300) -> tuple | None:
     """Find an existing activity that started within tolerance of date_str
-    and has a similar duration. Returns activity id or None.
-    Used to detect cross-device duplicates (Zwift + Watch recording same session).
+    and has a similar duration OR similar distance. Returns activity id or None.
+    Used to detect cross-device duplicates (e.g., Karoo + Watch recording same ride).
 
-    Note: a distance-based variant was considered (find_duplicate_by_distance) but
-    removed — Strava moving_time and elapsed_time are consistent across devices for
-    the same session, so duration-based dedup is reliable. Distance-based matching
-    risks false positives on routes with similar distances on different days.
+    Matches if start time is close AND either:
+    - Duration within 15% (handles moving_time vs elapsed_time differences)
+    - Distance within 10% (handles different GPS sampling / measurement)
     """
     with conn.cursor() as cur:
         cur.execute("""
             SELECT id, strava_id, device, distance_m, avg_hr, avg_power
             FROM activities
             WHERE ABS(EXTRACT(EPOCH FROM (date - %s::timestamptz))) < %s
-              AND ABS(duration_s - %s) < 300
-        """, (date_str, tolerance_seconds, duration_s))
+              AND (
+                ABS(duration_s - %s) < GREATEST(300, duration_s * 0.15)
+                OR (distance_m > 0 AND %s > 0 AND ABS(distance_m - %s) < distance_m * 0.10)
+              )
+        """, (date_str, tolerance_seconds, duration_s, distance_m, distance_m))
         return cur.fetchone()
 
 
@@ -232,7 +235,7 @@ def upsert_activity(conn, data: dict) -> tuple[int, bool]:
 
     # Duplicate detection: check if another activity started within 5 min with similar duration
     if data.get("date") and data.get("duration_s"):
-        duplicate = find_duplicate(conn, data["date"], data["duration_s"])
+        duplicate = find_duplicate(conn, data["date"], data["duration_s"], data.get("distance_m", 0))
         if duplicate and duplicate[1] != data.get("strava_id"):
             ex_id = duplicate[0]
             merged = merge_activity_data(duplicate, data)
