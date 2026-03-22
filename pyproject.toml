@@ -7,7 +7,7 @@ name = "velomate"
 version = "0.1.0"
 description = "Self-hosted cycling data platform — Strava ingestion, Grafana dashboards, intelligent route planning"
 readme = "README.md"
-license = "MIT"
+license = "AGPL-3.0"
 requires-python = ">=3.10"
 dependencies = [
     "psycopg2-binary~=2.9",
@@ -26,3 +26,18 @@ velomate = "velomate.cli:main"
 
 [tool.setuptools.packages.find]
 include = ["velomate*"]
+
+[tool.coverage.run]
+source = ["velomate", "ingestor"]
+omit = [
+    "velomate/__main__.py",
+    "velomate/cli.py",
+    "velomate/map_preview.py",
+    "velomate/geocode.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "if __name__",
+    "pragma: no cover",
+]
