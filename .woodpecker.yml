@@ -9,6 +9,6 @@ steps:
   - name: test
     image: bash
     commands:
-      - python3 -m venv /tmp/veloai-ci-venv
-      - /tmp/veloai-ci-venv/bin/pip install -q -r requirements.txt pytest
-      - set -o pipefail && /tmp/veloai-ci-venv/bin/python3 -m pytest tests/ -q 2>&1 | tee /tmp/pytest-output.txt
+      - python3.11 -m venv /tmp/velomate-ci-venv
+      - /tmp/velomate-ci-venv/bin/pip install -q -r requirements.txt pytest
+      - set -o pipefail && /tmp/velomate-ci-venv/bin/python3 -m pytest tests/ -q 2>&1 | tee /tmp/pytest-output.txt
