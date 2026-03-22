@@ -1,4 +1,4 @@
-# VeloAI 🚴
+# VeloMate 🚴
 
 A self-hosted cycling data platform — automatic ride ingestion from Strava, Grafana dashboards for analytics, and intelligent route planning. **No Strava Premium required** — all metrics (fitness, power zones, training load, TRIMP) are computed locally from raw data.
 
@@ -69,7 +69,7 @@ Three dashboards with 98 panels across 12 visualization types.
 
 ## Route Intelligence — 10 Data Sources
 
-When planning a route, VeloAI selects waypoints and enriches the output using:
+When planning a route, VeloMate selects waypoints and enriches the output using:
 
 | # | Source | Data | API |
 |---|--------|------|-----|
@@ -88,7 +88,7 @@ Additionally, the route planner detects **waymarked cycling trails** (EuroVelo, 
 
 ## Deduplication — Data Richness Scoring
 
-When multiple devices record the same ride (e.g., a bike computer and a watch both syncing to Strava), VeloAI keeps the record with the richest data:
+When multiple devices record the same ride (e.g., a bike computer and a watch both syncing to Strava), VeloMate keeps the record with the richest data:
 
 | Field | Score |
 |-------|-------|
@@ -106,7 +106,7 @@ The record with the higher total score wins. Missing fields from the losing reco
 ```
 Any device → Strava → [Ingestor] → PostgreSQL → Grafana dashboards
                                         ↑
-                            VeloAI CLI (route planning + recommendations)
+                            VeloMate CLI (route planning + recommendations)
                                         ↓
                               Valhalla → GPX file
 ```
@@ -126,8 +126,8 @@ The CLI runs locally and connects to the database over the network.
 ### 1. Clone and configure
 
 ```bash
-git clone https://github.com/your-user/veloai.git
-cd veloai
+git clone https://github.com/your-user/velomate.git
+cd velomate
 cp .env.example .env
 # Edit .env with your Strava API credentials and passwords
 ```
@@ -159,7 +159,7 @@ On first run, the ingestor backfills the last 12 months of Strava activities.
 
 ```bash
 pip install -r requirements.txt
-cp config.example.yaml ~/.config/veloai/config.yaml
+cp config.example.yaml ~/.config/velomate/config.yaml
 # Edit with your home coordinates, DB host, and Strava credentials
 ```
 
@@ -169,14 +169,14 @@ Credentials support three methods: direct values, environment variables, or shel
 
 ```bash
 # Weekly ride recommendation (fitness + weather + past routes)
-python3 -m veloai.cli
+python3 -m velomate.cli
 
 # Plan a route
-python3 -m veloai.cli plan --duration 2h
-python3 -m veloai.cli plan --distance 50km --surface gravel
-python3 -m veloai.cli plan --duration 3h --waypoints "Sintra,Cascais"
-python3 -m veloai.cli plan --duration 1h --surface mtb --safety 1.0
-python3 -m veloai.cli plan --distance 30 --preference comfort
+python3 -m velomate.cli plan --duration 2h
+python3 -m velomate.cli plan --distance 50km --surface gravel
+python3 -m velomate.cli plan --duration 3h --waypoints "Sintra,Cascais"
+python3 -m velomate.cli plan --duration 1h --surface mtb --safety 1.0
+python3 -m velomate.cli plan --distance 30 --preference comfort
 ```
 
 ### Plan flags
@@ -200,7 +200,7 @@ python3 -m veloai.cli plan --distance 30 --preference comfort
 ### Example output
 
 ```
-🗺 *VeloAI 2h00m Road via Miradouro de Porto Salvo, Cotão, Viewpoint*
+🗺 *VeloMate 2h00m Road via Miradouro de Porto Salvo, Cotão, Viewpoint*
   📏 24 km
   📅 2026-03-16 at 09:00
   🛤 Surface: asphalt 53%, unknown 44%, paving_stones 2%
@@ -211,7 +211,7 @@ python3 -m veloai.cli plan --distance 30 --preference comfort
   🕐 Best time: 09:00 (14°C, wind 10 km/h, UV 2)
   🌅 Sunrise 06:45, sunset 18:46
   💪 neutral (TSB -4)
-  💾 GPX: /tmp/veloai_route_road_29km.gpx
+  💾 GPX: /tmp/velomate_route_road_29km.gpx
 ```
 
 ## Fitness Metrics
@@ -224,11 +224,11 @@ ATL       = 7-day EMA of daily TSS    (acute training load / fatigue)
 TSB       = CTL − ATL                 (training stress balance / form)
 ```
 
-- **FTP**: auto-estimated from rolling 90-day best 20-minute power × 0.95, or configured via `VELOAI_FTP` / `config.yaml`
+- **FTP**: auto-estimated from rolling 90-day best 20-minute power × 0.95, or configured via `VELOMATE_FTP` / `config.yaml`
 - **NP**: Normalized Power — 30s rolling average, 4th power, mean, 4th root. Pre-calculated from stream data per activity
 - **EF**: Efficiency Factor = NP / avg HR. Rising EF indicates improving aerobic fitness
 - **Work**: Total energy output in kJ = sum of per-second power from stream data
-- **Threshold HR**: 95th percentile of your max HRs, or configured via `VELOAI_MAX_HR` / `config.yaml`
+- **Threshold HR**: 95th percentile of your max HRs, or configured via `VELOMATE_MAX_HR` / `config.yaml`
 - **TSB interpretation**: > +10 fresh · -10 to +10 neutral · < -10 fatigued
 
 ## Database Schema
@@ -256,12 +256,12 @@ Configured via `.env` file:
 | `STRAVA_CLIENT_SECRET` | Yes | From Strava API settings |
 | `STRAVA_REFRESH_TOKEN` | Yes | OAuth refresh token |
 | `GRAFANA_PASSWORD` | Yes | Grafana admin password |
-| `VELOAI_MAX_HR` | No | Your max heart rate (0 = auto-estimate) |
-| `VELOAI_FTP` | No | Your FTP in watts (0 = auto-estimate) |
+| `VELOMATE_MAX_HR` | No | Your max heart rate (0 = auto-estimate) |
+| `VELOMATE_FTP` | No | Your FTP in watts (0 = auto-estimate) |
 
 ### CLI (local)
 
-Configured via `~/.config/veloai/config.yaml` (see `config.example.yaml`):
+Configured via `~/.config/velomate/config.yaml` (see `config.example.yaml`):
 
 - Home coordinates (required for route planning)
 - Database connection

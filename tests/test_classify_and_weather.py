@@ -1,5 +1,5 @@
 """Tests for classify_activity, merge_activity_data (ingestor/db.py)
-and _score_weather (veloai/weather.py)."""
+and _score_weather (velomate/weather.py)."""
 
 import sys
 from pathlib import Path
@@ -14,7 +14,7 @@ sys.modules["requests"] = MagicMock()
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "ingestor"))
 
 from db import classify_activity, merge_activity_data
-from veloai.weather import _score_weather
+from velomate.weather import _score_weather
 
 
 # ---------------------------------------------------------------------------
@@ -188,7 +188,7 @@ class TestScoreWeather:
 # best_ride_hours
 # ---------------------------------------------------------------------------
 
-from veloai.weather import best_ride_hours
+from velomate.weather import best_ride_hours
 
 
 class TestBestRideHours:

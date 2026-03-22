@@ -84,7 +84,7 @@ def _build_gpx(coords: list, name: str, surface: str) -> str:
     ET.register_namespace("", ns)
     root = ET.Element(f"{{{ns}}}gpx", {
         "version": "1.1",
-        "creator": "VeloAI",
+        "creator": "VeloMate",
     })
 
     metadata = ET.SubElement(root, f"{{{ns}}}metadata")
@@ -120,9 +120,9 @@ def generate(
       - error: error message (if failed)
     """
     if name is None:
-        name = f"VeloAI {target_km:.0f}km {surface.title()} Loop"
+        name = f"VeloMate {target_km:.0f}km {surface.title()} Loop"
     if output_path is None:
-        output_path = f"/tmp/veloai_route_{surface}_{target_km:.0f}km.gpx"
+        output_path = f"/tmp/velomate_route_{surface}_{target_km:.0f}km.gpx"
 
     costing = VALHALLA_COSTING.get(surface, "bicycle")
     costing_options: dict = {}

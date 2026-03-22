@@ -1,9 +1,9 @@
-"""Tests for pure functions in veloai/route_intelligence.py."""
+"""Tests for pure functions in velomate/route_intelligence.py."""
 
 import math
 import pytest
 
-from veloai.route_intelligence import _haversine_km, _density_at
+from velomate.route_intelligence import _haversine_km, _density_at
 
 
 # --- _haversine_km ---

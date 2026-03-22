@@ -1,15 +1,15 @@
-# VeloAI Alert Rules
+# VeloMate Alert Rules
 # These are provisioned automatically on Grafana start.
 
 apiVersion: 1
 
 groups:
   - orgId: 1
-    name: VeloAI Fitness
-    folder: VeloAI
+    name: VeloMate Fitness
+    folder: VeloMate
     interval: 1h
     rules:
-      - uid: veloai-overtraining
+      - uid: velomate-overtraining
         title: Overtraining Warning
         condition: C
         data:
@@ -17,7 +17,7 @@ groups:
             relativeTimeRange:
               from: 172800  # 2 days
               to: 0
-            datasourceUid: veloai
+            datasourceUid: velomate
             model:
               rawSql: "SELECT date AS time, tsb FROM athlete_stats ORDER BY date DESC LIMIT 2;"
               format: time_series
@@ -48,7 +48,7 @@ groups:
         labels:
           severity: warning
 
-      - uid: veloai-detraining
+      - uid: velomate-detraining
         title: Detraining Warning
         condition: C
         data:
@@ -56,7 +56,7 @@ groups:
             relativeTimeRange:
               from: 604800  # 7 days
               to: 0
-            datasourceUid: veloai
+            datasourceUid: velomate
             model:
               rawSql: "SELECT NOW() AS time, CURRENT_DATE - MAX(date::date) AS days_off FROM activities;"
               format: time_series

@@ -1,16 +1,16 @@
 apiVersion: 1
 datasources:
-  - name: VeloAI
-    uid: veloai
+  - name: VeloMate
+    uid: velomate
     type: postgres
     access: proxy
-    url: veloai-postgres:5432
-    user: veloai
+    url: velomate-postgres:5432
+    user: velomate
     orgId: 1
     secureJsonData:
       password: ${POSTGRES_PASSWORD}
     jsonData:
-      database: veloai
+      database: velomate
       sslmode: disable
       timescaledb: false
       postgresVersion: 1500

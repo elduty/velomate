@@ -1,8 +1,8 @@
 {
-  "uid": "veloai-progression",
+  "uid": "velomate-progression",
   "title": "All Time Progression",
   "tags": [
-    "veloai"
+    "velomate"
   ],
   "editable": true,
   "schemaVersion": 39,
@@ -16,13 +16,13 @@
   "links": [
     {
       "title": "Overview",
-      "url": "/d/veloai-main/overview",
+      "url": "/d/velomate-main/overview",
       "type": "link",
       "icon": "dashboard"
     },
     {
       "title": "Activity Detail",
-      "url": "/d/veloai-activity/activity-details",
+      "url": "/d/velomate-activity/activity-details",
       "type": "link",
       "icon": "dashboard"
     }
@@ -81,7 +81,7 @@
       },
       "datasource": {
         "type": "postgres",
-        "uid": "veloai"
+        "uid": "velomate"
       },
       "targets": [
         {
@@ -132,7 +132,7 @@
       },
       "datasource": {
         "type": "postgres",
-        "uid": "veloai"
+        "uid": "velomate"
       },
       "targets": [
         {
@@ -183,7 +183,7 @@
       },
       "datasource": {
         "type": "postgres",
-        "uid": "veloai"
+        "uid": "velomate"
       },
       "targets": [
         {
@@ -233,7 +233,7 @@
       },
       "datasource": {
         "type": "postgres",
-        "uid": "veloai"
+        "uid": "velomate"
       },
       "targets": [
         {
@@ -284,7 +284,7 @@
       },
       "datasource": {
         "type": "postgres",
-        "uid": "veloai"
+        "uid": "velomate"
       },
       "targets": [
         {
@@ -322,7 +322,7 @@
           }
         }
       },
-      "description": "Functional Threshold Power\n\nThe power you can sustain for ~1 hour.\n\nEstimated as 95% of your best 20-minute average power from the last 90 days.\n\nOverride with VELOAI_FTP env var."
+      "description": "Functional Threshold Power\n\nThe power you can sustain for ~1 hour.\n\nEstimated as 95% of your best 20-minute average power from the last 90 days.\n\nOverride with VELOMATE_FTP env var."
     },
     {
       "id": 6,
@@ -336,7 +336,7 @@
       },
       "datasource": {
         "type": "postgres",
-        "uid": "veloai"
+        "uid": "velomate"
       },
       "targets": [
         {
@@ -400,7 +400,7 @@
       },
       "datasource": {
         "type": "postgres",
-        "uid": "veloai"
+        "uid": "velomate"
       },
       "targets": [
         {
@@ -479,7 +479,7 @@
       },
       "datasource": {
         "type": "postgres",
-        "uid": "veloai"
+        "uid": "velomate"
       },
       "targets": [
         {
@@ -558,7 +558,7 @@
       },
       "datasource": {
         "type": "postgres",
-        "uid": "veloai"
+        "uid": "velomate"
       },
       "targets": [
         {
@@ -635,7 +635,7 @@
       },
       "datasource": {
         "type": "postgres",
-        "uid": "veloai"
+        "uid": "velomate"
       },
       "targets": [
         {
@@ -713,7 +713,7 @@
       },
       "datasource": {
         "type": "postgres",
-        "uid": "veloai"
+        "uid": "velomate"
       },
       "targets": [
         {
@@ -792,7 +792,7 @@
       },
       "datasource": {
         "type": "postgres",
-        "uid": "veloai"
+        "uid": "velomate"
       },
       "targets": [
         {
@@ -870,7 +870,7 @@
       },
       "datasource": {
         "type": "postgres",
-        "uid": "veloai"
+        "uid": "velomate"
       },
       "targets": [
         {
@@ -915,7 +915,7 @@
       },
       "datasource": {
         "type": "postgres",
-        "uid": "veloai"
+        "uid": "velomate"
       },
       "targets": [
         {
@@ -940,7 +940,7 @@
         },
         "overrides": []
       },
-      "description": "Monthly estimated FTP (best 20-min power \u00d7 0.95).\n\nDashed line = configured FTP override (VELOAI_FTP)."
+      "description": "Monthly estimated FTP (best 20-min power \u00d7 0.95).\n\nDashed line = configured FTP override (VELOMATE_FTP)."
     },
     {
       "id": 21,
@@ -954,7 +954,7 @@
       },
       "datasource": {
         "type": "postgres",
-        "uid": "veloai"
+        "uid": "velomate"
       },
       "targets": [
         {
@@ -1058,7 +1058,7 @@
       },
       "datasource": {
         "type": "postgres",
-        "uid": "veloai"
+        "uid": "velomate"
       },
       "targets": [
         {
@@ -1187,7 +1187,7 @@
       },
       "datasource": {
         "type": "postgres",
-        "uid": "veloai"
+        "uid": "velomate"
       },
       "targets": [
         {
@@ -1314,7 +1314,7 @@
       },
       "datasource": {
         "type": "postgres",
-        "uid": "veloai"
+        "uid": "velomate"
       },
       "targets": [
         {
@@ -1425,7 +1425,7 @@
       },
       "datasource": {
         "type": "postgres",
-        "uid": "veloai"
+        "uid": "velomate"
       },
       "targets": [
         {
@@ -1462,7 +1462,7 @@
       },
       "datasource": {
         "type": "postgres",
-        "uid": "veloai"
+        "uid": "velomate"
       },
       "targets": [
         {
@@ -1499,7 +1499,7 @@
       },
       "datasource": {
         "type": "postgres",
-        "uid": "veloai"
+        "uid": "velomate"
       },
       "targets": [
         {
@@ -1536,7 +1536,7 @@
       },
       "datasource": {
         "type": "postgres",
-        "uid": "veloai"
+        "uid": "velomate"
       },
       "targets": [
         {
@@ -1572,7 +1572,7 @@
       },
       "datasource": {
         "type": "postgres",
-        "uid": "veloai"
+        "uid": "velomate"
       },
       "targets": [
         {
@@ -1608,7 +1608,7 @@
       },
       "datasource": {
         "type": "postgres",
-        "uid": "veloai"
+        "uid": "velomate"
       },
       "targets": [
         {
@@ -1657,7 +1657,7 @@
       },
       "datasource": {
         "type": "postgres",
-        "uid": "veloai"
+        "uid": "velomate"
       },
       "targets": [
         {
@@ -1770,7 +1770,7 @@
       },
       "datasource": {
         "type": "postgres",
-        "uid": "veloai"
+        "uid": "velomate"
       },
       "targets": [
         {
@@ -1883,7 +1883,7 @@
       },
       "datasource": {
         "type": "postgres",
-        "uid": "veloai"
+        "uid": "velomate"
       },
       "targets": [
         {
@@ -1995,7 +1995,7 @@
       },
       "datasource": {
         "type": "postgres",
-        "uid": "veloai"
+        "uid": "velomate"
       },
       "targets": [
         {
@@ -2121,7 +2121,7 @@
       },
       "datasource": {
         "type": "postgres",
-        "uid": "veloai"
+        "uid": "velomate"
       },
       "targets": [
         {
@@ -2194,7 +2194,7 @@
       },
       "datasource": {
         "type": "postgres",
-        "uid": "veloai"
+        "uid": "velomate"
       },
       "targets": [
         {
@@ -2237,7 +2237,7 @@
       },
       "datasource": {
         "type": "postgres",
-        "uid": "veloai"
+        "uid": "velomate"
       },
       "targets": [
         {
@@ -2278,7 +2278,7 @@
                 "value": [
                   {
                     "title": "View Activity",
-                    "url": "/d/veloai-activity/activity-details?var-activity_id=${__data.fields._id}"
+                    "url": "/d/velomate-activity/activity-details?var-activity_id=${__data.fields._id}"
                   }
                 ]
               }
@@ -2312,7 +2312,7 @@
       },
       "datasource": {
         "type": "postgres",
-        "uid": "veloai"
+        "uid": "velomate"
       },
       "targets": [
         {

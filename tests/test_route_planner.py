@@ -1,10 +1,10 @@
-"""Tests for pure functions in veloai/route_planner.py."""
+"""Tests for pure functions in velomate/route_planner.py."""
 
 from datetime import datetime, timedelta
 
 import pytest
 
-from veloai.route_planner import (
+from velomate.route_planner import (
     adjust_for_fitness,
     estimate_distance,
     parse_distance,

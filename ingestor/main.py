@@ -114,8 +114,8 @@ def run():
     # Persist configured FTP/HR to sync_state so dashboards can read them
     try:
         from db import set_sync_state
-        env_ftp = os.environ.get("VELOAI_FTP", "")
-        env_hr = os.environ.get("VELOAI_MAX_HR", "")
+        env_ftp = os.environ.get("VELOMATE_FTP", "")
+        env_hr = os.environ.get("VELOMATE_MAX_HR", "")
         if env_ftp or env_hr:
             conn = get_connection()
             try:

@@ -19,7 +19,7 @@ try:
 except Exception:
     output = "no test output available"
 
-message = f"VeloAI tests FAILED\n\nBranch: {branch} ({sha})\nCommit: {commit_msg}\n\n{output}"
+message = f"VeloMate tests FAILED\n\nBranch: {branch} ({sha})\nCommit: {commit_msg}\n\n{output}"
 
 payload = json.dumps({
     "message": message,

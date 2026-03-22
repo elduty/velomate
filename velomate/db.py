@@ -1,6 +1,6 @@
-"""DB reader for VeloAI CLI (connects to homelab PostgreSQL)."""
+"""DB reader for VeloMate CLI (connects to homelab PostgreSQL)."""
 
-from veloai.config import load as load_config
+from velomate.config import load as load_config
 
 
 def get_connection():

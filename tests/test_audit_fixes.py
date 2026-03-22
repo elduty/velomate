@@ -117,7 +117,7 @@ class TestO5ToLocal:
         from unittest.mock import patch as _patch
         import requests as req_mod
         # We test _to_local indirectly via fetch_sunrise_sunset
-        from veloai.weather import fetch_sunrise_sunset
+        from velomate.weather import fetch_sunrise_sunset
 
         mock_resp = MagicMock()
         mock_resp.json.return_value = {
@@ -130,7 +130,7 @@ class TestO5ToLocal:
         }
         mock_resp.raise_for_status = MagicMock()
 
-        with _patch("veloai.weather.requests.get", return_value=mock_resp):
+        with _patch("velomate.weather.requests.get", return_value=mock_resp):
             result = fetch_sunrise_sunset(0.0, 0.0, "2026-03-19")
         return result
 
@@ -352,12 +352,12 @@ class TestO15ConfigCache:
 
     def _reset_config(self):
         """Reset module-level cache between tests."""
-        import veloai.config as cfg
+        import velomate.config as cfg
         cfg._config = None
         cfg._config_path_used = None
 
     def test_same_path_returns_cached(self, tmp_path):
-        import veloai.config as cfg
+        import velomate.config as cfg
         self._reset_config()
 
         config_file = tmp_path / "config.yaml"
@@ -369,7 +369,7 @@ class TestO15ConfigCache:
         assert result1 is result2  # same object — from cache
 
     def test_different_path_triggers_reload(self, tmp_path):
-        import veloai.config as cfg
+        import velomate.config as cfg
         self._reset_config()
 
         config_a = tmp_path / "config_a.yaml"
@@ -386,7 +386,7 @@ class TestO15ConfigCache:
         assert result_a is not result_b
 
     def test_cache_returns_correct_path(self, tmp_path):
-        import veloai.config as cfg
+        import velomate.config as cfg
         self._reset_config()
 
         config_file = tmp_path / "config.yaml"
@@ -396,7 +396,7 @@ class TestO15ConfigCache:
         assert cfg._config_path_used == str(config_file)
 
     def test_reload_after_path_change_updates_cache_key(self, tmp_path):
-        import veloai.config as cfg
+        import velomate.config as cfg
         self._reset_config()
 
         config_a = tmp_path / "a.yaml"
