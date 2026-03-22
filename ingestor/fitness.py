@@ -105,8 +105,8 @@ def recalculate_fitness(conn):
     from db import upsert_athlete_stats
 
     # Use configured values if set, otherwise auto-estimate from data
-    env_max_hr = os.environ.get("VELOAI_MAX_HR", "")
-    env_ftp = os.environ.get("VELOAI_FTP", "")
+    env_max_hr = os.environ.get("VELOMATE_MAX_HR", "")
+    env_ftp = os.environ.get("VELOMATE_FTP", "")
 
     try:
         hr_val = int(env_max_hr) if env_max_hr else 0

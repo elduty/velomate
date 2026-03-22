@@ -1,10 +1,10 @@
-"""Tests for pure functions in veloai/route_generator.py."""
+"""Tests for pure functions in velomate/route_generator.py."""
 
 import math
 import xml.etree.ElementTree as ET
 import pytest
 
-from veloai.route_generator import _decode_polyline6, _loop_waypoints, _build_gpx
+from velomate.route_generator import _decode_polyline6, _loop_waypoints, _build_gpx
 
 
 # --- _decode_polyline6 ---

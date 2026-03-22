@@ -4,24 +4,24 @@ import os
 import subprocess
 import yaml
 
-DEFAULT_CONFIG_PATH = os.path.expanduser("~/.config/veloai/config.yaml")
+DEFAULT_CONFIG_PATH = os.path.expanduser("~/.config/velomate/config.yaml")
 
 DEFAULTS = {
     "home": {"lat": None, "lng": None, "name": ""},
-    "db": {"host": "localhost", "port": 5432, "name": "veloai", "user": "veloai", "password": ""},
+    "db": {"host": "localhost", "port": 5432, "name": "velomate", "user": "velomate", "password": ""},
     "strava": {"client_id": "", "client_secret": "", "refresh_token": ""},
     "defaults": {"surface": "gravel", "loop": True},
     "fitness": {"max_hr": 0, "ftp": 0},
 }
 
 ENV_MAP = {
-    ("home", "lat"): "VELOAI_HOME_LAT",
-    ("home", "lng"): "VELOAI_HOME_LNG",
-    ("db", "host"): "VELOAI_DB_HOST",
-    ("db", "port"): "VELOAI_DB_PORT",
-    ("db", "name"): "VELOAI_DB_NAME",
-    ("db", "user"): "VELOAI_DB_USER",
-    ("db", "password"): "VELOAI_DB_PASS",
+    ("home", "lat"): "VELOMATE_HOME_LAT",
+    ("home", "lng"): "VELOMATE_HOME_LNG",
+    ("db", "host"): "VELOMATE_DB_HOST",
+    ("db", "port"): "VELOMATE_DB_PORT",
+    ("db", "name"): "VELOMATE_DB_NAME",
+    ("db", "user"): "VELOMATE_DB_USER",
+    ("db", "password"): "VELOMATE_DB_PASS",
     ("strava", "client_id"): "STRAVA_CLIENT_ID",
     ("strava", "client_secret"): "STRAVA_CLIENT_SECRET",
     ("strava", "refresh_token"): "STRAVA_REFRESH_TOKEN",
@@ -56,7 +56,7 @@ def load(config_path: str = None) -> dict:
     so callers with different paths always get the correct config.
     """
     global _config, _config_path_used
-    path = config_path or os.environ.get("VELOAI_CONFIG", DEFAULT_CONFIG_PATH)
+    path = config_path or os.environ.get("VELOMATE_CONFIG", DEFAULT_CONFIG_PATH)
     if _config is not None and _config_path_used == path:
         return _config
     cfg = {}

@@ -1,47 +1,47 @@
 services:
-  veloai-postgres:
-    container_name: veloai-postgres
+  velomate-postgres:
+    container_name: velomate-postgres
     image: postgres:15
     environment:
-      POSTGRES_DB: veloai
-      POSTGRES_USER: veloai
+      POSTGRES_DB: velomate
+      POSTGRES_USER: velomate
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - veloai-postgres-data:/var/lib/postgresql/data
+      - velomate-postgres-data:/var/lib/postgresql/data
     ports:
       - "5423:5432"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U veloai -d veloai"]
+      test: ["CMD-SHELL", "pg_isready -U velomate -d velomate"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 10s
 
-  veloai-ingestor:
-    container_name: veloai-ingestor
+  velomate-ingestor:
+    container_name: velomate-ingestor
     build: ./ingestor
     environment:
-      DATABASE_URL: postgresql://veloai:${POSTGRES_PASSWORD}@veloai-postgres:5432/veloai
+      DATABASE_URL: postgresql://velomate:${POSTGRES_PASSWORD}@velomate-postgres:5432/velomate
       STRAVA_CLIENT_ID: ${STRAVA_CLIENT_ID}
       STRAVA_CLIENT_SECRET: ${STRAVA_CLIENT_SECRET}
       STRAVA_REFRESH_TOKEN: ${STRAVA_REFRESH_TOKEN}
-      VELOAI_MAX_HR: ${VELOAI_MAX_HR:-0}
-      VELOAI_FTP: ${VELOAI_FTP:-0}
+      VELOMATE_MAX_HR: ${VELOMATE_MAX_HR:-0}
+      VELOMATE_FTP: ${VELOMATE_FTP:-0}
       POLL_INTERVAL_MINUTES: 10
       PYTHONUNBUFFERED: "1"
     depends_on:
-      veloai-postgres:
+      velomate-postgres:
         condition: service_healthy
     restart: unless-stopped
 
-  veloai-grafana:
-    container_name: veloai-grafana
+  velomate-grafana:
+    container_name: velomate-grafana
     image: grafana/grafana:12.4.0
     ports:
       - "3021:3000"
     volumes:
-      - veloai-grafana-data:/var/lib/grafana
+      - velomate-grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
       - ./grafana/dashboards:/etc/grafana/dashboards
     environment:
@@ -50,9 +50,9 @@ services:
       GF_SERVER_SERVE_FROM_SUB_PATH: "false"
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     depends_on:
-      - veloai-postgres
+      - velomate-postgres
     restart: unless-stopped
 
 volumes:
-  veloai-postgres-data:
-  veloai-grafana-data:
+  velomate-postgres-data:
+  velomate-grafana-data:

@@ -1,8 +1,8 @@
-"""Tests for veloai.planner pure functions."""
+"""Tests for velomate.planner pure functions."""
 
 import pytest
 
-from veloai.planner import _top_routes, _form_note
+from velomate.planner import _top_routes, _form_note
 
 
 # ---------------------------------------------------------------------------

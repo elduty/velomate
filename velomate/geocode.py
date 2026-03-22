@@ -21,7 +21,7 @@ def geocode(place: str, near_lat: float = 0, near_lng: float = 0) -> dict | None
                 "viewbox": f"{near_lng - 1},{near_lat + 1},{near_lng + 1},{near_lat - 1}",
                 "bounded": 0,
             },
-            headers={"User-Agent": "VeloAI/1.0"},
+            headers={"User-Agent": "VeloMate/1.0"},
             timeout=10,
         )
         resp.raise_for_status()

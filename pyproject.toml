@@ -3,7 +3,7 @@ requires = ["setuptools>=68.0"]
 build-backend = "setuptools.backends._legacy:_Backend"
 
 [project]
-name = "veloai"
+name = "velomate"
 version = "0.1.0"
 description = "Self-hosted cycling data platform — Strava ingestion, Grafana dashboards, intelligent route planning"
 readme = "README.md"
@@ -22,7 +22,7 @@ dev = [
 ]
 
 [project.scripts]
-veloai = "veloai.cli:main"
+velomate = "velomate.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["veloai*"]
+include = ["velomate*"]

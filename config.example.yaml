@@ -1,5 +1,5 @@
-# VeloAI Configuration
-# Copy to ~/.config/veloai/config.yaml and edit with your values.
+# VeloMate Configuration
+# Copy to ~/.config/velomate/config.yaml and edit with your values.
 #
 # All values can be overridden by environment variables.
 # Passwords support three methods: direct value, env var name, or shell command.
@@ -12,11 +12,11 @@ home:
 db:
   host: localhost      # PostgreSQL host
   port: 5423          # PostgreSQL port (mapped from 5432 inside Docker)
-  name: veloai        # Database name
-  user: veloai        # Database user
+  name: velomate        # Database name
+  user: velomate        # Database user
   password: ""        # Direct password, or use password_env/password_cmd below
-  # password_env: VELOAI_DB_PASS         # Read password from this env var
-  # password_cmd: "vault read -field=password secret/veloai/db"  # Shell command
+  # password_env: VELOMATE_DB_PASS         # Read password from this env var
+  # password_cmd: "vault read -field=password secret/velomate/db"  # Shell command
 
 strava:
   client_id: ""

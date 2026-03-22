@@ -2,8 +2,8 @@ import argparse
 import sys
 import warnings
 
-from veloai import weather, planner
-from veloai.config import load as load_config
+from velomate import weather, planner
+from velomate.config import load as load_config
 
 # Suppress noisy DeprecationWarnings from mapbox_vector_tile's protobuf dependency
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="mapbox_vector_tile")
@@ -19,11 +19,11 @@ def cmd_recommend(args):
     tours = []
 
     try:
-        from veloai.db import get_connection, get_latest_fitness, get_routes
+        from velomate.db import get_connection, get_latest_fitness, get_routes
         conn = get_connection()
         if conn:
             try:
-                print("Connected to VeloAI DB", file=sys.stderr)
+                print("Connected to VeloMate DB", file=sys.stderr)
                 fitness = get_latest_fitness(conn)
                 tours = get_routes(conn) or []
                 print(f"  → {len(tours)} routes from DB", file=sys.stderr)
@@ -52,7 +52,7 @@ def cmd_recommend(args):
 
 def cmd_plan(args):
     """Plan a cycling route with weather and intelligence enrichment."""
-    from veloai.route_planner import plan
+    from velomate.route_planner import plan
 
     cfg = load_config()
     home = cfg["home"]
@@ -89,8 +89,8 @@ def cmd_plan(args):
 
 def main():
     parser = argparse.ArgumentParser(
-        prog="veloai",
-        description="VeloAI — cycling data platform CLI",
+        prog="velomate",
+        description="VeloMate — cycling data platform CLI",
     )
     subparsers = parser.add_subparsers(dest="command")
 

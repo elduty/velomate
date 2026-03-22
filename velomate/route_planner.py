@@ -185,7 +185,7 @@ def format_weather(day: dict) -> str:
 def _get_strava_token() -> str | None:
     """Get a Strava access token using refresh token from config. Returns None if not configured."""
     try:
-        from veloai.config import load as load_config
+        from velomate.config import load as load_config
         import requests
         cfg = load_config()
         strava = cfg.get("strava", {})
@@ -243,7 +243,7 @@ def plan(duration_str: str = None, distance_str: str = None,
     avg_speed = None
     fitness = {}
     try:
-        from veloai.db import get_connection, get_latest_fitness, get_avg_speed
+        from velomate.db import get_connection, get_latest_fitness, get_avg_speed
         conn = get_connection()
         if conn:
             try:
@@ -268,7 +268,7 @@ def plan(duration_str: str = None, distance_str: str = None,
     weather_day = None
     if ride_date:
         try:
-            from veloai import weather
+            from velomate import weather
             forecast = weather.fetch_forecast(home_lat, home_lng)
             for day in forecast:
                 if day["date"] == ride_date:
@@ -283,7 +283,7 @@ def plan(duration_str: str = None, distance_str: str = None,
     valhalla_waypoints = []
     preview_waypoints = []  # full data for map preview
     if waypoints_str:
-        from veloai.geocode import geocode_many
+        from velomate.geocode import geocode_many
         places = [p.strip() for p in waypoints_str.split(",")]
         geocoded = geocode_many(places, home_lat, home_lng)
         waypoint_names = [g["display_name"].split(",")[0] for g in geocoded]
@@ -292,7 +292,7 @@ def plan(duration_str: str = None, distance_str: str = None,
     else:
         # No explicit waypoints — use route intelligence for smart placement
         try:
-            from veloai.route_intelligence import smart_waypoints
+            from velomate.route_intelligence import smart_waypoints
             strava_token = _get_strava_token()
             smart = smart_waypoints(home_lat, home_lng, distance_km, surface, max_waypoints=3, strava_token=strava_token, preference=preference)
             if smart:
@@ -306,15 +306,15 @@ def plan(duration_str: str = None, distance_str: str = None,
 
     # Generate real GPX route via Valhalla
     if target_distance:
-        route_name = f"VeloAI {target_distance:.0f}km {surface.title()}"
+        route_name = f"VeloMate {target_distance:.0f}km {surface.title()}"
     else:
-        route_name = f"VeloAI {duration_min // 60}h{duration_min % 60:02d}m {surface.title()}"
+        route_name = f"VeloMate {duration_min // 60}h{duration_min % 60:02d}m {surface.title()}"
     if waypoint_names:
         route_name += " via " + ", ".join(waypoint_names)
 
     print(f"  Generating {distance_km:.0f}km {surface} route via Valhalla...", file=sys.stderr)
 
-    from veloai.route_generator import generate
+    from velomate.route_generator import generate
     result = generate(
         start_lat=home_lat,
         start_lng=home_lng,
@@ -335,7 +335,7 @@ def plan(duration_str: str = None, distance_str: str = None,
     # Verify surface matches requested type
     surface_check = {}
     try:
-        from veloai.route_intelligence import verify_surface
+        from velomate.route_intelligence import verify_surface
         surface_check = verify_surface(result["coords"], surface)
         if surface_check["surfaces"]:
             breakdown = ', '.join(f'{s} {p}%' for s, p in list(surface_check["surfaces"].items())[:4])
@@ -350,7 +350,7 @@ def plan(duration_str: str = None, distance_str: str = None,
     elevation_info = {}
     trails = []
     try:
-        from veloai.route_intelligence import score_scenic, get_elevation_profile, find_cycling_trails
+        from velomate.route_intelligence import score_scenic, get_elevation_profile, find_cycling_trails
         scenic_info = score_scenic(result["coords"])
         if scenic_info.get("features"):
             print(f"  Scenic: {', '.join(scenic_info['features'])} (score: {scenic_info['scenic_score']}/100)", file=sys.stderr)
@@ -366,7 +366,7 @@ def plan(duration_str: str = None, distance_str: str = None,
     # Score cycling safety infrastructure
     safety_info = {}
     try:
-        from veloai.route_intelligence import score_cycling_safety
+        from velomate.route_intelligence import score_cycling_safety
         safety_info = score_cycling_safety(result["coords"])
         if safety_info.get("details"):
             print(f"  Cycling safety: {safety_info['details']} (score: {safety_info['safety_score']}/100)", file=sys.stderr)
@@ -377,7 +377,7 @@ def plan(duration_str: str = None, distance_str: str = None,
     best_hours = None
     if ride_date and weather_day and weather_day.get("hourly"):
         try:
-            from veloai.weather import best_ride_hours
+            from velomate.weather import best_ride_hours
             best_hours = best_ride_hours(weather_day["hourly"], ride_date)
         except Exception:
             pass
@@ -385,7 +385,7 @@ def plan(duration_str: str = None, distance_str: str = None,
     # Show route preview in browser
     html_path = None
     try:
-        from veloai.map_preview import preview
+        from velomate.map_preview import preview
         wp_for_preview = preview_waypoints if preview_waypoints else None
 
         # Collect best time info
@@ -398,7 +398,7 @@ def plan(duration_str: str = None, distance_str: str = None,
         sun_info = None
         if ride_date and home_lat:
             try:
-                from veloai.weather import fetch_sunrise_sunset
+                from velomate.weather import fetch_sunrise_sunset
                 sun_info = fetch_sunrise_sunset(home_lat, home_lng, ride_date)
             except Exception:
                 pass
@@ -486,7 +486,7 @@ def plan(duration_str: str = None, distance_str: str = None,
     # Air quality
     if ride_date and home_lat:
         try:
-            from veloai.weather import fetch_air_quality
+            from velomate.weather import fetch_air_quality
             aqi = fetch_air_quality(home_lat, home_lng, ride_date)
             if aqi and aqi.get("aqi"):
                 aqi_val = aqi["aqi"]
@@ -502,7 +502,7 @@ def plan(duration_str: str = None, distance_str: str = None,
     # We display times but don't compare them — timezone mismatch would give wrong warnings.
     if ride_date and home_lat:
         try:
-            from veloai.weather import fetch_sunrise_sunset
+            from velomate.weather import fetch_sunrise_sunset
             sun = fetch_sunrise_sunset(home_lat, home_lng, ride_date)
             if sun:
                 tz_label = sun.get("tz_label", "UTC")

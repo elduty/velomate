@@ -539,7 +539,7 @@ def get_ride_density(lat: float, lng: float, radius_km: float, days: int = 30, c
     own_conn = False
     if conn is None:
         try:
-            from veloai.db import get_connection
+            from velomate.db import get_connection
             conn = get_connection()
             own_conn = True
         except Exception:
@@ -721,7 +721,7 @@ def smart_waypoints(
     # Load avoid zones from config
     avoid_zones = []
     try:
-        from veloai.config import load as load_config
+        from velomate.config import load as load_config
         avoid_zones = load_config().get("avoid", [])
         if avoid_zones:
             print(f"  [intelligence] Avoiding {len(avoid_zones)} configured zones", file=sys.stderr)
