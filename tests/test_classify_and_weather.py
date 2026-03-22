@@ -154,6 +154,76 @@ class TestMergeActivityData:
 
 
 # ---------------------------------------------------------------------------
+# Dedup matching criteria (unit tests for the logic, not the SQL)
+# ---------------------------------------------------------------------------
+
+
+class TestDedupCriteria:
+    """Test the matching logic used by find_duplicate.
+
+    Match if: time_close AND (duration_close OR distance_close)
+    - Duration close: ABS(a - b) < GREATEST(300, a * 0.15)
+    - Distance close: ABS(a - b) < a * 0.10
+    """
+
+    def _duration_matches(self, existing_s, new_s):
+        return abs(existing_s - new_s) < max(300, existing_s * 0.15)
+
+    def _distance_matches(self, existing_m, new_m):
+        if existing_m <= 0 or new_m <= 0:
+            return False
+        return abs(existing_m - new_m) < existing_m * 0.10
+
+    def test_karoo_vs_watch_duration_now_matches(self):
+        """Real case: Karoo 6978s vs Watch 7704s — 726s apart.
+        Old 300s tolerance missed this. New 15% tolerance (1047s) catches it."""
+        assert self._duration_matches(6978, 7704)
+
+    def test_karoo_vs_watch_distance_match(self):
+        """Same ride: 31834m vs 32063m — within 10%."""
+        assert self._distance_matches(31834, 32063)
+
+    def test_karoo_vs_watch_old_logic_would_fail(self):
+        """Verify the old 300s absolute tolerance would have missed this."""
+        assert abs(6978 - 7704) > 300  # old logic: 726 > 300, no match
+
+    def test_identical_rides_duration_match(self):
+        """Same device re-upload: identical duration."""
+        assert self._duration_matches(3600, 3600)
+
+    def test_similar_duration_within_15pct(self):
+        """10% duration difference — within 15% tolerance."""
+        assert self._duration_matches(3600, 3960)
+
+    def test_very_different_duration_no_match(self):
+        """50% longer — not a duplicate."""
+        assert not self._duration_matches(3600, 5400)
+
+    def test_short_ride_uses_300s_minimum(self):
+        """For short rides, 300s absolute minimum applies (not 15%)."""
+        # 1000s ride, 15% = 150s, but minimum is 300s
+        assert self._duration_matches(1000, 1250)  # 250s diff < 300s min
+
+    def test_distance_10pct_boundary(self):
+        """Exactly at 10% — should not match."""
+        assert not self._distance_matches(30000, 33000)  # exactly 10%
+
+    def test_distance_just_under_10pct(self):
+        """Just under 10% — should match."""
+        assert self._distance_matches(30000, 32900)
+
+    def test_zero_distance_no_match(self):
+        """Indoor rides with 0 distance — distance check skipped."""
+        assert not self._distance_matches(0, 0)
+
+    def test_different_rides_same_distance(self):
+        """Two different rides could have similar distance — but time check prevents false positive."""
+        # Distance alone would match, but find_duplicate also requires time proximity
+        assert self._distance_matches(30000, 30500)  # distance matches
+        # The time check (not tested here) prevents this from being a false positive
+
+
+# ---------------------------------------------------------------------------
 # _score_weather
 # ---------------------------------------------------------------------------
 
