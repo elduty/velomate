@@ -14,7 +14,9 @@ Inspired by [TeslaMate](https://github.com/teslamate-org/teslamate). Works with 
 ## Features
 
 ### Data Ingestion
-- Polls Strava every 10 minutes for new cycling rides (non-cycling activities filtered)
+- Polls Strava every 10 minutes for new cycling rides
+- **Cycling only** — Ride, VirtualRide, and EBikeRide are ingested. Runs, swims, walks, strength, and all other Strava activity types are filtered out at sync
+- Classifies rides as: **Outdoor**, **Zwift**, **Indoor** (trainer), or **E-Bike** — dashboards can filter by type
 - Stores full per-second telemetry (HR, power, cadence, speed, altitude, GPS)
 - Calculates CTL/ATL/TSB fitness metrics locally (no Strava Premium needed)
 - TRIMP (Training Impulse) computed from HR stream data (no Strava Premium needed)
@@ -22,6 +24,17 @@ Inspired by [TeslaMate](https://github.com/teslamate-org/teslamate). Works with 
 - FTP auto-estimated from rolling 90-day best 20-minute power, or configured manually
 - Daily fitness recalculation at 00:05 (rest days show CTL/ATL decay)
 - Smart deduplication when multiple devices record the same ride
+
+**Metric availability by ride type:**
+
+| Metric | Outdoor | Zwift | Indoor (trainer) | E-Bike |
+|--------|---------|-------|------------------|--------|
+| GPS route map | Yes | No | No | Yes |
+| Power zones / NP / EF | With power meter | Yes (virtual power) | With smart trainer | No |
+| HR zones / TRIMP | With HR monitor | With HR monitor | With HR monitor | With HR monitor |
+| Speed / distance | Yes | Virtual | No (0 km) | Yes |
+| Elevation | Yes | Virtual | No | Yes |
+| Per-km zone breakdown | Yes | Yes | No (no distance) | Yes |
 
 ### Grafana Dashboards
 
