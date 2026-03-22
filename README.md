@@ -126,7 +126,7 @@ The CLI runs locally and connects to the database over the network.
 ### 1. Clone and configure
 
 ```bash
-git clone https://github.com/your-user/velomate.git
+git clone https://github.com/elduty/velomate.git
 cd velomate
 cp .env.example .env
 # Edit .env with your Strava API credentials and passwords
