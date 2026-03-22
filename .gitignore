@@ -11,3 +11,4 @@ config.yaml
 .claude/
 .superpowers/
 docs/
+CLAUDE.md
