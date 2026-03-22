@@ -68,6 +68,8 @@ Three dashboards with 98 panels across 12 visualization types.
 - Personal records with drill-down links
 - All-time ride map
 
+![Route Preview](screenshots/route-preview.png)
+
 ### Intelligent Route Planning
 - Generates real road-following GPX loops via [Valhalla](https://github.com/valhalla/valhalla) (free, OpenStreetMap-based)
 - Generates GPX files with interactive browser preview (map + route stats + download/share buttons)

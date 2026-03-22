@@ -205,7 +205,7 @@ def preview(coords: list, name: str, waypoints: list | None = None,
             <ol>{wp_items}</ol>
         </div>"""
 
-    html = f"""<!DOCTYPE html>
+    page = f"""<!DOCTYPE html>
 <html>
 <head>
     <title>{name} — Route Preview</title>
@@ -318,11 +318,11 @@ def preview(coords: list, name: str, waypoints: list | None = None,
         path = os.path.join(output_dir, filename)
         os.makedirs(output_dir, exist_ok=True)
         with open(path, "w") as f:
-            f.write(html)
+            f.write(page)
     else:
         fd, path = tempfile.mkstemp(suffix=".html", prefix="velomate_preview_")
         with os.fdopen(fd, "w") as f:
-            f.write(html)
+            f.write(page)
         webbrowser.open(f"file://{path}")
 
     return path
