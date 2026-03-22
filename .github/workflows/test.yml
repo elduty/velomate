@@ -27,11 +27,11 @@ jobs:
           pip install pytest pytest-cov
 
       - name: Run tests with coverage
-        run: python -m pytest tests/ -q --cov=velomate --cov=ingestor --cov-report=xml
+        run: python -m pytest tests/ -q --cov=velomate --cov=ingestor --cov-report=xml --cov-report=term-missing
 
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.12'
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.xml
