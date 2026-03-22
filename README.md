@@ -9,6 +9,8 @@ A self-hosted cycling data platform — automatic ride ingestion from Strava, Gr
 
 Inspired by [TeslaMate](https://github.com/teslamate-org/teslamate). Works with any device that syncs to Strava.
 
+![Overview Dashboard](screenshots/overview.png)
+
 ## Features
 
 ### Data Ingestion
@@ -36,6 +38,8 @@ Three dashboards with 98 panels across 12 visualization types.
 - Lifetime ride heatmap
 - Manual annotations for marking events (races, FTP tests, injuries)
 
+![Activity Details](screenshots/activity.png)
+
 **Activity Details** (32 panels) — per-ride deep dive
 - 12 summary stat cards + 7 advanced metrics (NP, IF, VI, EF, Work, TRIMP, aerobic decoupling)
 - GPS route map with speed/HR/power color overlay
@@ -46,6 +50,8 @@ Three dashboards with 98 panels across 12 visualization types.
 - Speed & elevation / HR & power / cadence & grade telemetry (distance-based x-axis)
 - Per-km splits table with best/worst markers
 - Power duration curve
+
+![All Time Progression](screenshots/progression.png)
 
 **All Time Progression** (32 panels) — long-term trends
 - 6 stat cards: total distance, elevation, rides, hours, current FTP, peak CTL
