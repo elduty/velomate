@@ -24,7 +24,15 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          pip install pytest
+          pip install pytest pytest-cov
 
-      - name: Run tests
-        run: python -m pytest tests/ -q
+      - name: Run tests with coverage
+        run: python -m pytest tests/ -q --cov=velomate --cov=ingestor --cov-report=xml --cov-report=term-missing
+
+      - name: Upload coverage to Codecov
+        if: matrix.python-version == '3.12'
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage.xml
+          fail_ci_if_error: false
