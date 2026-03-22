@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: velomate
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - veloai-postgres-data:/var/lib/postgresql/data
+      - velomate-postgres-data:/var/lib/postgresql/data
     ports:
       - "5423:5432"
     restart: unless-stopped
@@ -41,7 +41,7 @@ services:
     ports:
       - "3021:3000"
     volumes:
-      - veloai-grafana-data:/var/lib/grafana
+      - velomate-grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
       - ./grafana/dashboards:/etc/grafana/dashboards
     environment:
@@ -54,5 +54,5 @@ services:
     restart: unless-stopped
 
 volumes:
-  veloai-postgres-data:
-  veloai-grafana-data:
+  velomate-postgres-data:
+  velomate-grafana-data:
