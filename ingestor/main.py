@@ -111,26 +111,40 @@ def run():
     if conn:
         conn.close()
 
-    # Persist configured FTP/HR to sync_state so dashboards can read them
+    # Persist configured FTP/HR to sync_state so dashboards can read them.
+    # If either value changed (added, removed, or updated), reset all derived metrics.
+    from db import set_sync_state
     try:
-        from db import set_sync_state
         env_ftp = os.environ.get("VELOMATE_FTP", "")
         env_hr = os.environ.get("VELOMATE_MAX_HR", "")
-        if env_ftp or env_hr:
-            conn = get_connection()
-            try:
-                if env_ftp:
-                    ftp = int(env_ftp)
-                    if ftp > 0:
-                        set_sync_state(conn, "configured_ftp", env_ftp)
-                        print(f"[main] Configured FTP: {env_ftp}W")
-                if env_hr:
-                    hr = int(env_hr)
-                    if hr > 0:
-                        set_sync_state(conn, "configured_max_hr", env_hr)
-                        print(f"[main] Configured Max HR: {env_hr}")
-            finally:
-                conn.close()
+        conn = get_connection()
+        try:
+            ftp = int(env_ftp) if env_ftp else 0
+            hr = int(env_hr) if env_hr else 0
+            ftp_str = str(ftp) if ftp > 0 else "0"
+            hr_str = str(hr) if hr > 0 else "0"
+
+            # Check if values changed
+            old_ftp = get_sync_state(conn, "configured_ftp") or "0"
+            old_hr = get_sync_state(conn, "configured_max_hr") or "0"
+            config_changed = (ftp_str != old_ftp) or (hr_str != old_hr)
+
+            # If thresholds changed, reset all derived metrics BEFORE persisting new values.
+            # This ensures a crash between reset and persist triggers reset again on restart.
+            if config_changed:
+                print("[main] FTP/HR config changed — resetting all metrics for recalculation")
+                with conn.cursor() as cur:
+                    cur.execute("UPDATE activities SET tss = NULL, np = NULL, ef = NULL, work_kj = NULL")
+                    cur.execute("DELETE FROM athlete_stats")
+                print("[main] All TSS, NP, EF, Work, CTL/ATL/TSB will be recalculated")
+
+            # Persist current values (0 = auto-estimate, dashboard queries use value > 0)
+            set_sync_state(conn, "configured_ftp", ftp_str)
+            set_sync_state(conn, "configured_max_hr", hr_str)
+            print(f"[main] FTP: {ftp}W {'(configured)' if ftp > 0 else '(auto-estimate)'}")
+            print(f"[main] Max HR: {hr} {'(configured)' if hr > 0 else '(auto-estimate)'}")
+        finally:
+            conn.close()
     except (ValueError, TypeError) as e:
         print(f"[main] Invalid FTP/HR env var (skipping): {e}")
     except Exception as e:
