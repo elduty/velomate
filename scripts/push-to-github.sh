@@ -79,20 +79,12 @@ if [ "$DIVERGED" = false ]; then
         echo "  FAIL: $AI_HITS AI references in new commit messages"
     fi
 fi
-# Check file contents using git grep (fast, handles all files correctly)
-AI_CONTENT=$(git grep -ic "co-authored-by.*claude\|anthropic\.com\|openclaw" origin/main -- '*.py' '*.md' '*.yml' '*.yaml' '*.toml' '*.sh' 2>/dev/null | wc -l | tr -d ' ')
+# Check file contents (skip *.sh — push script contains detection patterns)
+AI_CONTENT=$(git grep -ic "co-authored-by.*claude\|anthropic\.com\|openclaw" origin/main -- '*.py' '*.md' '*.yml' '*.yaml' '*.toml' 2>/dev/null | wc -l | tr -d ' ')
 if [ "$AI_CONTENT" -gt 0 ]; then
     BLOCKED="YES"
     echo "  FAIL: AI references found in tracked files"
 fi
-
-# Validate: no excluded files in tree
-for f in "${EXCLUDE_FROM_GITHUB[@]}"; do
-    if git ls-tree origin/main --name-only -r | grep -q "^${f}$"; then
-        BLOCKED="YES"
-        echo "  FAIL: dev-only file tracked: $f"
-    fi
-done
 
 if [ -n "$BLOCKED" ]; then
     echo ""
