@@ -12,4 +12,5 @@ config.yaml
 .superpowers/
 docs/
 CLAUDE.md
-.github/
+.coverage
+scripts/github-overlay/

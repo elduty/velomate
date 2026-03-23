@@ -1,6 +1,7 @@
 # VeloMate 🚴
 
 [![Tests](https://github.com/elduty/velomate/actions/workflows/test.yml/badge.svg)](https://github.com/elduty/velomate/actions/workflows/test.yml)
+[![codecov](https://codecov.io/gh/elduty/velomate/graph/badge.svg)](https://codecov.io/gh/elduty/velomate)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/downloads/)
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
 [![Grafana 12.4](https://img.shields.io/badge/grafana-12.4-orange)](https://grafana.com/)
