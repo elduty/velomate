@@ -11,7 +11,7 @@ DEFAULT_FTP = 150  # Estimated FTP (watts) — fallback only
 
 # Bump this when NP/EF/Work calculation logic changes.
 # On startup, if the stored version differs, all values are recalculated.
-METRICS_VERSION = "2"
+METRICS_VERSION = "3"  # v3: TSS uses NP instead of avg_power, NP includes 0W
 
 
 def calculate_tss(duration_s: int, avg_hr: int, threshold_hr: int) -> float:
@@ -30,13 +30,14 @@ def compute_ef(np: float, avg_hr: int) -> float | None:
     return round(np / avg_hr, 2)
 
 
-def calculate_tss_power(duration_s: int, avg_power: int, ftp: int) -> float:
-    """Power-based TSS = (duration_s × avg_power × IF) / (FTP × 3600) × 100
-    where IF (Intensity Factor) = avg_power / FTP"""
-    if not duration_s or not avg_power or not ftp:
+def calculate_tss_power(duration_s: int, np: float, ftp: int) -> float:
+    """Power-based TSS = (duration_s × NP × IF) / (FTP × 3600) × 100
+    where IF (Intensity Factor) = NP / FTP.
+    Uses Normalized Power (not avg power) per Coggan standard."""
+    if not duration_s or not np or not ftp:
         return 0.0
-    intensity = avg_power / ftp
-    return (duration_s * avg_power * intensity) / (ftp * 3600) * 100
+    intensity = np / ftp
+    return (duration_s * np * intensity) / (ftp * 3600) * 100
 
 
 def estimate_threshold_hr(conn) -> int:
@@ -135,40 +136,18 @@ def recalculate_fitness(conn):
         ftp = estimate_ftp(conn)
         print(f"[fitness] Auto-estimated FTP: {ftp}W (rolling 90-day best 20min × 0.95)")
 
-    # Store per-activity TSS (cycling only — running/strength use different thresholds)
-    with conn.cursor() as cur:
-        cur.execute("""
-            SELECT id, duration_s, avg_hr, avg_power
-            FROM activities
-            WHERE date IS NOT NULL
-        """)
-        activity_rows = cur.fetchall()
-
-    tss_updates = []
-    for act_id, duration_s, avg_hr, avg_power in activity_rows:
-        if avg_power and avg_power > 0:
-            tss = calculate_tss_power(duration_s, avg_power, ftp)
-        elif avg_hr and avg_hr > 0:
-            tss = calculate_tss(duration_s, avg_hr, threshold_hr)
-        else:
-            tss = 0
-        tss_updates.append((round(tss, 1), act_id))
-
-    with conn.cursor() as cur:
-        psycopg2.extras.execute_batch(
-            cur, "UPDATE activities SET tss = %s WHERE id = %s", tss_updates
-        )
-
-    # Check metrics version — reset NP/EF/Work if calculation logic changed
+    # Check metrics version — reset all derived metrics if calculation logic changed
     import db as _db
     stored_version = _db.get_sync_state(conn, "metrics_version")
     if stored_version != METRICS_VERSION:
-        print(f"[fitness] Metrics version changed ({stored_version} → {METRICS_VERSION}), recalculating all NP/EF/Work...")
+        print(f"[fitness] Metrics version changed ({stored_version} → {METRICS_VERSION}), recalculating everything...")
         with conn.cursor() as cur:
-            cur.execute("UPDATE activities SET np = NULL, ef = NULL, work_kj = NULL")
+            cur.execute("UPDATE activities SET tss = NULL, np = NULL, ef = NULL, work_kj = NULL")
+            cur.execute("DELETE FROM athlete_stats")
         _db.set_sync_state(conn, "metrics_version", METRICS_VERSION)
 
-    # Compute NP, EF, Work for activities with power data
+    # Step 1: Compute NP, EF, Work for activities with power stream data
+    # NP must be computed BEFORE TSS because TSS uses NP (Coggan standard)
     print("[fitness] Computing NP/EF/Work...")
     with conn.cursor() as cur:
         cur.execute("""
@@ -208,7 +187,6 @@ def recalculate_fitness(conn):
 
         if np_val:
             ef_val = compute_ef(np_val, avg_hr)
-
             with conn.cursor() as cur:
                 cur.execute("""
                     UPDATE activities SET np = %s, ef = %s, work_kj = %s WHERE id = %s
@@ -216,6 +194,36 @@ def recalculate_fitness(conn):
             np_count += 1
 
     print(f"[fitness] Computed NP/EF/Work for {np_count} activities")
+
+    # Step 2: Compute TSS using NP where available, avg_power fallback, HR fallback
+    # Standard Coggan TSS = (duration × NP × IF) / (FTP × 3600) × 100 where IF = NP/FTP
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT id, duration_s, avg_hr, avg_power, np
+            FROM activities
+            WHERE date IS NOT NULL
+        """)
+        activity_rows = cur.fetchall()
+
+    tss_updates = []
+    for act_id, duration_s, avg_hr, avg_power, np_val in activity_rows:
+        if np_val and np_val > 0:
+            # Use NP for TSS (standard Coggan formula)
+            tss = calculate_tss_power(duration_s, np_val, ftp)
+        elif avg_power and avg_power > 0:
+            # Fallback: use avg_power when NP not available (no stream data)
+            tss = calculate_tss_power(duration_s, avg_power, ftp)
+        elif avg_hr and avg_hr > 0:
+            # HR fallback
+            tss = calculate_tss(duration_s, avg_hr, threshold_hr)
+        else:
+            tss = 0
+        tss_updates.append((round(tss, 1), act_id))
+
+    with conn.cursor() as cur:
+        psycopg2.extras.execute_batch(
+            cur, "UPDATE activities SET tss = %s WHERE id = %s", tss_updates
+        )
 
     # Read back stored TSS + distance/elevation (cycling only)
     with conn.cursor() as cur:
