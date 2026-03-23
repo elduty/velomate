@@ -1172,6 +1172,21 @@
                 }
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z7 Neuromuscular"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#9333ea",
+                  "mode": "fixed"
+                }
+              }
+            ]
           }
         ]
       },

@@ -117,17 +117,21 @@ def run():
     try:
         env_ftp = os.environ.get("VELOMATE_FTP", "")
         env_hr = os.environ.get("VELOMATE_MAX_HR", "")
+        env_rhr = os.environ.get("VELOMATE_RESTING_HR", "")
         conn = get_connection()
         try:
             ftp = int(env_ftp) if env_ftp else 0
             hr = int(env_hr) if env_hr else 0
+            rhr = int(env_rhr) if env_rhr else 0
             ftp_str = str(ftp) if ftp > 0 else "0"
             hr_str = str(hr) if hr > 0 else "0"
+            rhr_str = str(rhr) if rhr > 0 else "0"
 
             # Check if values changed
             old_ftp = get_sync_state(conn, "configured_ftp") or "0"
             old_hr = get_sync_state(conn, "configured_max_hr") or "0"
-            config_changed = (ftp_str != old_ftp) or (hr_str != old_hr)
+            old_rhr = get_sync_state(conn, "configured_resting_hr") or "0"
+            config_changed = (ftp_str != old_ftp) or (hr_str != old_hr) or (rhr_str != old_rhr)
 
             # If thresholds changed, reset all derived metrics BEFORE persisting new values.
             # This ensures a crash between reset and persist triggers reset again on restart.
@@ -141,8 +145,10 @@ def run():
             # Persist current values (0 = auto-estimate, dashboard queries use value > 0)
             set_sync_state(conn, "configured_ftp", ftp_str)
             set_sync_state(conn, "configured_max_hr", hr_str)
+            set_sync_state(conn, "configured_resting_hr", rhr_str)
             print(f"[main] FTP: {ftp}W {'(configured)' if ftp > 0 else '(auto-estimate)'}")
             print(f"[main] Max HR: {hr} {'(configured)' if hr > 0 else '(auto-estimate)'}")
+            print(f"[main] Resting HR: {rhr if rhr > 0 else 50} {'(configured)' if rhr > 0 else '(default 50 bpm)'}")
         finally:
             conn.close()
     except (ValueError, TypeError) as e:

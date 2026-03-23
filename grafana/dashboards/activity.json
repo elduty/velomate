@@ -1123,7 +1123,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH params AS (\n  SELECT COALESCE(\n    (SELECT value::numeric FROM sync_state WHERE key = 'configured_max_hr' AND value::numeric > 0),\n    (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY max_hr) FROM activities WHERE max_hr IS NOT NULL AND max_hr > 0),\n    185\n  ) AS max_hr,\n  60.0 AS resting_hr\n)\nSELECT ROUND(SUM(\n  (1.0 / 60.0) * ((s.hr - p.resting_hr) / NULLIF(p.max_hr - p.resting_hr, 0))\n  * 0.64 * EXP(1.92 * ((s.hr - p.resting_hr) / NULLIF(p.max_hr - p.resting_hr, 0)))\n)::numeric, 0) AS \"TRIMP\"\nFROM activity_streams s\nCROSS JOIN params p\nWHERE s.activity_id = ${activity_id}\n  AND s.hr IS NOT NULL AND s.hr > p.resting_hr;",
+          "rawSql": "WITH params AS (\n  SELECT COALESCE(\n    (SELECT value::numeric FROM sync_state WHERE key = 'configured_max_hr' AND value::numeric > 0),\n    (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY max_hr) FROM activities WHERE max_hr IS NOT NULL AND max_hr > 0),\n    185\n  ) AS max_hr,\n  COALESCE(\n    NULLIF((SELECT value::numeric FROM sync_state WHERE key = 'configured_resting_hr'), 0),\n    50.0\n  ) AS resting_hr\n)\nSELECT ROUND(SUM(\n  (1.0 / 60.0) * ((s.hr - p.resting_hr) / NULLIF(p.max_hr - p.resting_hr, 0))\n  * 0.64 * EXP(1.92 * ((s.hr - p.resting_hr) / NULLIF(p.max_hr - p.resting_hr, 0)))\n)::numeric, 0) AS \"TRIMP\"\nFROM activity_streams s\nCROSS JOIN params p\nWHERE s.activity_id = ${activity_id}\n  AND s.hr IS NOT NULL AND s.hr > p.resting_hr;",
           "format": "table",
           "refId": "A"
         }
@@ -1193,7 +1193,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH half AS (\n  SELECT MAX(time_offset) / 2 AS mid\n  FROM activity_streams\n  WHERE activity_id = ${activity_id}\n),\nhalves AS (\n  SELECT\n    CASE WHEN s.time_offset <= h.mid THEN 'first' ELSE 'second' END AS half,\n    s.power, s.hr\n  FROM activity_streams s\n  CROSS JOIN half h\n  WHERE s.activity_id = ${activity_id}\n    AND s.power IS NOT NULL AND s.power > 0\n    AND s.hr IS NOT NULL AND s.hr > 0\n)\nSELECT ROUND(((\n  (SELECT AVG(power)::float / NULLIF(AVG(hr), 0) FROM halves WHERE half = 'second') /\n  NULLIF((SELECT AVG(power)::float / NULLIF(AVG(hr), 0) FROM halves WHERE half = 'first'), 0)\n  - 1) * 100)::numeric, 1) AS \"Decoupling %\";",
+          "rawSql": "WITH half AS (\n  SELECT MAX(time_offset) / 2 AS mid\n  FROM activity_streams\n  WHERE activity_id = ${activity_id}\n),\nhalves AS (\n  SELECT\n    CASE WHEN s.time_offset <= h.mid THEN 'first' ELSE 'second' END AS half,\n    s.power, s.hr\n  FROM activity_streams s\n  CROSS JOIN half h\n  WHERE s.activity_id = ${activity_id}\n    AND s.power IS NOT NULL AND s.power > 0\n    AND s.hr IS NOT NULL AND s.hr > 0\n)\nSELECT ROUND(((\n  (SELECT AVG(power)::float / NULLIF(AVG(hr), 0) FROM halves WHERE half = 'first') /\n  NULLIF((SELECT AVG(power)::float / NULLIF(AVG(hr), 0) FROM halves WHERE half = 'second'), 0)\n  - 1) * 100)::numeric, 1) AS \"Decoupling %\";",
           "format": "table",
           "refId": "A"
         }
@@ -1234,7 +1234,7 @@
           }
         }
       },
-      "description": "Power-to-HR ratio change from first half to second half of ride.\n\n< 5% = good aerobic fitness.\n> 10% = significant drift, base fitness needs work."
+      "description": "Aerobic Decoupling (Friel)\nPower:HR ratio drift \u2014 first half vs second half.\n\nPositive = cardiac drift (HR rising relative to power).\n< 5% \u2014 Good aerobic fitness\n5-10% \u2014 Moderate drift\n> 10% \u2014 Significant drift, base fitness needs work"
     },
     {
       "id": 902,
@@ -1499,6 +1499,21 @@
                 }
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z7 Neuromuscular"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#9333ea",
+                  "mode": "fixed"
+                }
+              }
+            ]
           }
         ]
       },
@@ -1758,6 +1773,21 @@
                 }
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z7 Neuromuscular"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#9333ea",
+                  "mode": "fixed"
+                }
+              }
+            ]
           }
         ]
       },
@@ -1910,7 +1940,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH ftp AS (\n  SELECT COALESCE(\n    (SELECT value::numeric FROM sync_state WHERE key = 'configured_ftp' AND value::numeric > 0),\n    (SELECT ROUND(MAX(avg_20min) * 0.95) FROM (\n      SELECT AVG(s.power) OVER (PARTITION BY s.activity_id ORDER BY s.time_offset ROWS BETWEEN 1199 PRECEDING AND CURRENT ROW) AS avg_20min\n      FROM activity_streams s\n      JOIN activities a ON a.id = s.activity_id\n      WHERE a.date >= CURRENT_DATE - interval '90 days'\n        AND s.power IS NOT NULL AND s.power > 0\n    ) sub WHERE avg_20min IS NOT NULL),\n    (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY avg_power) FROM activities WHERE avg_power IS NOT NULL AND avg_power > 0)\n  ) AS ftp_val\n), buckets AS (SELECT FLOOR(power / 10) * 10 AS bucket, COUNT(*) / 60.0 AS mins, CASE WHEN power < ftp.ftp_val * 0.55 THEN 'Z1 Recovery' WHEN power < ftp.ftp_val * 0.75 THEN 'Z2 Endurance' WHEN power < ftp.ftp_val * 0.90 THEN 'Z3 Tempo' WHEN power < ftp.ftp_val * 1.05 THEN 'Z4 Threshold' WHEN power < ftp.ftp_val * 1.20 THEN 'Z5 VO2max' ELSE 'Z6 Anaerobic' END AS zone FROM activity_streams, ftp WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0 GROUP BY bucket, zone) SELECT bucket::int AS \"Power (W)\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z1 Recovery'), 0) AS \"Z1 Recovery\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z2 Endurance'), 0) AS \"Z2 Endurance\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z3 Tempo'), 0) AS \"Z3 Tempo\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z4 Threshold'), 0) AS \"Z4 Threshold\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z5 VO2max'), 0) AS \"Z5 VO2max\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z6 Anaerobic'), 0) AS \"Z6 Anaerobic\" FROM buckets GROUP BY bucket ORDER BY bucket;",
+          "rawSql": "WITH ftp AS (\n  SELECT COALESCE(\n    (SELECT value::numeric FROM sync_state WHERE key = 'configured_ftp' AND value::numeric > 0),\n    (SELECT ROUND(MAX(avg_20min) * 0.95) FROM (\n      SELECT AVG(s.power) OVER (PARTITION BY s.activity_id ORDER BY s.time_offset ROWS BETWEEN 1199 PRECEDING AND CURRENT ROW) AS avg_20min\n      FROM activity_streams s\n      JOIN activities a ON a.id = s.activity_id\n      WHERE a.date >= CURRENT_DATE - interval '90 days'\n        AND s.power IS NOT NULL AND s.power > 0\n    ) sub WHERE avg_20min IS NOT NULL),\n    (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY avg_power) FROM activities WHERE avg_power IS NOT NULL AND avg_power > 0)\n  ) AS ftp_val\n), buckets AS (SELECT FLOOR(power / 10) * 10 AS bucket, COUNT(*) / 60.0 AS mins, CASE WHEN power < ftp.ftp_val * 0.55 THEN 'Z1 Recovery' WHEN power < ftp.ftp_val * 0.75 THEN 'Z2 Endurance' WHEN power < ftp.ftp_val * 0.90 THEN 'Z3 Tempo' WHEN power < ftp.ftp_val * 1.05 THEN 'Z4 Threshold' WHEN power < ftp.ftp_val * 1.20 THEN 'Z5 VO2max' WHEN power < ftp.ftp_val * 1.50 THEN 'Z6 Anaerobic' ELSE 'Z7 Neuromuscular' END AS zone FROM activity_streams, ftp WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0 GROUP BY bucket, zone) SELECT bucket::int AS \"Power (W)\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z1 Recovery'), 0) AS \"Z1 Recovery\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z2 Endurance'), 0) AS \"Z2 Endurance\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z3 Tempo'), 0) AS \"Z3 Tempo\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z4 Threshold'), 0) AS \"Z4 Threshold\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z5 VO2max'), 0) AS \"Z5 VO2max\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z6 Anaerobic'), 0) AS \"Z6 Anaerobic\",\n  COALESCE(SUM(mins) FILTER (WHERE zone = 'Z7 Neuromuscular'), 0) AS \"Z7 Neuromuscular\" FROM buckets GROUP BY bucket ORDER BY bucket;",
           "format": "table",
           "refId": "A"
         }
@@ -2037,6 +2067,21 @@
               {
                 "id": "unit",
                 "value": "min"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z7 Neuromuscular"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#9333ea",
+                  "mode": "fixed"
+                }
               }
             ]
           }
