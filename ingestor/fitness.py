@@ -9,6 +9,10 @@ import psycopg2.extras
 DEFAULT_THRESHOLD_HR = 170
 DEFAULT_FTP = 150  # Estimated FTP (watts) — fallback only
 
+# Bump this when NP/EF/Work calculation logic changes.
+# On startup, if the stored version differs, all values are recalculated.
+METRICS_VERSION = "2"
+
 
 def calculate_tss(duration_s: int, avg_hr: int, threshold_hr: int) -> float:
     """HR-based TSS = (duration_h) × (avg_hr / threshold_hr)² × 100"""
@@ -68,13 +72,14 @@ def estimate_ftp(conn) -> int:
                     AVG(s.power) OVER (
                         PARTITION BY s.activity_id
                         ORDER BY s.time_offset
-                        RANGE BETWEEN 1199 PRECEDING AND CURRENT ROW
+                        ROWS BETWEEN 1199 PRECEDING AND CURRENT ROW
                     ) AS avg_20min
                 FROM activity_streams s
                 JOIN recent_activities a ON a.id = s.activity_id
-                WHERE s.power IS NOT NULL AND s.power > 0
+                WHERE s.power IS NOT NULL
             )
             SELECT ROUND(MAX(avg_20min) * 0.95) FROM rolling
+            WHERE avg_20min IS NOT NULL
         """)
         row = cur.fetchone()
         if row and row[0] and row[0] > 0:
@@ -154,6 +159,15 @@ def recalculate_fitness(conn):
             cur, "UPDATE activities SET tss = %s WHERE id = %s", tss_updates
         )
 
+    # Check metrics version — reset NP/EF/Work if calculation logic changed
+    import db as _db
+    stored_version = _db.get_sync_state(conn, "metrics_version")
+    if stored_version != METRICS_VERSION:
+        print(f"[fitness] Metrics version changed ({stored_version} → {METRICS_VERSION}), recalculating all NP/EF/Work...")
+        with conn.cursor() as cur:
+            cur.execute("UPDATE activities SET np = NULL, ef = NULL, work_kj = NULL")
+        _db.set_sync_state(conn, "metrics_version", METRICS_VERSION)
+
     # Compute NP, EF, Work for activities with power data
     print("[fitness] Computing NP/EF/Work...")
     with conn.cursor() as cur:
@@ -176,7 +190,7 @@ def recalculate_fitness(conn):
                     SELECT
                         AVG(power) OVER (
                             ORDER BY time_offset
-                            RANGE BETWEEN 29 PRECEDING AND CURRENT ROW
+                            ROWS BETWEEN 29 PRECEDING AND CURRENT ROW
                         ) AS rolling_30s,
                         power
                     FROM activity_streams

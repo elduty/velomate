@@ -3,7 +3,7 @@
 import sys
 from datetime import date, timedelta
 from pathlib import Path
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch, call, PropertyMock
 
 import pytest
 
@@ -16,10 +16,21 @@ if str(_ingestor_dir) not in sys.path:
     sys.path.insert(0, str(_ingestor_dir))
 
 # Ensure a mock 'db' module is available for the local import inside recalculate_fitness
-_db_mock = MagicMock()
-sys.modules.setdefault("db", _db_mock)
+_db_mock = sys.modules.get("db") or MagicMock()
+sys.modules["db"] = _db_mock
 
-from fitness import recalculate_fitness, compute_ef
+from fitness import recalculate_fitness, compute_ef, METRICS_VERSION
+
+# Wrap recalculate_fitness to patch get_sync_state (skip NP/EF reset)
+_original_recalc = recalculate_fitness
+
+def recalculate_fitness_patched(conn):
+    with patch("db.get_sync_state", return_value=METRICS_VERSION), \
+         patch("db.set_sync_state"):
+        return _original_recalc(conn)
+
+# Override for all tests in this file
+recalculate_fitness = recalculate_fitness_patched
 
 
 def _make_conn(activity_rows, power_activity_rows=None, tss_rows=None):
