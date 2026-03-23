@@ -9,7 +9,7 @@ services:
     volumes:
       - velomate-postgres-data:/var/lib/postgresql/data
     ports:
-      - "5423:5432"
+      - "127.0.0.1:5423:5432"
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U velomate -d velomate"]
@@ -33,6 +33,8 @@ services:
     depends_on:
       velomate-postgres:
         condition: service_healthy
+    volumes:
+      - velomate-token-data:/app/data
     restart: unless-stopped
 
   velomate-grafana:
@@ -48,6 +50,7 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
       GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3021/}
       GF_SERVER_SERVE_FROM_SUB_PATH: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     depends_on:
       - velomate-postgres
@@ -56,3 +59,4 @@ services:
 volumes:
   velomate-postgres-data:
   velomate-grafana-data:
+  velomate-token-data:

@@ -72,8 +72,8 @@ def refresh_access_token(client_id: str, client_secret: str, refresh_token: str)
             # Fallback: write to file so token survives restart
             try:
                 import pathlib
-                pathlib.Path("/app/.strava_refresh_token").write_text(new_refresh)
-                print(f"[strava] Fallback: token written to /app/.strava_refresh_token")
+                pathlib.Path("/app/data/.strava_refresh_token").write_text(new_refresh)
+                print(f"[strava] Fallback: token written to /app/data/.strava_refresh_token")
             except Exception:
                 pass
 
@@ -88,7 +88,7 @@ def _get_token() -> str:
     if not _current_refresh_token:
         try:
             import pathlib
-            token_path = pathlib.Path("/app/.strava_refresh_token")
+            token_path = pathlib.Path("/app/data/.strava_refresh_token")
             if token_path.exists():
                 _current_refresh_token = token_path.read_text().strip()
                 print("[strava] Loaded refresh token from file fallback")

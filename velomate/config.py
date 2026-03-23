@@ -2,6 +2,7 @@
 
 import os
 import subprocess
+import sys
 import yaml
 
 DEFAULT_CONFIG_PATH = os.path.expanduser("~/.config/velomate/config.yaml")
@@ -43,10 +44,13 @@ def _resolve_secret(section: dict, key: str) -> str:
             return val
     cmd = section.get(f"{key}_cmd", "")
     if cmd:
+        import shlex
         try:
-            return subprocess.check_output(cmd, shell=True, stderr=subprocess.DEVNULL).decode().strip()
-        except subprocess.CalledProcessError:
-            pass
+            return subprocess.check_output(shlex.split(cmd), stderr=subprocess.DEVNULL).decode().strip()
+        except subprocess.CalledProcessError as e:
+            print(f"[config] Warning: {key}_cmd failed: {e}", file=sys.stderr)
+        except (ValueError, FileNotFoundError, TypeError) as e:
+            print(f"[config] Warning: invalid {key}_cmd '{cmd}': {e}", file=sys.stderr)
     return ""
 
 
