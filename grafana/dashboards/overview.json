@@ -419,7 +419,7 @@
           "noValue": "No data"
         }
       },
-      "description": "Training Stress Balance (Form)\n\nCTL minus ATL \u2014 are you fresh or fatigued?\n\n\ud83d\udd34 < -10 \u2014 Overreached, need rest\n\n\ud83d\udfe0 -10 to 0 \u2014 Tired, normal training fatigue\n\n\ud83d\udfe2 0 to 15 \u2014 Optimal, good balance\n\n\ud83d\udd35 > 15 \u2014 Fresh, race-ready (fitness may be declining)"
+      "description": "Training Stress Balance (Form)\nCTL minus ATL \u2014 are you fresh or fatigued?\n\n\ud83d\udd34 < -10 \u2014 Overreached, need rest\n\ud83d\udfe0 -10 to 0 \u2014 Tired, normal training fatigue\n\ud83d\udfe2 0 to 15 \u2014 Optimal, good balance\n\ud83d\udd35 > 15 \u2014 Fresh, race-ready (fitness may be declining)"
     },
     {
       "id": 223,
@@ -462,7 +462,7 @@
           "noValue": "No data"
         }
       },
-      "description": "Functional Threshold Power\n\nThe power you can sustain for ~1 hour.\n\nEstimated as 95% of your best 20-minute\n\naverage power from the last 90 days.\n\nAnchors all power zones and TSS calculations.\n\nOverride with VELOMATE_FTP env var if known."
+      "description": "Functional Threshold Power\n\nThe power you can sustain for ~1 hour.\nEstimated as 95% of your best 20-minute average power from the last 90 days.\nAnchors all power zones and TSS calculations.\nOverride with VELOMATE_FTP env var if known."
     },
     {
       "id": 201,
@@ -1734,7 +1734,7 @@
           }
         ]
       },
-      "description": "Volume \u2014 how far and how much climbing per .\n\nRising together = bigger rides. Distance rising but elevation flat = more flat routes."
+      "description": "Volume \u2014 how far and how much climbing per period.\nRising together = bigger rides.\nDistance rising but elevation flat = more flat routes."
     },
     {
       "id": 602,
@@ -2106,7 +2106,7 @@
           }
         ]
       },
-      "description": "Activity summary \u2014 energy output and riding frequency per ."
+      "description": "Activity summary \u2014 energy output and riding frequency per period."
     },
     {
       "id": 30,
@@ -2165,7 +2165,8 @@
           "noValue": "No data"
         },
         "overrides": []
-      }
+      },
+      "description": "All outdoor rides in the selected time range.\nGPS points sampled every 10 seconds.\nDenser clusters = frequently ridden routes."
     },
     {
       "id": 450,
@@ -2281,7 +2282,7 @@
           }
         }
       },
-      "description": "Training Stress Balance (Form)\n\nCTL minus ATL \u2014 are you fresh or fatigued?\n\n< -10 \u2014 Overreached, need rest\n\n-10 to 0 \u2014 Tired, normal training fatigue\n\n0 to 15 \u2014 Optimal, good balance\n\n> 15 \u2014 Fresh, race-ready (fitness may be declining)"
+      "description": "Training Stress Balance (Form)\nCTL minus ATL \u2014 are you fresh or fatigued?\n\n\ud83d\udd34 < -10 \u2014 Overreached, need rest\n\ud83d\udfe0 -10 to 0 \u2014 Tired, normal training fatigue\n\ud83d\udfe2 0 to 15 \u2014 Optimal, good balance\n\ud83d\udd35 > 15 \u2014 Fresh, race-ready (fitness may be declining)"
     },
     {
       "id": 402,

@@ -463,7 +463,8 @@
             ]
           }
         }
-      }
+      },
+      "description": "Training Stress Score\nHow hard was this ride relative to your FTP?\n100 = 1 hour at threshold.\nCalculated from power (preferred) or heart rate."
     },
     {
       "id": 8,
@@ -889,7 +890,7 @@
         },
         "overrides": []
       },
-      "description": "Normalized Power (NP)\n\nWhat the ride \"felt like\" in watts\n\n\n\n30s rolling average raised to 4th power,\n\nthen root-averaged. Accounts for surges \u2014\n\nhard efforts cost disproportionately more.\n\n\n\nNP > Avg Power = variable effort\n\nNP \u2248 Avg Power = steady effort"
+      "description": "Normalized Power (NP)\nWhat the ride \"felt like\" in watts.\n30s rolling avg raised to 4th power, then root-averaged.\nHard efforts cost disproportionately more.\nNP > Avg Power = variable effort\nNP \u2248 Avg Power = steady effort"
     },
     {
       "id": 35,
@@ -1061,7 +1062,7 @@
           }
         }
       },
-      "description": "Efficiency Factor (EF)\n\nNP \u00f7 Avg HR \u2014 aerobic efficiency\n\n\n\nHigher = fitter (more watts per heartbeat)\n\n\n\nTrack over months:\n\n\ud83d\udcc8 EF rising at same NP = fitness improving\n\n\ud83d\udcc9 EF dropping = fatigue, heat, or detraining\n\n\n\nCompare similar ride types and conditions"
+      "description": "Efficiency Factor (EF)\nNP \u00f7 Avg HR \u2014 aerobic efficiency.\nHigher = fitter (more watts per heartbeat).\n\n\ud83d\udcc8 EF rising at same NP = fitness improving\n\ud83d\udcc9 EF dropping = fatigue, heat, or detraining"
     },
     {
       "id": 39,
@@ -1104,7 +1105,7 @@
           }
         }
       },
-      "description": "Work (kJ)\n\nTotal mechanical energy output\n\n\n\nAvg Power \u00d7 Duration \u00f7 1000\n\n\n\nRoughly equals calories burned:\n\n1 kJ \u2248 1 kcal (at ~25% human efficiency)\n\n\n\nUseful for fueling: match kJ with food intake"
+      "description": "Work (kJ)\nTotal mechanical energy output.\nComputed from per-second power stream data.\nRoughly equals calories burned (1 kJ \u2248 1 kcal)."
     },
     {
       "id": 43,
@@ -1174,7 +1175,7 @@
           }
         }
       },
-      "description": "TRIMP (Training Impulse) \u2014 Banister formula\n\nExponential HR-based effort score. Accounts for both duration and intensity \u2014 higher HR zones contribute disproportionately more.\n\n< 75 \u2014 Easy\n75-150 \u2014 Moderate\n150-250 \u2014 Hard\n250-400 \u2014 Very hard\n400+ \u2014 Extreme"
+      "description": "TRIMP (Training Impulse) \u2014 Banister formula\nExponential HR-based effort score.\n\n< 75 \u2014 Easy\n75-150 \u2014 Moderate\n150-250 \u2014 Hard\n250-400 \u2014 Very hard\n400+ \u2014 Extreme"
     },
     {
       "id": 411,
@@ -1623,7 +1624,7 @@
           }
         ]
       },
-      "description": "Time in each heart rate zone.\n\nZones based on LTHR (lactate threshold HR),\n\nestimated as 95th percentile of your max HRs\n\nor configured via VELOMATE_MAX_HR.\n\n\ud83d\udd18 Z1 < 68% \u2014 Recovery\n\n\ud83d\udd35 Z2 68-83% \u2014 Endurance\n\n\ud83d\udfe2 Z3 83-94% \u2014 Tempo\n\n\ud83d\udfe1 Z4 94-105% \u2014 Threshold\n\n\ud83d\udd34 Z5 > 105% \u2014 VO2max"
+      "description": "Time in each heart rate zone.\nBased on % of max HR.\n\nZ1 < 60% \u2014 Recovery\nZ2 60-70% \u2014 Endurance\nZ3 70-80% \u2014 Tempo\nZ4 80-90% \u2014 Threshold\nZ5 > 90% \u2014 VO2max"
     },
     {
       "id": 32,
@@ -1890,7 +1891,8 @@
             ]
           }
         ]
-      }
+      },
+      "description": "Heart rate histogram \u2014 time at each 5 bpm bucket, colored by zone.\nWider spread = more variable effort.\nTall narrow peak = steady-state ride."
     },
     {
       "id": 41,
@@ -2039,7 +2041,8 @@
             ]
           }
         ]
-      }
+      },
+      "description": "Power histogram \u2014 time at each 10W bucket, colored by zone.\nWider spread = more variable effort.\nLarge Z1 spike = coasting/descending time."
     },
     {
       "id": 903,
@@ -2291,7 +2294,8 @@
             ]
           }
         ]
-      }
+      },
+      "description": "Per-second telemetry plotted by distance (not time).\nSpeed overlaid with elevation profile."
     },
     {
       "id": 21,
@@ -2444,7 +2448,7 @@
           }
         ]
       },
-      "description": "Power zone bands calibrated to FTP 165W. Update threshold values in dashboard JSON if FTP changes significantly."
+      "description": "Per-second telemetry plotted by distance (not time).\nHR and power overlaid to spot effort patterns.\nPower zone bands calibrated to FTP 165W \u2014 update in dashboard JSON if FTP changes."
     },
     {
       "id": 22,

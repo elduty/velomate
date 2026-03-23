@@ -322,7 +322,7 @@
           }
         }
       },
-      "description": "Functional Threshold Power\n\nThe power you can sustain for ~1 hour.\n\nEstimated as 95% of your best 20-minute average power from the last 90 days.\n\nOverride with VELOMATE_FTP env var."
+      "description": "Functional Threshold Power\n\nThe power you can sustain for ~1 hour.\nEstimated as 95% of your best 20-minute average power from the last 90 days.\nOverride with VELOMATE_FTP env var."
     },
     {
       "id": 6,
@@ -621,7 +621,8 @@
             "modelType": "linear"
           }
         }
-      ]
+      ],
+      "description": "Average heart rate per ride.\nDots = individual rides. Line = 10-ride rolling average.\nDeclining HR at same power = improving fitness."
     },
     {
       "id": 13,
@@ -699,7 +700,8 @@
             "modelType": "linear"
           }
         }
-      ]
+      ],
+      "description": "Distance per ride.\nDots = individual rides. Line = 10-ride rolling average."
     },
     {
       "id": 14,
@@ -2355,7 +2357,7 @@
         "defaults": {},
         "overrides": []
       },
-      "description": "All outdoor rides plotted on a map.\n\nShows every 10th GPS point to keep the query fast.\n\nDenser areas = more frequently ridden roads."
+      "description": "Every outdoor ride ever recorded.\nGPS points sampled every 10 seconds.\nDenser clusters = frequently ridden routes."
     }
   ]
 }
