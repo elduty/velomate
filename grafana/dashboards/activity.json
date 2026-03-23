@@ -1122,7 +1122,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH lthr AS (SELECT COALESCE((SELECT value::numeric FROM sync_state WHERE key = 'configured_max_hr' AND value::numeric > 0), (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY max_hr) FROM activities WHERE max_hr IS NOT NULL AND max_hr > 0)) AS thr) SELECT ROUND(SUM(CASE WHEN s.hr < lthr.thr * 0.68 THEN 1 WHEN s.hr < lthr.thr * 0.83 THEN 2 WHEN s.hr < lthr.thr * 0.94 THEN 3 WHEN s.hr < lthr.thr * 1.05 THEN 4 ELSE 5 END) / 60.0::numeric, 0) AS \"TRIMP\" FROM activity_streams s, lthr WHERE s.activity_id = ${activity_id} AND s.hr IS NOT NULL AND s.hr > 0;",
+          "rawSql": "WITH params AS (\n  SELECT COALESCE(\n    (SELECT value::numeric FROM sync_state WHERE key = 'configured_max_hr' AND value::numeric > 0),\n    (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY max_hr) FROM activities WHERE max_hr IS NOT NULL AND max_hr > 0),\n    185\n  ) AS max_hr,\n  60.0 AS resting_hr\n)\nSELECT ROUND(SUM(\n  (1.0 / 60.0) * ((s.hr - p.resting_hr) / NULLIF(p.max_hr - p.resting_hr, 0))\n  * 0.64 * EXP(1.92 * ((s.hr - p.resting_hr) / NULLIF(p.max_hr - p.resting_hr, 0)))\n)::numeric, 0) AS \"TRIMP\"\nFROM activity_streams s\nCROSS JOIN params p\nWHERE s.activity_id = ${activity_id}\n  AND s.hr IS NOT NULL AND s.hr > p.resting_hr;",
           "format": "table",
           "refId": "A"
         }
@@ -1174,7 +1174,7 @@
           }
         }
       },
-      "description": "TRIMP (Training Impulse)\n\nHR zone-weighted effort score\n\n\n\n\ud83d\udd18 < 50 \u2014 Easy ride\n\n\ud83d\udd35 50-75 \u2014 Light effort\n\n\ud83d\udfe2 75-100 \u2014 Moderate\n\n\ud83d\udfe1 100-125 \u2014 Hard\n\n\ud83d\udfe0 125-150 \u2014 Very hard\n\n\ud83d\udd34 150+ \u2014 Race effort"
+      "description": "TRIMP (Training Impulse) \u2014 Banister formula\n\nExponential HR-based effort score. Accounts for both duration and intensity \u2014 higher HR zones contribute disproportionately more.\n\n< 75 \u2014 Easy\n75-150 \u2014 Moderate\n150-250 \u2014 Hard\n250-400 \u2014 Very hard\n400+ \u2014 Extreme"
     },
     {
       "id": 411,
