@@ -9,7 +9,7 @@ services:
     volumes:
       - velomate-postgres-data:/var/lib/postgresql/data
     ports:
-      - "127.0.0.1:5423:5432"
+      - "0.0.0.0:5423:5432"
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U velomate -d velomate"]
