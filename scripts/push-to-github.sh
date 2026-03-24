@@ -13,9 +13,13 @@ fi
 
 ORIG_BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
 
-# Files that should NOT appear on GitHub (dev-only)
+# Files/dirs that should NOT appear on GitHub (dev-only, tracked on Gitea)
 EXCLUDE_FROM_GITHUB=(
     "scripts/push-to-github.sh"
+    "docs"
+    "CLAUDE.md"
+    ".claude"
+    ".superpowers"
 )
 
 # Cleanup on failure
@@ -55,22 +59,21 @@ if [ "$DIVERGED" = false ] && [ "$NEW_COMMITS" -eq 0 ]; then
     exit 0
 fi
 
-# Validate: no sensitive files in current tree
-echo "Checking for sensitive files..."
-BLOCKED=""
-
-if git ls-tree origin/main --name-only -r | grep -q "CLAUDE.md"; then
-    BLOCKED="YES"
-    echo "  FAIL: CLAUDE.md is tracked"
+# Block non-diverged push if excluded files are tracked (they'd leak to GitHub)
+if [ "$DIVERGED" = false ]; then
+    TREE=$(git ls-tree origin/main --name-only -r)
+    for f in "${EXCLUDE_FROM_GITHUB[@]}"; do
+        if echo "$TREE" | grep -q "^${f}\(/\|$\)"; then
+            echo "ERROR: '$f' is tracked on origin/main but excluded from GitHub."
+            echo "Histories must diverge to filter files. Force diverged push or remove the file."
+            exit 1
+        fi
+    done
 fi
 
-if git ls-tree origin/main --name-only -r | grep -q "^\.claude/"; then
-    BLOCKED="YES"
-    echo "  FAIL: .claude/ directory is tracked"
-fi
-
-# Validate: no AI evidence
+# Validate: no AI evidence in files that will appear on GitHub
 echo "Checking for AI evidence..."
+BLOCKED=""
 if [ "$DIVERGED" = false ]; then
     # Check new commit messages
     AI_HITS=$(git log "$COMMIT_RANGE" --format='%B' | grep -ic "co-authored-by.*claude\|co-authored-by.*anthropic\|co-committed-by\|generated with.*claude\|openclaw" || true)
@@ -79,8 +82,12 @@ if [ "$DIVERGED" = false ]; then
         echo "  FAIL: $AI_HITS AI references in new commit messages"
     fi
 fi
-# Check file contents (skip *.sh — push script contains detection patterns)
-AI_CONTENT=$(git grep -ic "co-authored-by.*claude\|anthropic\.com\|openclaw" origin/main -- '*.py' '*.md' '*.yml' '*.yaml' '*.toml' 2>/dev/null | wc -l | tr -d ' ')
+# Check file contents (skip *.sh and dev-only paths excluded from GitHub)
+PATHSPEC_EXCLUDES=()
+for f in "${EXCLUDE_FROM_GITHUB[@]}"; do
+    PATHSPEC_EXCLUDES+=( ":!$f" )
+done
+AI_CONTENT=$(git grep -ic "co-authored-by.*claude\|anthropic\.com\|openclaw" origin/main -- '*.py' '*.md' '*.yml' '*.yaml' '*.toml' "${PATHSPEC_EXCLUDES[@]}" 2>/dev/null | wc -l | tr -d ' ')
 if [ "$AI_CONTENT" -gt 0 ]; then
     BLOCKED="YES"
     echo "  FAIL: AI references found in tracked files"
@@ -103,9 +110,16 @@ if [ "$DIVERGED" = true ]; then
     # Clean working tree completely, then overlay Gitea state
     git rm -rf . >/dev/null 2>&1 || true
     git checkout origin/main -- .
-    # Remove dev-only files
+    # Remove dev-only files/dirs
     for f in "${EXCLUDE_FROM_GITHUB[@]}"; do
-        rm -f "$f"
+        rm -rf "$f"
+    done
+    # Verify excluded files were actually removed
+    for f in "${EXCLUDE_FROM_GITHUB[@]}"; do
+        if [ -e "$f" ]; then
+            echo "ERROR: failed to remove excluded file/dir '$f'"
+            exit 1
+        fi
     done
     git add -A
     git commit -m "sync from Gitea ($SOURCE_SHA)" --allow-empty

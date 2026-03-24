@@ -10,8 +10,6 @@ dist/
 config.yaml
 .claude/
 .superpowers/
-docs/
-CLAUDE.md
 .coverage
 scripts/github-overlay/
 .pytest_cache/
