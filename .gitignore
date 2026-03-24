@@ -8,7 +8,7 @@ venv/
 *.egg-info/
 dist/
 config.yaml
-.claude/
+.claude/settings.local.json
 .superpowers/
 .coverage
 scripts/github-overlay/
