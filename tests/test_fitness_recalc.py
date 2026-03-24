@@ -357,6 +357,8 @@ class TestBatchTSSUpdate:
         ]
         tss_rows = [(today, 50.0, 40000, 300)]
 
+        # backfill_count=0: in production, backfill+stamp would set ride_ftp
+        # before TSS. This intentionally skips backfill to test the defensive fallback.
         conn = _make_conn(activity_rows, tss_rows=tss_rows)
 
         import psycopg2.extras as extras_mock
@@ -414,7 +416,7 @@ class TestFTPBackfill:
         sql = backfill_cur.execute.call_args[0][0]
         params = backfill_cur.execute.call_args[0][1]
         assert "UPDATE activities" in sql
-        assert "ride_ftp" in sql
+        assert "COALESCE" in sql  # discriminates backfill from stamp UPDATE
         # FTP fallback param should be the auto-estimated FTP (250 from mock)
         assert params == (250,)
 
