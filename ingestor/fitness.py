@@ -136,8 +136,11 @@ def recalculate_fitness(conn):
         ftp = estimate_ftp(conn)
         print(f"[fitness] Auto-estimated FTP: {ftp}W (rolling 90-day best 20min × 0.95)")
 
-    # Check metrics version — reset all derived metrics if calculation logic changed
+    # Persist estimated FTP so Grafana can read it directly from sync_state
     import db as _db
+    _db.set_sync_state(conn, "estimated_ftp", str(ftp))
+
+    # Check metrics version — reset all derived metrics if calculation logic changed
     stored_version = _db.get_sync_state(conn, "metrics_version")
     if stored_version != METRICS_VERSION:
         print(f"[fitness] Metrics version changed ({stored_version} → {METRICS_VERSION}), recalculating everything...")
