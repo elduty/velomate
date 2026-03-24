@@ -131,7 +131,9 @@ def run():
             old_ftp = get_sync_state(conn, "configured_ftp") or "0"
             old_hr = get_sync_state(conn, "configured_max_hr") or "0"
             old_rhr = get_sync_state(conn, "configured_resting_hr") or "0"
-            config_changed = (ftp_str != old_ftp) or (hr_str != old_hr) or (rhr_str != old_rhr)
+            # Only FTP and max HR affect server-side metrics (TSS, CTL/ATL/TSB).
+            # Resting HR is only used by Grafana TRIMP queries (read from sync_state directly).
+            config_changed = (ftp_str != old_ftp) or (hr_str != old_hr)
 
             # If thresholds changed, reset all derived metrics BEFORE persisting new values.
             # This ensures a crash between reset and persist triggers reset again on restart.
