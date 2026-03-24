@@ -11,7 +11,7 @@ DEFAULT_FTP = 150  # Estimated FTP (watts) — fallback only
 
 # Bump this when NP/EF/Work calculation logic changes.
 # On startup, if the stored version differs, all values are recalculated.
-METRICS_VERSION = "3"  # v3: TSS uses NP instead of avg_power, NP includes 0W
+METRICS_VERSION = "4"  # v4: per-ride FTP, historical FTP backfill
 
 
 def calculate_tss(duration_s: int, avg_hr: int, threshold_hr: int) -> float:
@@ -142,7 +142,7 @@ def recalculate_fitness(conn):
     if stored_version != METRICS_VERSION:
         print(f"[fitness] Metrics version changed ({stored_version} → {METRICS_VERSION}), recalculating everything...")
         with conn.cursor() as cur:
-            cur.execute("UPDATE activities SET tss = NULL, np = NULL, ef = NULL, work_kj = NULL")
+            cur.execute("UPDATE activities SET tss = NULL, np = NULL, ef = NULL, work_kj = NULL, ride_ftp = NULL")
             cur.execute("DELETE FROM athlete_stats")
         _db.set_sync_state(conn, "metrics_version", METRICS_VERSION)
 
@@ -195,26 +195,69 @@ def recalculate_fitness(conn):
 
     print(f"[fitness] Computed NP/EF/Work for {np_count} activities")
 
-    # Step 2: Compute TSS using NP where available, avg_power fallback, HR fallback
+    # Step 2: Backfill ride_ftp for historical rides that don't have one.
+    # Uses the best 20-min power from the 90 days before each ride's date.
+    with conn.cursor() as cur:
+        cur.execute("SELECT COUNT(*) FROM activities WHERE ride_ftp IS NULL AND date IS NOT NULL")
+        unfilled = cur.fetchone()[0]
+
+    if unfilled > 0:
+        print(f"[fitness] Backfilling ride_ftp for {unfilled} activities...")
+        with conn.cursor() as cur:
+            # For rides with power stream data: estimate FTP from prior 90 days
+            cur.execute("""
+                UPDATE activities a SET ride_ftp = sub.est_ftp
+                FROM (
+                    SELECT a2.id,
+                        COALESCE(
+                            (SELECT ROUND(MAX(rolling_avg) * 0.95)
+                             FROM (
+                                SELECT AVG(s.power) OVER w AS rolling_avg,
+                                    COUNT(*) OVER w AS window_size
+                                FROM activity_streams s
+                                JOIN activities a3 ON a3.id = s.activity_id
+                                WHERE a3.date BETWEEN a2.date - interval '90 days' AND a2.date - interval '1 day'
+                                  AND s.power IS NOT NULL
+                                WINDOW w AS (PARTITION BY s.activity_id ORDER BY s.time_offset ROWS BETWEEN 1199 PRECEDING AND CURRENT ROW)
+                            ) t WHERE rolling_avg IS NOT NULL AND window_size >= 1200),
+                            %s
+                        ) AS est_ftp
+                    FROM activities a2
+                    WHERE a2.ride_ftp IS NULL AND a2.date IS NOT NULL
+                ) sub
+                WHERE a.id = sub.id
+            """, (ftp,))  # fallback to current FTP if no prior stream data
+            backfilled = cur.rowcount
+        print(f"[fitness] Backfilled ride_ftp for {backfilled} activities")
+
+    # For new rides (just ingested), stamp current FTP if not set
+    # Stamp current FTP on any rides still missing ride_ftp (new rides, or backfill gaps)
+    with conn.cursor() as cur:
+        cur.execute("""
+            UPDATE activities SET ride_ftp = %s
+            WHERE ride_ftp IS NULL AND date IS NOT NULL
+        """, (ftp,))
+        if cur.rowcount > 0:
+            print(f"[fitness] Stamped current FTP ({ftp}W) on {cur.rowcount} rides without historical FTP")
+
+    # Step 3: Compute TSS using per-ride FTP (ride_ftp), NP preferred, fallbacks
     # Standard Coggan TSS = (duration × NP × IF) / (FTP × 3600) × 100 where IF = NP/FTP
     with conn.cursor() as cur:
         cur.execute("""
-            SELECT id, duration_s, avg_hr, avg_power, np
+            SELECT id, duration_s, avg_hr, avg_power, np, ride_ftp
             FROM activities
             WHERE date IS NOT NULL
         """)
         activity_rows = cur.fetchall()
 
     tss_updates = []
-    for act_id, duration_s, avg_hr, avg_power, np_val in activity_rows:
+    for act_id, duration_s, avg_hr, avg_power, np_val, ride_ftp_val in activity_rows:
+        act_ftp = ride_ftp_val if ride_ftp_val and ride_ftp_val > 0 else ftp
         if np_val and np_val > 0:
-            # Use NP for TSS (standard Coggan formula)
-            tss = calculate_tss_power(duration_s, np_val, ftp)
+            tss = calculate_tss_power(duration_s, np_val, act_ftp)
         elif avg_power and avg_power > 0:
-            # Fallback: use avg_power when NP not available (no stream data)
-            tss = calculate_tss_power(duration_s, avg_power, ftp)
+            tss = calculate_tss_power(duration_s, avg_power, act_ftp)
         elif avg_hr and avg_hr > 0:
-            # HR fallback
             tss = calculate_tss(duration_s, avg_hr, threshold_hr)
         else:
             tss = 0

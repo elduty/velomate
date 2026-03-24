@@ -136,11 +136,13 @@ def run():
             # If thresholds changed, reset all derived metrics BEFORE persisting new values.
             # This ensures a crash between reset and persist triggers reset again on restart.
             if config_changed:
-                print("[main] FTP/HR config changed — resetting all metrics for recalculation")
+                print("[main] FTP/HR config changed — resetting derived metrics for recalculation")
                 with conn.cursor() as cur:
-                    cur.execute("UPDATE activities SET tss = NULL, np = NULL, ef = NULL, work_kj = NULL")
+                    # Reset TSS and fitness stats (they depend on thresholds)
+                    # But preserve ride_ftp on historical rides — only clear for future rides
+                    cur.execute("UPDATE activities SET tss = NULL")
                     cur.execute("DELETE FROM athlete_stats")
-                print("[main] All TSS, NP, EF, Work, CTL/ATL/TSB will be recalculated")
+                print("[main] TSS and CTL/ATL/TSB will be recalculated (ride_ftp preserved)")
 
             # Persist current values (0 = auto-estimate, dashboard queries use value > 0)
             set_sync_state(conn, "configured_ftp", ftp_str)
