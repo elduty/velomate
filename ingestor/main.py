@@ -132,7 +132,8 @@ def run():
             old_hr = get_sync_state(conn, "configured_max_hr") or "0"
             old_rhr = get_sync_state(conn, "configured_resting_hr") or "0"
             # FTP/max HR affect TSS, IF, CTL/ATL/TSB. Resting HR affects TRIMP.
-            config_changed = (ftp_str != old_ftp) or (hr_str != old_hr) or (rhr_str != old_rhr)
+            ftp_changed = (ftp_str != old_ftp)
+            config_changed = ftp_changed or (hr_str != old_hr) or (rhr_str != old_rhr)
 
             # If thresholds changed, reset all derived metrics BEFORE persisting new values.
             # This ensures a crash between reset and persist triggers reset again on restart.
@@ -140,10 +141,14 @@ def run():
                 print("[main] FTP/HR/RHR config changed — resetting derived metrics for recalculation")
                 with conn.cursor() as cur:
                     # Reset TSS, IF, TRIMP and fitness stats (they depend on thresholds)
-                    # But preserve ride_ftp on historical rides — only clear for future rides
                     cur.execute("UPDATE activities SET tss = NULL, intensity_factor = NULL, trimp = NULL")
+                    # When FTP changes, also reset per-ride FTP so it gets re-backfilled
+                    # with the new configured FTP as fallback
+                    if ftp_changed:
+                        cur.execute("UPDATE activities SET ride_ftp = NULL")
+                        print("[main] ride_ftp reset — will be re-backfilled with new FTP")
                     cur.execute("DELETE FROM athlete_stats")
-                print("[main] TSS/IF/TRIMP and CTL/ATL/TSB will be recalculated (ride_ftp preserved)")
+                print("[main] TSS/IF/TRIMP and CTL/ATL/TSB will be recalculated")
 
             # Persist current values (0 = auto-estimate, dashboard queries use value > 0)
             set_sync_state(conn, "configured_ftp", ftp_str)
