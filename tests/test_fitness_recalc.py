@@ -33,38 +33,46 @@ def recalculate_fitness_patched(conn):
 recalculate_fitness = recalculate_fitness_patched
 
 
-def _make_conn(activity_rows, power_activity_rows=None, tss_rows=None, backfill_count=0):
+def _make_conn(activity_rows, power_activity_rows=None, tss_rows=None,
+               backfill_count=0, trimp_activity_ids=None):
     """Build a mock connection that returns prescribed rows for each query.
 
     activity_rows: [(id, duration_s, avg_hr, avg_power, np, ride_ftp), ...]
     power_activity_rows: [(id, avg_hr, avg_power, duration_s), ...] -- for NP query
     tss_rows: [(date, tss, distance_m, elevation_m), ...] -- for final readback
     backfill_count: number of rides needing FTP backfill (0 = skip backfill)
+    trimp_activity_ids: [id, ...] -- activities needing TRIMP computation
 
     Cursor sequence in recalculate_fitness:
       0: estimate_threshold_hr
       1: estimate_ftp (rolling 20-min)
-      2: SELECT power activities for NP/EF
-      3..3+2*N-1: per-power-activity (NP rolling query + update)
+      2: SELECT power activities for NP/EF/VI
+      3..3+2*N-1: per-power-activity (NP rolling query + update with VI)
       3+2*N: COUNT rides needing FTP backfill
       3+2*N+1: UPDATE backfill (only when backfill_count > 0)
       3+2*N+1+B: UPDATE ride_ftp stamp for new rides (B=1 if backfill, else 0)
-      3+2*N+2+B: SELECT activities for TSS (includes ride_ftp)
-      3+2*N+3+B: execute_batch TSS update
-      3+2*N+4+B: final TSS readback
-      3+2*N+5+B..: upsert_athlete_stats (one per day)
+      3+2*N+2+B: SELECT activities for TSS+IF
+      3+2*N+3+B: execute_batch TSS+IF update
+      3+2*N+4+B: SELECT activities needing TRIMP
+      3+2*N+5+B..+5+B+2*T-1: per-TRIMP-activity (SELECT hr + UPDATE trimp)
+      3+2*N+5+B+2*T: final TSS readback
+      3+2*N+6+B+2*T..: upsert_athlete_stats (one per day)
     """
     conn = MagicMock()
     conn.autocommit = True
 
+    trimp_ids = trimp_activity_ids or []
     n_power = len(power_activity_rows) if power_activity_rows else 0
+    n_trimp = len(trimp_ids)
     b = 1 if backfill_count > 0 else 0
     backfill_count_idx = 3 + 2 * n_power
     backfill_update_idx = backfill_count_idx + 1 if b else None
     backfill_stamp_idx = backfill_count_idx + 1 + b
     tss_select_idx = backfill_stamp_idx + 1
     tss_batch_idx = tss_select_idx + 1
-    readback_idx = tss_batch_idx + 1
+    trimp_select_idx = tss_batch_idx + 1
+    trimp_start_idx = trimp_select_idx + 1
+    readback_idx = trimp_start_idx + 2 * n_trimp
 
     cursor_call_count = [0]
     captured_cursors = []  # stores (idx, cur) for post-hoc inspection
@@ -86,7 +94,7 @@ def _make_conn(activity_rows, power_activity_rows=None, tss_rows=None, backfill_
         elif idx == 2:
             cur.fetchall.return_value = power_activity_rows or []
         elif 3 <= idx < backfill_count_idx:
-            # NP rolling query cursors
+            # NP rolling query cursors (query + update alternate)
             cur.fetchone.return_value = (220.5, 850.3)
         elif idx == backfill_count_idx:
             cur.fetchone.return_value = (backfill_count,)
@@ -98,6 +106,14 @@ def _make_conn(activity_rows, power_activity_rows=None, tss_rows=None, backfill_
             cur.fetchall.return_value = activity_rows
         elif idx == tss_batch_idx:
             pass  # execute_batch
+        elif idx == trimp_select_idx:
+            cur.fetchall.return_value = [(aid,) for aid in trimp_ids]
+        elif trimp_start_idx <= idx < readback_idx:
+            # TRIMP cursors: alternating SELECT hr / UPDATE trimp
+            offset = idx - trimp_start_idx
+            if offset % 2 == 0:
+                cur.fetchall.return_value = [(140,)] * 120  # mock HR samples
+            # else: UPDATE trimp (no special setup needed)
         elif idx == readback_idx:
             cur.fetchall.return_value = tss_rows or []
         # else: upsert_athlete_stats calls
@@ -338,12 +354,13 @@ class TestBatchTSSUpdate:
         with patch.dict(sys.modules, {"db": MagicMock()}):
             recalculate_fitness(conn)
 
-        # Check execute_batch was called with 3 updates
+        # Check execute_batch was called with 3 updates (tss, if_val, id)
         batch_call = extras_mock.execute_batch.call_args
         tss_data = batch_call[0][2]  # third positional arg is the data list
         assert len(tss_data) == 3
-        # Third activity (no HR/power) should have TSS=0
+        # Third activity (no HR/power) should have TSS=0, IF=None
         assert tss_data[2][0] == 0
+        assert tss_data[2][1] is None
 
     def test_ride_ftp_none_falls_back_to_global_ftp(self):
         """Activity with ride_ftp=None should use global FTP (250) for TSS.
@@ -367,11 +384,67 @@ class TestBatchTSSUpdate:
             recalculate_fitness(conn)
 
         batch_call = extras_mock.execute_batch.call_args
-        tss_data = batch_call[0][2]
+        tss_data = batch_call[0][2]  # (tss, if_val, id) tuples
         # Activity 1 (global FTP=250): TSS = (3600 * 200 * 0.8) / (250 * 3600) * 100 = 64.0
         # Activity 2 (ride FTP=200):   TSS = (3600 * 200 * 1.0) / (200 * 3600) * 100 = 100.0
         assert tss_data[0][0] == 64.0
         assert tss_data[1][0] == 100.0
+        # Both have avg_power (not NP), so IF is None (IF only set when NP available)
+        assert tss_data[0][1] is None
+        assert tss_data[1][1] is None
+
+
+# ---------------------------------------------------------------------------
+# TRIMP computation path
+# ---------------------------------------------------------------------------
+
+class TestTRIMPComputation:
+    """Verify TRIMP wiring: SELECT ids → fetch HR → compute → UPDATE."""
+
+    def test_trimp_computed_for_listed_activities(self):
+        """Activities in trimp_activity_ids get TRIMP computed and stored."""
+        today = date.today()
+        activity_rows = [(1, 3600, 150, 200, None, 200)]
+        tss_rows = [(today, 80.0, 50000, 500)]
+
+        conn = _make_conn(activity_rows, tss_rows=tss_rows, trimp_activity_ids=[1])
+
+        with patch.dict(sys.modules, {"db": MagicMock()}):
+            recalculate_fitness(conn)
+
+        # TRIMP SELECT is idx 5 (thr=0, ftp=1, np_sel=2, bf_count=3, stamp=4, tss_sel=5, tss_batch=6, trimp_sel=7)
+        # With 0 power activities and 0 backfill: trimp_select_idx = 3+0+1+1+1 = 6
+        # trimp_start_idx = 7, HR fetch = idx 7, UPDATE = idx 8
+        trimp_update_idx = None
+        for idx, cur in conn._cursors:
+            # Find the UPDATE that sets trimp (last UPDATE before readback)
+            calls = cur.execute.call_args_list
+            for c in calls:
+                sql = c[0][0] if c[0] else ""
+                if "UPDATE activities SET trimp" in sql:
+                    trimp_update_idx = idx
+                    params = c[0][1]
+        assert trimp_update_idx is not None, "TRIMP UPDATE was never called"
+        # Verify TRIMP value was computed (mock returns [140]*120 HR samples)
+        assert params[0] > 0  # trimp_val
+        assert params[1] == 1  # activity id
+
+    def test_no_trimp_activities_skips_computation(self):
+        """When no activities need TRIMP, no HR fetch or UPDATE cursors open."""
+        today = date.today()
+        activity_rows = [(1, 3600, 150, 200, None, 200)]
+        tss_rows = [(today, 80.0, 50000, 500)]
+
+        conn = _make_conn(activity_rows, tss_rows=tss_rows, trimp_activity_ids=[])
+
+        with patch.dict(sys.modules, {"db": MagicMock()}):
+            recalculate_fitness(conn)
+
+        # No TRIMP UPDATE should appear
+        for idx, cur in conn._cursors:
+            for c in cur.execute.call_args_list:
+                sql = c[0][0] if c[0] else ""
+                assert "UPDATE activities SET trimp" not in sql
 
 
 # ---------------------------------------------------------------------------

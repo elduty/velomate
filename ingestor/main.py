@@ -131,20 +131,19 @@ def run():
             old_ftp = get_sync_state(conn, "configured_ftp") or "0"
             old_hr = get_sync_state(conn, "configured_max_hr") or "0"
             old_rhr = get_sync_state(conn, "configured_resting_hr") or "0"
-            # Only FTP and max HR affect server-side metrics (TSS, CTL/ATL/TSB).
-            # Resting HR is only used by Grafana TRIMP queries (read from sync_state directly).
-            config_changed = (ftp_str != old_ftp) or (hr_str != old_hr)
+            # FTP/max HR affect TSS, IF, CTL/ATL/TSB. Resting HR affects TRIMP.
+            config_changed = (ftp_str != old_ftp) or (hr_str != old_hr) or (rhr_str != old_rhr)
 
             # If thresholds changed, reset all derived metrics BEFORE persisting new values.
             # This ensures a crash between reset and persist triggers reset again on restart.
             if config_changed:
-                print("[main] FTP/HR config changed — resetting derived metrics for recalculation")
+                print("[main] FTP/HR/RHR config changed — resetting derived metrics for recalculation")
                 with conn.cursor() as cur:
-                    # Reset TSS and fitness stats (they depend on thresholds)
+                    # Reset TSS, IF, TRIMP and fitness stats (they depend on thresholds)
                     # But preserve ride_ftp on historical rides — only clear for future rides
-                    cur.execute("UPDATE activities SET tss = NULL")
+                    cur.execute("UPDATE activities SET tss = NULL, intensity_factor = NULL, trimp = NULL")
                     cur.execute("DELETE FROM athlete_stats")
-                print("[main] TSS and CTL/ATL/TSB will be recalculated (ride_ftp preserved)")
+                print("[main] TSS/IF/TRIMP and CTL/ATL/TSB will be recalculated (ride_ftp preserved)")
 
             # Persist current values (0 = auto-estimate, dashboard queries use value > 0)
             set_sync_state(conn, "configured_ftp", ftp_str)

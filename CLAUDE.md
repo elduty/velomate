@@ -39,24 +39,27 @@ When analysing Raven review findings, apply judgement:
 
 ## Metrics (Validated)
 
-All cycling metrics follow industry standards:
+All cycling metrics follow industry standards. The ingestor is the single source of truth — Grafana reads stored values from the activities table.
 - **TSS**: Coggan formula using NP — `(duration × NP × IF) / (FTP × 3600) × 100`
 - **NP**: 30-second rolling average → 4th power → mean → 4th root. Includes zero-power (coasting). Uses ROWS windows (sample-based, not time-based)
 - **FTP**: Rolling 90-day best 20-min power × 0.95. Per-ride FTP stored in `activities.ride_ftp`
+- **IF**: NP / ride_ftp (per-ride FTP, consistent with TSS). Stored in `activities.intensity_factor`
+- **VI**: NP / avg_power. Stored in `activities.variability_index`
+- **TRIMP**: Banister exponential formula (male: k=0.64, c=1.92), HRR capped at 1.0. Stored in `activities.trimp`
 - **CTL/ATL/TSB**: Exponential moving averages (42/7 day constants)
 - **EF**: NP / avg_hr
-- **TRIMP**: Banister exponential formula with configurable resting HR
-- **Decoupling**: `first_EF / second_EF - 1` (positive = drift, per Friel/TrainingPeaks)
-- **HR Zones**: Max HR percentages (60/70/80/90%)
+- **Decoupling**: `first_EF / second_EF - 1` (positive = drift, per Friel/TrainingPeaks). Includes coasting samples.
+- **HR Zones**: Max HR percentages (60/70/80/90%), default fallback 185 bpm
 - **Power Zones**: Coggan 7-zone including Z7 Neuromuscular (>150% FTP)
 
 ## Important Design Decisions
 
-- **METRICS_VERSION** (currently "4"): Bumping triggers full recalculation + FTP backfill on next startup
+- **METRICS_VERSION** (currently "5"): Bumping triggers full recalculation + FTP backfill on next startup
 - **estimated_ftp** persisted to sync_state — Grafana reads pre-computed FTP instead of recalculating
-- **Resting HR** excluded from config change detection — only used by Grafana TRIMP queries
-- **Per-ride FTP**: Historical rides preserve their TSS via `ride_ftp` column + backfill from 90-day rolling best
-- **Grafana reads stored NP/EF** from activities table where possible; stream-level SQL only for historical charts (FTP Progression, Best Efforts, Power Duration Curve)
+- **Resting HR** included in config change detection — changing it triggers TRIMP recalculation
+- **Per-ride FTP**: Historical rides preserve their TSS and IF via `ride_ftp` column + backfill from 90-day rolling best
+- **Grafana reads stored NP/EF/IF/VI/TRIMP** from activities table; stream-level SQL only for historical charts (FTP Progression, Best Efforts, Power Duration Curve)
+- **FTP in Grafana**: All panels use standardised fallback: configured_ftp → estimated_ftp → 150
 
 ## Database
 

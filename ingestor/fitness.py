@@ -1,5 +1,6 @@
 """CTL/ATL/TSB fitness calculator."""
 
+import math
 import os
 from datetime import timedelta
 
@@ -11,7 +12,7 @@ DEFAULT_FTP = 150  # Estimated FTP (watts) — fallback only
 
 # Bump this when NP/EF/Work calculation logic changes.
 # On startup, if the stored version differs, all values are recalculated.
-METRICS_VERSION = "4"  # v4: per-ride FTP, historical FTP backfill
+METRICS_VERSION = "5"  # v5: store IF, TRIMP, VI; single source of truth
 
 
 def calculate_tss(duration_s: int, avg_hr: int, threshold_hr: int) -> float:
@@ -28,6 +29,38 @@ def compute_ef(np: float, avg_hr: int) -> float | None:
     if not np or not avg_hr or avg_hr <= 0:
         return None
     return round(np / avg_hr, 2)
+
+
+def compute_trimp(hr_samples: list, max_hr: int, resting_hr: int) -> float:
+    """Banister TRIMP from 1-second HR samples.
+    TRIMP = SUM((1/60) * HRR * 0.64 * exp(1.92 * HRR))
+    HRR = (HR - resting) / (max - resting), capped at 1.0.
+    Male coefficients (k=0.64, c=1.92).
+    """
+    if not hr_samples or not max_hr or max_hr <= resting_hr:
+        return 0.0
+    hr_range = max_hr - resting_hr
+    total = 0.0
+    for hr in hr_samples:
+        if hr <= resting_hr:
+            continue
+        hrr = min((hr - resting_hr) / hr_range, 1.0)
+        total += (1 / 60) * hrr * 0.64 * math.exp(1.92 * hrr)
+    return round(total, 1)
+
+
+def compute_if(np: float, ftp: int) -> float | None:
+    """Intensity Factor = NP / FTP."""
+    if not np or not ftp or ftp <= 0:
+        return None
+    return round(np / ftp, 2)
+
+
+def compute_vi(np: float, avg_power: int) -> float | None:
+    """Variability Index = NP / avg_power."""
+    if not np or not avg_power or avg_power <= 0:
+        return None
+    return round(np / avg_power, 2)
 
 
 def calculate_tss_power(duration_s: int, np: float, ftp: int) -> float:
@@ -136,6 +169,14 @@ def recalculate_fitness(conn):
         ftp = estimate_ftp(conn)
         print(f"[fitness] Auto-estimated FTP: {ftp}W (rolling 90-day best 20min × 0.95)")
 
+    env_rhr = os.environ.get("VELOMATE_RESTING_HR", "")
+    try:
+        rhr_val = int(env_rhr) if env_rhr else 0
+    except ValueError:
+        rhr_val = 0
+    resting_hr = rhr_val if rhr_val > 0 else 50
+    print(f"[fitness] Resting HR: {resting_hr} {'(configured)' if rhr_val > 0 else '(default 50 bpm)'}")
+
     # Persist estimated FTP so Grafana can read it directly from sync_state
     import db as _db
     _db.set_sync_state(conn, "estimated_ftp", str(ftp))
@@ -145,7 +186,7 @@ def recalculate_fitness(conn):
     if stored_version != METRICS_VERSION:
         print(f"[fitness] Metrics version changed ({stored_version} → {METRICS_VERSION}), recalculating everything...")
         with conn.cursor() as cur:
-            cur.execute("UPDATE activities SET tss = NULL, np = NULL, ef = NULL, work_kj = NULL, ride_ftp = NULL")
+            cur.execute("UPDATE activities SET tss = NULL, np = NULL, ef = NULL, work_kj = NULL, ride_ftp = NULL, intensity_factor = NULL, trimp = NULL, variability_index = NULL")
             cur.execute("DELETE FROM athlete_stats")
         _db.set_sync_state(conn, "metrics_version", METRICS_VERSION)
 
@@ -190,10 +231,11 @@ def recalculate_fitness(conn):
 
         if np_val:
             ef_val = compute_ef(np_val, avg_hr)
+            vi_val = compute_vi(np_val, avg_power)
             with conn.cursor() as cur:
                 cur.execute("""
-                    UPDATE activities SET np = %s, ef = %s, work_kj = %s WHERE id = %s
-                """, (np_val, ef_val, work_val, act_id))
+                    UPDATE activities SET np = %s, ef = %s, work_kj = %s, variability_index = %s WHERE id = %s
+                """, (np_val, ef_val, work_val, vi_val, act_id))
             np_count += 1
 
     print(f"[fitness] Computed NP/EF/Work for {np_count} activities")
@@ -264,12 +306,40 @@ def recalculate_fitness(conn):
             tss = calculate_tss(duration_s, avg_hr, threshold_hr)
         else:
             tss = 0
-        tss_updates.append((round(tss, 1), act_id))
+        if_val = compute_if(np_val, act_ftp) if np_val and np_val > 0 else None
+        tss_updates.append((round(tss, 1), if_val, act_id))
 
     with conn.cursor() as cur:
         psycopg2.extras.execute_batch(
-            cur, "UPDATE activities SET tss = %s WHERE id = %s", tss_updates
+            cur, "UPDATE activities SET tss = %s, intensity_factor = %s WHERE id = %s", tss_updates
         )
+
+    # Step 4: Compute TRIMP for activities that don't have it yet
+    print("[fitness] Computing TRIMP...")
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT a.id FROM activities a
+            WHERE a.trimp IS NULL AND a.date IS NOT NULL
+              AND EXISTS (SELECT 1 FROM activity_streams s WHERE s.activity_id = a.id AND s.hr IS NOT NULL)
+        """)
+        trimp_ids = [row[0] for row in cur.fetchall()]
+
+    trimp_count = 0
+    for act_id in trimp_ids:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT hr FROM activity_streams
+                WHERE activity_id = %s AND hr IS NOT NULL
+                ORDER BY time_offset
+            """, (act_id,))
+            hr_samples = [row[0] for row in cur.fetchall()]
+
+        trimp_val = compute_trimp(hr_samples, threshold_hr, resting_hr)
+        with conn.cursor() as cur:
+            cur.execute("UPDATE activities SET trimp = %s WHERE id = %s", (trimp_val, act_id))
+        trimp_count += 1
+
+    print(f"[fitness] Computed TRIMP for {trimp_count} activities")
 
     # Read back stored TSS + distance/elevation (cycling only)
     with conn.cursor() as cur:
