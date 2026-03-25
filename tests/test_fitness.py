@@ -56,15 +56,16 @@ class TestCalculateTssPower:
         assert result > 100
 
 
-# --- compute_np (Normalized Power, 30s EWMA) ---
+# --- compute_np (Normalized Power, 30s SMA) ---
 
 class TestComputeNP:
-    """NP uses 30-second EWMA, not simple moving average."""
+    """NP uses 30-second SMA with circular buffer (Coggan/GoldenCheetah standard)."""
 
     def test_constant_power(self):
-        """Constant 200W for 120s → NP should equal avg power."""
-        result = compute_np([200] * 120)
-        assert result == pytest.approx(200, abs=1)
+        """Constant 200W for 600s → NP should equal avg power.
+        Needs enough samples for the zero-initialized buffer warmup to be negligible."""
+        result = compute_np([200] * 3600)
+        assert result == pytest.approx(200, abs=0.5)
 
     def test_too_few_samples(self):
         """Less than 30 samples → None."""
@@ -79,20 +80,13 @@ class TestComputeNP:
         result = compute_np(samples)
         assert result > 140
 
-    def test_ewma_lower_than_simple_ma(self):
-        """For intermittent power, EWMA-based NP should be lower than simple-MA NP.
-        This is the key difference: simple MA has sharper transitions that inflate NP."""
-        # 60s pedaling at 200W, 60s coasting, repeat 5x
-        samples = ([200] * 60 + [0] * 60) * 5
-        np_ewma = compute_np(samples)
-        # Simple MA NP (old method): compute for comparison
-        rolling = []
-        for i in range(len(samples)):
-            start = max(0, i - 29)
-            rolling.append(sum(samples[start:i+1]) / (i - start + 1))
-        mean_4th = sum(r**4 for r in rolling) / len(rolling)
-        np_simple = round(mean_4th ** 0.25, 1)
-        assert np_ewma < np_simple
+    def test_sma_circular_buffer(self):
+        """SMA with circular buffer: after 30 samples, old values are replaced."""
+        # 30 samples at 200W, then 30 at 0W → rolling avg drops to 0
+        samples = [200] * 60 + [0] * 60
+        result = compute_np(samples)
+        # NP should be above 0 (first 60s contribute) but below 200
+        assert 50 < result < 200
 
     def test_all_zeros(self):
         """All zero power → NP should be 0/None."""

@@ -12,7 +12,7 @@ DEFAULT_FTP = 150  # Estimated FTP (watts) — fallback only
 
 # Bump this when NP/EF/Work calculation logic changes.
 # On startup, if the stored version differs, all values are recalculated.
-METRICS_VERSION = "6"  # v6: NP uses 30s EWMA (Coggan standard, not simple MA)
+METRICS_VERSION = "7"  # v7: NP uses 30s SMA (Coggan standard, matches GoldenCheetah)
 
 
 def calculate_tss(duration_s: int, avg_hr: int, threshold_hr: int) -> float:
@@ -25,22 +25,27 @@ def calculate_tss(duration_s: int, avg_hr: int, threshold_hr: int) -> float:
 
 
 def compute_np(power_samples: list) -> float | None:
-    """Normalized Power from 1-second power samples using 30-second EWMA.
-    Algorithm (matches GoldenCheetah IsoPower implementation):
-      1. Compute 30-second exponentially weighted moving average (α=1/30)
+    """Normalized Power from 1-second power samples using 30-second SMA.
+    Coggan standard (matches GoldenCheetah IsoPower):
+      1. Compute 30-second simple moving average (circular buffer, always divide by 30)
       2. Raise each to the 4th power
       3. Take the mean
       4. Take the 4th root
     """
     if not power_samples or len(power_samples) < 30:
         return None
-    rolling = 0.0
-    fourth_powers = []
-    for i, watts in enumerate(power_samples):
-        rolling = rolling + (watts - rolling) / min(i + 1, 30)
-        fourth_powers.append(rolling ** 4)
-    mean_fourth = sum(fourth_powers) / len(fourth_powers)
-    np_val = mean_fourth ** 0.25
+    window = 30
+    buf = [0.0] * window
+    idx = 0
+    rolling_sum = 0.0
+    total = 0.0
+    count = len(power_samples)
+    for watts in power_samples:
+        rolling_sum += watts - buf[idx]
+        buf[idx] = watts
+        idx = (idx + 1) % window
+        total += (rolling_sum / window) ** 4
+    np_val = (total / count) ** 0.25
     return round(np_val, 1) if np_val > 0 else None
 
 

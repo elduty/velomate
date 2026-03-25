@@ -41,7 +41,7 @@ When analysing Raven review findings, apply judgement:
 
 All cycling metrics follow industry standards. The ingestor is the single source of truth — Grafana reads stored values from the activities table.
 - **TSS**: Coggan formula using NP — `(duration × NP × IF) / (FTP × 3600) × 100`
-- **NP**: 30-second EWMA → 4th power → mean → 4th root (Coggan standard). Computed in Python, not SQL. Includes zero-power (coasting)
+- **NP**: 30-second SMA (circular buffer) → 4th power → mean → 4th root (Coggan standard, matches GoldenCheetah). Computed in Python. Includes zero-power (coasting)
 - **FTP**: Rolling 90-day best 20-min power × 0.95. Per-ride FTP stored in `activities.ride_ftp`
 - **IF**: NP / ride_ftp (per-ride FTP, consistent with TSS). Stored in `activities.intensity_factor`
 - **VI**: NP / avg_power. Stored in `activities.variability_index`
@@ -54,7 +54,7 @@ All cycling metrics follow industry standards. The ingestor is the single source
 
 ## Important Design Decisions
 
-- **METRICS_VERSION** (currently "6"): Bumping triggers full recalculation + FTP backfill on next startup
+- **METRICS_VERSION** (currently "7"): Bumping triggers full recalculation + FTP backfill on next startup
 - **estimated_ftp** persisted to sync_state — Grafana reads pre-computed FTP instead of recalculating
 - **Resting HR** included in config change detection — changing it triggers TRIMP recalculation
 - **Per-ride FTP**: Historical rides preserve their TSS and IF via `ride_ftp` column + backfill from 90-day rolling best
