@@ -216,7 +216,7 @@ def recalculate_fitness(conn):
         _db.set_sync_state(conn, "metrics_version", METRICS_VERSION)
 
     # Step 1: Compute NP, EF, Work for activities with power stream data
-    # NP uses 30-second EWMA (Coggan standard), computed in Python
+    # NP uses 30-second SMA (Coggan standard), computed in Python
     print("[fitness] Computing NP/EF/Work...")
     with conn.cursor() as cur:
         cur.execute("""

@@ -1,103 +1,62 @@
 # Metric Accuracy Findings — 25 Mar 2026
 
 Root-cause analysis of TRIMP, TSS, and IF discrepancies compared to
-GoldenCheetah golden record (22 Mar 2026 ride).
+GoldenCheetah (22 Mar 2026 ride). All issues resolved in PRs #80-86.
 
-## Golden Record Reference (GoldenCheetah)
+## Golden Record Reference (GoldenCheetah, FTP=245)
 
-| Metric            | Value   |
-|-------------------|---------|
-| Duration          | 1:56:25 |
-| Avg Power         | 109 W   |
-| Avg HR            | 144 bpm |
-| Max HR            | 175 bpm |
-| IsoPower (NP)     | 118 W   |
-| BikeIntensity (IF)| 0.458   |
-| VI                | 1.549   |
-| EF                | 1.140   |
-| TSS               | 87      |
-| Decoupling        | 8.3 %   |
+| Metric            | Value   | Notes                          |
+|-------------------|---------|--------------------------------|
+| Duration          | 1:56:25 |                                |
+| Avg Power         | 109 W   |                                |
+| Avg HR            | 144 bpm |                                |
+| Max HR            | 175 bpm |                                |
+| IsoPower (NP)     | 164 W   | Originally misread as 118 (CP) |
+| CP Estimate       | 118 W   | Not NP — different metric      |
+| BikeIntensity (IF)| 0.458   | Uses xPower/CP, not NP/FTP     |
+| VI                | 1.549   | Uses xPower, not NP            |
+| EF                | 1.140   | Uses xPower, not NP            |
+| TSS               | 87      | Coggan TSS with FTP=245        |
+| Decoupling        | 8.3 %   |                                |
 
-## Problem 1 — No single source of truth
+## Resolved: No single source of truth (PR #80)
 
-The ingestor computes and stores NP, EF, TSS, and work_kj. But Grafana
-activity-detail panels **recompute NP, EF, VI from raw streams** on every
-page load instead of reading stored values. TRIMP and IF are **not stored
-at all** — they only exist as inline Grafana SQL.
+Grafana panels recomputed NP, EF, VI, IF, TRIMP from streams instead
+of reading stored values. Fixed: ingestor computes everything, Grafana
+reads from activities table.
 
-| Metric | Stored by ingestor? | Grafana reads stored? | Issue                        |
-|--------|---------------------|-----------------------|------------------------------|
-| NP     | activities.np       | No — recomputes       | Redundant, potential drift   |
-| EF     | activities.ef       | No — recomputes       | Redundant                    |
-| IF     | **Not stored**      | Computes with global FTP | Wrong FTP for historical rides |
-| TRIMP  | **Not stored**      | Computes from streams | No HRR cap — exponential blowup |
-| VI     | Not stored          | Recomputes NP inline  | Mixes recomputed + stored    |
-| TSS    | activities.tss      | Yes                   | OK                           |
+## Resolved: IF used global FTP, not per-ride FTP (PR #80)
 
-## Problem 2 — IF uses global FTP, TSS uses per-ride FTP
+TSS used `ride_ftp` but IF used current `estimated_ftp`. Fixed: both
+use `ride_ftp`.
 
-TSS is computed with `ride_ftp` (historical per-ride FTP from 90-day
-rolling best at the time of the ride). The Grafana IF panel uses a
-fallback chain that ends at current `estimated_ftp`.
+## Resolved: TRIMP exponential blowup (PR #80)
 
-For a ride from 3 months ago when FTP was lower, IF is computed with
-today's higher FTP (lower IF) while TSS was computed with the correct
-historical FTP. **IF and TSS are mathematically inconsistent.**
+HRR not capped at 1.0 — HR above max_hr caused exponential explosion.
+Fixed: HRR capped in `compute_trimp()`.
 
-Example with golden record ride (NP = 118 W):
-- If current FTP = 250 W → IF = 0.47, but TSS was computed with ride_ftp = 175 W
-- If ride_ftp = 175 W → IF = 0.67 and TSS = 88 (matches GC's 87)
+## Resolved: Inconsistent FTP fallback chains (PR #80)
 
-## Problem 3 — TRIMP exponential blowup (no HRR ceiling)
+Different panels used different FTP resolution. Fixed: all panels use
+`configured_ftp → estimated_ftp → 150`.
 
-The Banister TRIMP formula uses `exp(1.92 × HRR)` where
-HRR = (HR − resting) / (max − resting). When any HR sample exceeds the
-auto-estimated max_hr (95th percentile of ride max HRs), HRR > 1.0 and
-the exponential explodes.
+## Resolved: Configured FTP ignored by backfill (PR #82)
 
-With max_hr auto-estimated at 172 (95th percentile) and a sample at
-180 bpm: HRR = 1.066 → exp(2.05) = 7.77 instead of the correct ceiling
-exp(1.92) = 6.82 — **14% inflation per sample**. Many such samples
-compound across the ride.
+Setting `VELOMATE_FTP` didn't affect historical rides because the
+stream-based backfill overrode it. Fixed: when FTP is configured,
+stamp all rides directly.
 
-The query also does not filter `s.hr <= max_hr`, so every spike above
-the estimated max contributes inflated TRIMP.
+## Resolved: NP algorithm (PR #85 → reverted in PR #86)
 
-## Problem 4 — Inconsistent FTP fallback chains
+NP was temporarily changed to EWMA based on a misread golden record
+(CP=118 was confused with NP=164). The original 30-second SMA was
+correct all along — matches GoldenCheetah's Coggan.cpp implementation.
 
-Different Grafana panels resolve FTP differently:
+## Key Lesson: GoldenCheetah metric naming
 
-| Panel                      | Fallback chain                                              |
-|----------------------------|-------------------------------------------------------------|
-| IF (activity)              | configured_ftp → estimated_ftp → inline 90-day recalc → percentile |
-| Power Zones (activity)     | configured_ftp → estimated_ftp → inline 90-day recalc → percentile → 150 |
-| Power Zones (monthly)      | estimated_ftp → 150                                         |
-| Power Zones by km          | configured_ftp → estimated_ftp → inline recalc (no date filter!) → percentile → 150 |
+GC uses different power models for different metrics:
+- **IsoPower (NP)**: 30-second SMA, used for Coggan TSS
+- **xPower**: 25-second EWMA, used for VI, EF, BikeIntensity, BikeScore
+- **CP Estimate**: Critical Power model, independent of NP
 
-Panels on the same page can disagree on FTP when some fallbacks hit and
-others don't.
-
-## Problem 5 — GoldenCheetah comparison caveat
-
-GoldenCheetah uses **xPower** (Skiba's exponentially-weighted moving
-average) internally for VI and EF, not Coggan's NP. That explains:
-
-- GC VI = 1.549 vs Coggan VI = NP / avg_power = 118 / 109 = 1.08
-- GC EF = 1.140 vs Coggan EF = NP / avg_hr = 118 / 144 = 0.82
-
-These are different power models. VeloMate follows Coggan/TrainingPeaks
-consistently, which is correct — but **direct comparison of VI and EF
-against GC won't match**. TSS, IF, and TRIMP *should* match when using
-the same FTP and HR parameters.
-
-## Fix Plan
-
-**Principle: ingestor computes everything, Grafana only reads stored values.**
-
-1. Add `intensity_factor` and `trimp` columns to activities table
-2. Compute IF = NP / ride_ftp in ingestor (per-ride FTP, consistent with TSS)
-3. Compute TRIMP in ingestor (Banister formula, HRR capped at 1.0)
-4. Grafana activity panels read stored NP, EF, IF, TRIMP, VI (= stored NP / avg_power)
-5. Standardise all remaining FTP references to `estimated_ftp` from sync_state
-6. Bump METRICS_VERSION to "5" to trigger full recalculation
-7. Pass VELOMATE_RESTING_HR through docker-compose for TRIMP computation
+Direct comparison requires knowing which metric GC uses for each value.

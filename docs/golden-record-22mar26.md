@@ -25,7 +25,7 @@ Reference values from GoldenCheetah for validation.
 - Max W' Expended (%): 81
 
 ## Metrics
-- IsoPower (watts): 118
+- IsoPower (watts): 164
 - BikeIntensity: 0.458
 - VI: 1.549
 - Efficiency Factor: 1.140
