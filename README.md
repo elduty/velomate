@@ -21,9 +21,10 @@ Inspired by [TeslaMate](https://github.com/teslamate-org/teslamate). Works with 
 - Classifies rides as: **Outdoor**, **Zwift**, **Indoor** (trainer), or **E-Bike** — dashboards can filter by type
 - Stores full per-second telemetry (HR, power, cadence, speed, altitude, GPS)
 - Calculates CTL/ATL/TSB fitness metrics locally (no Strava Premium needed)
-- TRIMP (Training Impulse) computed from HR stream data (no Strava Premium needed)
-- Normalized Power (NP), Efficiency Factor (EF), and Work (kJ) pre-calculated per activity from stream data
-- FTP auto-estimated from rolling 90-day best 20-minute power, or configured manually
+- TRIMP (Training Impulse) computed from HR stream data with HRR capped at 1.0 (no Strava Premium needed)
+- Normalized Power (NP), Intensity Factor (IF), Variability Index (VI), Efficiency Factor (EF), and Work (kJ) pre-calculated per activity from stream data
+- All derived metrics computed by the ingestor and stored — Grafana reads stored values (single source of truth)
+- FTP auto-estimated from rolling 90-day best 20-minute power, or configured manually via `VELOMATE_FTP`
 - Daily fitness recalculation at 00:05 (rest days show CTL/ATL decay)
 - Smart deduplication when multiple devices record the same ride
 
@@ -245,25 +246,28 @@ python3 -m velomate.cli plan --distance 30 --preference comfort
 ## Fitness Metrics
 
 ```
-Power TSS = (duration_s × avg_power × IF) / (FTP × 3600) × 100   (preferred)
-HR TSS    = (duration_h) × (avg_hr / threshold_hr)² × 100         (fallback)
+Power TSS = (duration_s × NP × IF) / (FTP × 3600) × 100   (preferred)
+HR TSS    = (duration_h) × (avg_hr / threshold_hr)² × 100  (fallback)
 CTL       = 42-day EMA of daily TSS   (chronic training load / fitness)
 ATL       = 7-day EMA of daily TSS    (acute training load / fatigue)
 TSB       = CTL − ATL                 (training stress balance / form)
 ```
 
-- **FTP**: auto-estimated from rolling 90-day best 20-minute power × 0.95, or configured via `VELOMATE_FTP` / `config.yaml`
-- **NP**: Normalized Power — 30s rolling average, 4th power, mean, 4th root. Pre-calculated from stream data per activity
+- **NP**: Normalized Power — 30-second SMA (circular buffer), 4th power, mean, 4th root. Matches GoldenCheetah IsoPower (Coggan standard)
+- **IF**: Intensity Factor = NP / FTP. Uses per-ride FTP for historical accuracy
+- **VI**: Variability Index = NP / avg power. Higher = more variable effort
 - **EF**: Efficiency Factor = NP / avg HR. Rising EF indicates improving aerobic fitness
+- **TRIMP**: Banister exponential formula from per-second HR data. HRR capped at 1.0 to prevent blowup when HR exceeds configured max
+- **FTP**: auto-estimated from rolling 90-day best 20-minute power × 0.95, or configured via `VELOMATE_FTP`
 - **Work**: Total energy output in kJ = sum of per-second power from stream data
-- **Threshold HR**: 95th percentile of your max HRs, or configured via `VELOMATE_MAX_HR` / `config.yaml`
+- **Threshold HR**: 95th percentile of your max HRs, or configured via `VELOMATE_MAX_HR`
 - **TSB interpretation**: > +10 fresh · -10 to +10 neutral · < -10 fatigued
 
 ## Database Schema
 
 | Table | Contents |
 |-------|----------|
-| `activities` | Every ride — distance, duration, HR, power, cadence, elevation, calories, TSS, NP, EF, Work (kJ), sport type, device |
+| `activities` | Every ride — distance, duration, HR, power, cadence, elevation, calories, TSS, NP, IF, VI, EF, TRIMP, Work (kJ), ride FTP, sport type, device |
 | `activity_streams` | Per-second telemetry — HR, power, cadence, speed, altitude, lat/lng |
 | `athlete_stats` | Daily fitness metrics — CTL, ATL, TSB, weekly volume |
 | `routes` | Legacy — created by schema but not actively written to |
@@ -286,6 +290,8 @@ Configured via `.env` file:
 | `GRAFANA_PASSWORD` | Yes | Grafana admin password |
 | `VELOMATE_MAX_HR` | No | Your max heart rate (0 = auto-estimate) |
 | `VELOMATE_FTP` | No | Your FTP in watts (0 = auto-estimate) |
+| `VELOMATE_RESTING_HR` | No | Resting heart rate in bpm (default 50) |
+| `VELOMATE_RESET_RIDE_FTP` | No | Set to `1` to reset all per-ride FTP values on next restart (one-shot) |
 
 ### CLI (local)
 
