@@ -23,7 +23,7 @@ All metrics now computed by the ingestor and stored in the database. Grafana rea
 ## Breaking Changes
 
 - **METRICS_VERSION=7** — first startup recalculates all metrics (automatic, may take a minute)
-- **Configured FTP overrides estimation** — setting `VELOMATE_FTP` now stamps all rides with that value
+- **Configured FTP overrides estimation** — `VELOMATE_FTP` now applies to all rides directly. Previously it was only a fallback when stream-based estimation returned no result
 - **Resting HR changes reset TRIMP** — previously had no server-side effect
 
 ## Upgrade
