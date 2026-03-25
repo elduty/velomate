@@ -247,43 +247,49 @@ def recalculate_fitness(conn):
         unfilled = cur.fetchone()[0]
 
     if unfilled > 0:
-        print(f"[fitness] Backfilling ride_ftp for {unfilled} activities...")
-        with conn.cursor() as cur:
-            # For rides with power stream data: estimate FTP from prior 90 days
-            cur.execute("""
-                UPDATE activities a SET ride_ftp = sub.est_ftp
-                FROM (
-                    SELECT a2.id,
-                        COALESCE(
-                            (SELECT ROUND(MAX(rolling_avg) * 0.95)
-                             FROM (
-                                SELECT AVG(s.power) OVER w AS rolling_avg,
-                                    COUNT(*) OVER w AS window_size
-                                FROM activity_streams s
-                                JOIN activities a3 ON a3.id = s.activity_id
-                                WHERE a3.date BETWEEN a2.date - interval '90 days' AND a2.date - interval '1 day'
-                                  AND s.power IS NOT NULL
-                                WINDOW w AS (PARTITION BY s.activity_id ORDER BY s.time_offset ROWS BETWEEN 1199 PRECEDING AND CURRENT ROW)
-                            ) t WHERE rolling_avg IS NOT NULL AND window_size >= 1200),
-                            %s
-                        ) AS est_ftp
-                    FROM activities a2
-                    WHERE a2.ride_ftp IS NULL AND a2.date IS NOT NULL
-                ) sub
-                WHERE a.id = sub.id
-            """, (ftp,))  # fallback to current FTP if no prior stream data
-            backfilled = cur.rowcount
-        print(f"[fitness] Backfilled ride_ftp for {backfilled} activities")
+        if ftp_val > 0:
+            # FTP explicitly configured — use it for all rides, skip stream-based estimation
+            with conn.cursor() as cur:
+                cur.execute("UPDATE activities SET ride_ftp = %s WHERE ride_ftp IS NULL AND date IS NOT NULL", (ftp,))
+                stamped = cur.rowcount
+            print(f"[fitness] Stamped configured FTP ({ftp}W) on {stamped} rides")
+        else:
+            # Auto-estimate: backfill from rolling 90-day best 20-min power per ride
+            print(f"[fitness] Backfilling ride_ftp for {unfilled} activities...")
+            with conn.cursor() as cur:
+                cur.execute("""
+                    UPDATE activities a SET ride_ftp = sub.est_ftp
+                    FROM (
+                        SELECT a2.id,
+                            COALESCE(
+                                (SELECT ROUND(MAX(rolling_avg) * 0.95)
+                                 FROM (
+                                    SELECT AVG(s.power) OVER w AS rolling_avg,
+                                        COUNT(*) OVER w AS window_size
+                                    FROM activity_streams s
+                                    JOIN activities a3 ON a3.id = s.activity_id
+                                    WHERE a3.date BETWEEN a2.date - interval '90 days' AND a2.date - interval '1 day'
+                                      AND s.power IS NOT NULL
+                                    WINDOW w AS (PARTITION BY s.activity_id ORDER BY s.time_offset ROWS BETWEEN 1199 PRECEDING AND CURRENT ROW)
+                                ) t WHERE rolling_avg IS NOT NULL AND window_size >= 1200),
+                                %s
+                            ) AS est_ftp
+                        FROM activities a2
+                        WHERE a2.ride_ftp IS NULL AND a2.date IS NOT NULL
+                    ) sub
+                    WHERE a.id = sub.id
+                """, (ftp,))
+                backfilled = cur.rowcount
+            print(f"[fitness] Backfilled ride_ftp for {backfilled} activities")
 
-    # For new rides (just ingested), stamp current FTP if not set
-    # Stamp current FTP on any rides still missing ride_ftp (new rides, or backfill gaps)
-    with conn.cursor() as cur:
-        cur.execute("""
-            UPDATE activities SET ride_ftp = %s
-            WHERE ride_ftp IS NULL AND date IS NOT NULL
-        """, (ftp,))
-        if cur.rowcount > 0:
-            print(f"[fitness] Stamped current FTP ({ftp}W) on {cur.rowcount} rides without historical FTP")
+            # Stamp auto-estimated FTP on any remaining rides without enough prior data
+            with conn.cursor() as cur:
+                cur.execute("""
+                    UPDATE activities SET ride_ftp = %s
+                    WHERE ride_ftp IS NULL AND date IS NOT NULL
+                """, (ftp,))
+                if cur.rowcount > 0:
+                    print(f"[fitness] Stamped estimated FTP ({ftp}W) on {cur.rowcount} rides without historical data")
 
     # Step 3: Compute TSS using per-ride FTP (ride_ftp), NP preferred, fallbacks
     # Standard Coggan TSS = (duration × NP × IF) / (FTP × 3600) × 100 where IF = NP/FTP

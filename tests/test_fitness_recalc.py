@@ -34,7 +34,7 @@ recalculate_fitness = recalculate_fitness_patched
 
 
 def _make_conn(activity_rows, power_activity_rows=None, tss_rows=None,
-               backfill_count=0, trimp_activity_ids=None):
+               backfill_count=0, trimp_activity_ids=None, configured_ftp=False):
     """Build a mock connection that returns prescribed rows for each query.
 
     activity_rows: [(id, duration_s, avg_hr, avg_power, np, ride_ftp), ...]
@@ -42,21 +42,19 @@ def _make_conn(activity_rows, power_activity_rows=None, tss_rows=None,
     tss_rows: [(date, tss, distance_m, elevation_m), ...] -- for final readback
     backfill_count: number of rides needing FTP backfill (0 = skip backfill)
     trimp_activity_ids: [id, ...] -- activities needing TRIMP computation
+    configured_ftp: if True, backfill uses single stamp (1 cursor) instead of
+                    stream-based backfill + stamp (2 cursors)
 
-    Cursor sequence in recalculate_fitness:
+    Cursor sequence in recalculate_fitness (called via patched wrapper):
       0: estimate_threshold_hr
-      1: estimate_ftp (rolling 20-min)
+      1: estimate_ftp (rolling 20-min) -- skipped when configured_ftp=True
       2: SELECT power activities for NP/EF/VI
       3..3+2*N-1: per-power-activity (NP rolling query + update with VI)
       3+2*N: COUNT rides needing FTP backfill
-      3+2*N+1: UPDATE backfill (only when backfill_count > 0)
-      3+2*N+1+B: UPDATE ride_ftp stamp for new rides (B=1 if backfill, else 0)
-      3+2*N+2+B: SELECT activities for TSS+IF
-      3+2*N+3+B: execute_batch TSS+IF update
-      3+2*N+4+B: SELECT activities needing TRIMP
-      3+2*N+5+B..+5+B+2*T-1: per-TRIMP-activity (SELECT hr + UPDATE trimp)
-      3+2*N+5+B+2*T: final TSS readback
-      3+2*N+6+B+2*T..: upsert_athlete_stats (one per day)
+      When backfill_count > 0 and configured_ftp: 1 stamp cursor
+      When backfill_count > 0 and auto-estimate: 2 cursors (backfill + stamp)
+      When backfill_count == 0: no backfill/stamp cursors
+      Then: TSS+IF select, batch, TRIMP select, per-TRIMP cursors, readback
     """
     conn = MagicMock()
     conn.autocommit = True
@@ -64,11 +62,13 @@ def _make_conn(activity_rows, power_activity_rows=None, tss_rows=None,
     trimp_ids = trimp_activity_ids or []
     n_power = len(power_activity_rows) if power_activity_rows else 0
     n_trimp = len(trimp_ids)
-    b = 1 if backfill_count > 0 else 0
-    backfill_count_idx = 3 + 2 * n_power
-    backfill_update_idx = backfill_count_idx + 1 if b else None
-    backfill_stamp_idx = backfill_count_idx + 1 + b
-    tss_select_idx = backfill_stamp_idx + 1
+    if backfill_count > 0:
+        b = 1 if configured_ftp else 2  # stamp-only vs backfill+stamp
+    else:
+        b = 0
+    ftp_cursor_offset = 1 if configured_ftp else 0  # estimate_ftp skipped when configured
+    backfill_count_idx = 3 + 2 * n_power - ftp_cursor_offset
+    tss_select_idx = backfill_count_idx + 1 + b
     tss_batch_idx = tss_select_idx + 1
     trimp_select_idx = tss_batch_idx + 1
     trimp_start_idx = trimp_select_idx + 1
@@ -87,21 +87,22 @@ def _make_conn(activity_rows, power_activity_rows=None, tss_rows=None,
         cursor_call_count[0] += 1
         captured_cursors.append((idx, cur))
 
+        np_select_idx = 2 - ftp_cursor_offset
+
         if idx == 0:
             cur.fetchone.return_value = (170,)
-        elif idx == 1:
+        elif idx == 1 and not configured_ftp:
             cur.fetchone.return_value = (250,)
-        elif idx == 2:
+        elif idx == np_select_idx:
             cur.fetchall.return_value = power_activity_rows or []
-        elif 3 <= idx < backfill_count_idx:
+        elif np_select_idx < idx < backfill_count_idx:
             # NP rolling query cursors (query + update alternate)
             cur.fetchone.return_value = (220.5, 850.3)
         elif idx == backfill_count_idx:
             cur.fetchone.return_value = (backfill_count,)
-        elif backfill_update_idx is not None and idx == backfill_update_idx:
-            cur.rowcount = backfill_count  # backfill UPDATE
-        elif idx == backfill_stamp_idx:
-            cur.rowcount = 0  # UPDATE ride_ftp for new rides
+        elif backfill_count_idx < idx < tss_select_idx:
+            # Backfill/stamp cursors (only when backfill_count > 0)
+            cur.rowcount = backfill_count
         elif idx == tss_select_idx:
             cur.fetchall.return_value = activity_rows
         elif idx == tss_batch_idx:
@@ -454,8 +455,8 @@ class TestTRIMPComputation:
 class TestFTPBackfill:
     """Verify the backfill code path is exercised when rides need ride_ftp."""
 
-    def test_backfill_adds_one_extra_cursor(self):
-        """Backfill path opens exactly one extra cursor (the UPDATE) vs no-backfill."""
+    def test_backfill_adds_extra_cursors(self):
+        """Backfill path opens extra cursors (backfill + stamp) vs no-backfill."""
         today = date.today()
         activity_rows = [(1, 3600, None, 200, None, 200)]
         tss_rows = [(today, 80.0, 50000, 500)]
@@ -468,9 +469,61 @@ class TestFTPBackfill:
         with patch.dict(sys.modules, {"db": MagicMock()}):
             recalculate_fitness(conn_with_backfill)
 
-        # Backfill path adds exactly 1 cursor (the backfill UPDATE)
-        assert conn_with_backfill.cursor.call_count == conn_no_backfill.cursor.call_count + 1
+        # Backfill path adds 2 cursors (backfill UPDATE + stamp remaining)
+        assert conn_with_backfill.cursor.call_count == conn_no_backfill.cursor.call_count + 2
         conn_with_backfill.commit.assert_called()
+
+    def test_configured_ftp_stamps_directly_no_backfill(self):
+        """When VELOMATE_FTP is set, rides get stamped with configured FTP
+        instead of running the expensive stream-based backfill query."""
+        today = date.today()
+        activity_rows = [(1, 3600, None, 200, None, 200)]
+        tss_rows = [(today, 80.0, 50000, 500)]
+
+        # configured_ftp=True: mock expects 1 stamp cursor (not 2 for backfill+stamp)
+        # and no FTP estimate cursor (skipped when env var is set)
+        conn = _make_conn(activity_rows, tss_rows=tss_rows, backfill_count=3,
+                          configured_ftp=True)
+
+        with patch.dict("os.environ", {"VELOMATE_FTP": "175"}):
+            recalculate_fitness(conn)
+
+        # The stamp cursor is right after the COUNT cursor
+        # With configured_ftp: backfill_count_idx = 2, stamp = idx 3
+        stamp_idx = 3
+        _, stamp_cur = conn._cursors[stamp_idx]
+        sql = stamp_cur.execute.call_args[0][0]
+        params = stamp_cur.execute.call_args[0][1]
+        assert "UPDATE activities SET ride_ftp" in sql
+        assert "COALESCE" not in sql, "Should stamp directly, not use stream backfill"
+        assert params == (175,)
+
+        # Verify no COALESCE backfill query was executed anywhere
+        for idx, cur in conn._cursors:
+            for c in cur.execute.call_args_list:
+                sql_str = c[0][0] if c[0] else ""
+                assert "rolling_avg" not in sql_str, \
+                    "Stream-based backfill should not run when FTP is configured"
+
+    def test_configured_ftp_adds_one_cursor_vs_auto(self):
+        """Configured FTP uses 1 cursor (stamp) vs auto-estimate's 2 (backfill+stamp)."""
+        today = date.today()
+        activity_rows = [(1, 3600, None, 200, None, 200)]
+        tss_rows = [(today, 80.0, 50000, 500)]
+
+        conn_auto = _make_conn(activity_rows, tss_rows=tss_rows, backfill_count=3,
+                               configured_ftp=False)
+        conn_cfg = _make_conn(activity_rows, tss_rows=tss_rows, backfill_count=3,
+                              configured_ftp=True)
+
+        recalculate_fitness(conn_auto)
+        with patch.dict("os.environ", {"VELOMATE_FTP": "175"}):
+            recalculate_fitness(conn_cfg)
+
+        # Auto-estimate: estimate_ftp(1) + backfill(1) + stamp(1) = 3 extra
+        # Configured: no estimate_ftp + stamp(1) = 1 extra
+        # Net difference: 2 fewer cursors
+        assert conn_auto.cursor.call_count == conn_cfg.cursor.call_count + 2
 
     def test_backfill_update_receives_ftp_fallback(self):
         """Backfill UPDATE should be called with global FTP (250) as COALESCE fallback."""
