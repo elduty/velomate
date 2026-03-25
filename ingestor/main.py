@@ -150,6 +150,14 @@ def run():
                     cur.execute("DELETE FROM athlete_stats")
                 print("[main] TSS/IF/TRIMP and CTL/ATL/TSB will be recalculated")
 
+            # Opt-in: reset per-ride FTP so all rides use configured FTP.
+            # Set VELOMATE_RESET_RIDE_FTP=1 once, restart, then remove the flag.
+            if os.environ.get("VELOMATE_RESET_RIDE_FTP", "") == "1":
+                print("[main] VELOMATE_RESET_RIDE_FTP=1 — resetting all ride_ftp and derived metrics")
+                with conn.cursor() as cur:
+                    cur.execute("UPDATE activities SET ride_ftp = NULL, tss = NULL, intensity_factor = NULL")
+                    cur.execute("DELETE FROM athlete_stats")
+
             # Persist current values (0 = auto-estimate, dashboard queries use value > 0)
             set_sync_state(conn, "configured_ftp", ftp_str)
             set_sync_state(conn, "configured_max_hr", hr_str)
