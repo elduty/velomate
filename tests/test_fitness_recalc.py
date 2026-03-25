@@ -38,7 +38,7 @@ def _make_conn(activity_rows, power_activity_rows=None, tss_rows=None,
     """Build a mock connection that returns prescribed rows for each query.
 
     activity_rows: [(id, duration_s, avg_hr, avg_power, np, ride_ftp), ...]
-    power_activity_rows: [(id, avg_hr, avg_power, duration_s), ...] -- for NP query
+    power_activity_rows: [(id, avg_hr, avg_power), ...] -- for NP query
     tss_rows: [(date, tss, distance_m, elevation_m), ...] -- for final readback
     backfill_count: number of rides needing FTP backfill (0 = skip backfill)
     trimp_activity_ids: [id, ...] -- activities needing TRIMP computation
@@ -96,8 +96,12 @@ def _make_conn(activity_rows, power_activity_rows=None, tss_rows=None,
         elif idx == np_select_idx:
             cur.fetchall.return_value = power_activity_rows or []
         elif np_select_idx < idx < backfill_count_idx:
-            # NP rolling query cursors (query + update alternate)
-            cur.fetchone.return_value = (220.5, 850.3)
+            # NP: per-activity power stream fetch (fetchall) + update (alternate)
+            offset = idx - np_select_idx - 1
+            if offset % 2 == 0:
+                # SELECT power samples — return 60 samples at 200W
+                cur.fetchall.return_value = [(200, 200)] * 60
+            # else: UPDATE np/ef/vi (no special setup)
         elif idx == backfill_count_idx:
             cur.fetchone.return_value = (backfill_count,)
         elif backfill_count_idx < idx < tss_select_idx:
@@ -282,7 +286,7 @@ class TestNPSkipGuard:
         today = date.today()
         activity_rows = [(1, 3600, 150, 200, None, 200)]
         # This activity appears in NP query (np IS NULL, has power streams)
-        power_activity_rows = [(1, 150, 200, 3600)]
+        power_activity_rows = [(1, 150, 200)]
         tss_rows = [(today, 80.0, 50000, 500)]
 
         conn = _make_conn(activity_rows, power_activity_rows=power_activity_rows, tss_rows=tss_rows)

@@ -5,7 +5,7 @@ import math
 import pytest
 from fitness import (
     calculate_tss, calculate_tss_power,
-    compute_trimp, compute_if, compute_vi,
+    compute_np, compute_trimp, compute_if, compute_vi,
 )
 
 
@@ -54,6 +54,50 @@ class TestCalculateTssPower:
         """300W at 250W FTP -> above threshold, TSS > 100."""
         result = calculate_tss_power(3600, 300, 250)
         assert result > 100
+
+
+# --- compute_np (Normalized Power, 30s EWMA) ---
+
+class TestComputeNP:
+    """NP uses 30-second EWMA, not simple moving average."""
+
+    def test_constant_power(self):
+        """Constant 200W for 120s → NP should equal avg power."""
+        result = compute_np([200] * 120)
+        assert result == pytest.approx(200, abs=1)
+
+    def test_too_few_samples(self):
+        """Less than 30 samples → None."""
+        assert compute_np([200] * 29) is None
+
+    def test_empty(self):
+        assert compute_np([]) is None
+
+    def test_variable_power_higher_than_avg(self):
+        """Alternating 0/300W → NP should be well above half the peak."""
+        samples = [0, 300] * 600  # 1200 samples
+        result = compute_np(samples)
+        assert result > 140
+
+    def test_ewma_lower_than_simple_ma(self):
+        """For intermittent power, EWMA-based NP should be lower than simple-MA NP.
+        This is the key difference: simple MA has sharper transitions that inflate NP."""
+        # 60s pedaling at 200W, 60s coasting, repeat 5x
+        samples = ([200] * 60 + [0] * 60) * 5
+        np_ewma = compute_np(samples)
+        # Simple MA NP (old method): compute for comparison
+        rolling = []
+        for i in range(len(samples)):
+            start = max(0, i - 29)
+            rolling.append(sum(samples[start:i+1]) / (i - start + 1))
+        mean_4th = sum(r**4 for r in rolling) / len(rolling)
+        np_simple = round(mean_4th ** 0.25, 1)
+        assert np_ewma < np_simple
+
+    def test_all_zeros(self):
+        """All zero power → NP should be 0/None."""
+        result = compute_np([0] * 120)
+        assert result is None or result == 0.0
 
 
 # --- compute_trimp (Banister) ---

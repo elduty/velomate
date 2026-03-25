@@ -12,7 +12,7 @@ DEFAULT_FTP = 150  # Estimated FTP (watts) — fallback only
 
 # Bump this when NP/EF/Work calculation logic changes.
 # On startup, if the stored version differs, all values are recalculated.
-METRICS_VERSION = "5"  # v5: store IF, TRIMP, VI; single source of truth
+METRICS_VERSION = "6"  # v6: NP uses 30s EWMA (Coggan standard, not simple MA)
 
 
 def calculate_tss(duration_s: int, avg_hr: int, threshold_hr: int) -> float:
@@ -22,6 +22,26 @@ def calculate_tss(duration_s: int, avg_hr: int, threshold_hr: int) -> float:
     duration_h = duration_s / 3600
     intensity = avg_hr / threshold_hr
     return duration_h * (intensity ** 2) * 100
+
+
+def compute_np(power_samples: list) -> float | None:
+    """Normalized Power from 1-second power samples using 30-second EWMA.
+    Algorithm (matches GoldenCheetah IsoPower implementation):
+      1. Compute 30-second exponentially weighted moving average (α=1/30)
+      2. Raise each to the 4th power
+      3. Take the mean
+      4. Take the 4th root
+    """
+    if not power_samples or len(power_samples) < 30:
+        return None
+    rolling = 0.0
+    fourth_powers = []
+    for i, watts in enumerate(power_samples):
+        rolling = rolling + (watts - rolling) / min(i + 1, 30)
+        fourth_powers.append(rolling ** 4)
+    mean_fourth = sum(fourth_powers) / len(fourth_powers)
+    np_val = mean_fourth ** 0.25
+    return round(np_val, 1) if np_val > 0 else None
 
 
 def compute_ef(np: float, avg_hr: int) -> float | None:
@@ -191,43 +211,33 @@ def recalculate_fitness(conn):
         _db.set_sync_state(conn, "metrics_version", METRICS_VERSION)
 
     # Step 1: Compute NP, EF, Work for activities with power stream data
-    # NP must be computed BEFORE TSS because TSS uses NP (Coggan standard)
+    # NP uses 30-second EWMA (Coggan standard), computed in Python
     print("[fitness] Computing NP/EF/Work...")
     with conn.cursor() as cur:
         cur.execute("""
-            SELECT a.id, a.avg_hr, a.avg_power, a.duration_s
+            SELECT a.id, a.avg_hr, a.avg_power
             FROM activities a
-            JOIN activity_streams s ON s.activity_id = a.id
-            WHERE s.power IS NOT NULL AND s.power > 0
-              AND a.np IS NULL
-            GROUP BY a.id, a.avg_hr, a.avg_power, a.duration_s
-            HAVING COUNT(*) > 30
+            WHERE a.np IS NULL AND a.date IS NOT NULL
+              AND EXISTS (
+                  SELECT 1 FROM activity_streams s
+                  WHERE s.activity_id = a.id AND s.power IS NOT NULL
+                  GROUP BY s.activity_id HAVING COUNT(*) > 30
+              )
         """)
         power_activities = cur.fetchall()
 
     np_count = 0
-    for act_id, avg_hr, avg_power, duration_s in power_activities:
+    for act_id, avg_hr, avg_power in power_activities:
         with conn.cursor() as cur:
             cur.execute("""
-                WITH rolling AS (
-                    SELECT
-                        AVG(power) OVER (
-                            ORDER BY time_offset
-                            ROWS BETWEEN 29 PRECEDING AND CURRENT ROW
-                        ) AS rolling_30s,
-                        power
-                    FROM activity_streams
-                    WHERE activity_id = %s AND power IS NOT NULL
-                )
-                SELECT
-                    POWER(AVG(POWER(rolling_30s, 4)), 0.25),
-                    ROUND((SUM(power) / 1000.0)::numeric, 1)
-                FROM rolling
-                WHERE rolling_30s IS NOT NULL
+                SELECT power FROM activity_streams
+                WHERE activity_id = %s AND power IS NOT NULL
+                ORDER BY time_offset
             """, (act_id,))
-            row = cur.fetchone()
-            np_val = round(row[0], 1) if row and row[0] else None
-            work_val = float(row[1]) if row and row[1] else None
+            power_samples = [r[0] for r in cur.fetchall()]
+            work_val = round(sum(power_samples) / 1000.0, 1)
+
+        np_val = compute_np(power_samples)
 
         if np_val:
             ef_val = compute_ef(np_val, avg_hr)
