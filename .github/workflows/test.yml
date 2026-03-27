@@ -23,7 +23,8 @@ jobs:
         if: env.GITEA_ACTIONS == 'true'
         run: |
           python3.12 -m venv --without-pip /tmp/velomate-ci-venv
-          curl -sS https://bootstrap.pypa.io/get-pip.py | /tmp/velomate-ci-venv/bin/python3
+          curl -sS https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py
+          /tmp/velomate-ci-venv/bin/python3 /tmp/get-pip.py --force-reinstall
           echo "/tmp/velomate-ci-venv/bin" >> $GITHUB_PATH
 
       - name: Install dependencies
