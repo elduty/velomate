@@ -90,3 +90,24 @@ Built a cycling data platform for my homelab — polls Strava, stores telemetry 
 Docker Compose, 3 containers, works with any cycling device that syncs to Strava.
 
 GitHub: https://github.com/elduty/velomate
+
+---
+
+## r/Velo — v1.2.0 update
+
+**Title:** VeloMate v1.2.0 — point-to-point route planning, destination flag
+
+Following up on the launch post — VeloMate now supports point-to-point routes. New `--destination` flag lets you plan rides to a specific place instead of just loops.
+
+**What's new in v1.2.0:**
+- `--destination Cascais` or `--destination "38.69,-9.42"` — plan a route to a named place or coordinates
+- All location flags (`--start`, `--waypoints`, `--destination`) accept both place names and lat/lng
+- Waypoints along the way: `--destination Cascais --waypoints "Oeiras;Estoril"`
+- There-and-back: `--destination Cascais --loop` uses the destination as the turnaround point
+- If you set a target distance longer than the direct route, smart corridor waypoints add scenic detours to pad it
+
+**Breaking:** Waypoints separator changed from comma to semicolon (commas now reserved for coordinates).
+
+Still self-hosted, still free, still no Strava Premium needed for the analytics side. 370 tests.
+
+GitHub: https://github.com/elduty/velomate
