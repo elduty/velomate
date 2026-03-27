@@ -47,3 +47,35 @@ def geocode_many(places: list, near_lat: float = 0, near_lng: float = 0) -> list
         if result:
             results.append(result)
     return results
+
+
+def parse_location(value: str, near_lat: float = 0, near_lng: float = 0) -> dict | None:
+    """Parse a location string as coordinates ('lat,lng') or place name.
+
+    Returns {"lat": float, "lng": float, "name": str} or None if not resolved.
+    """
+    if not value or not value.strip():
+        return None
+
+    value = value.strip()
+
+    # Try to parse as "lat,lng" coordinates
+    parts = value.split(",")
+    if len(parts) == 2:
+        try:
+            lat = float(parts[0].strip())
+            lng = float(parts[1].strip())
+            if -90 <= lat <= 90 and -180 <= lng <= 180:
+                return {"lat": lat, "lng": lng, "name": f"{lat},{lng}"}
+        except ValueError:
+            pass
+
+    # Fall back to geocoding
+    result = geocode(value, near_lat, near_lng)
+    if result:
+        return {
+            "lat": result["lat"],
+            "lng": result["lng"],
+            "name": result["display_name"].split(",")[0],
+        }
+    return None

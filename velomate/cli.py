@@ -58,17 +58,28 @@ def cmd_plan(args):
     home = cfg["home"]
 
     if args.start:
-        parts = args.start.split(",")
-        if len(parts) != 2:
-            print("Error: --start must be 'lat,lng' (e.g. '38.72,-9.14')", file=sys.stderr)
+        from velomate.geocode import parse_location
+        loc = parse_location(args.start, home["lat"], home["lng"])
+        if not loc:
+            print(f"Error: could not resolve start location '{args.start}'", file=sys.stderr)
             return
-        try:
-            home_lat, home_lng = float(parts[0]), float(parts[1])
-        except ValueError:
-            print("Error: --start must be 'lat,lng' with numeric values", file=sys.stderr)
-            return
+        home_lat, home_lng = loc["lat"], loc["lng"]
     else:
         home_lat, home_lng = home["lat"], home["lng"]
+
+    # Parse destination
+    destination = None
+    if args.destination:
+        from velomate.geocode import parse_location
+        destination = parse_location(args.destination, home_lat, home_lng)
+        if not destination:
+            print(f"Error: could not resolve destination '{args.destination}'", file=sys.stderr)
+            return
+
+    # Validate: need duration/distance OR destination
+    if not args.duration and not args.distance and not destination:
+        print("Error: provide --duration, --distance, or --destination", file=sys.stderr)
+        return
 
     result = plan(
         duration_str=args.duration,
@@ -83,6 +94,7 @@ def cmd_plan(args):
         preference=args.preference,
         safety=args.safety,
         output_dir=args.output,
+        destination=destination,
     )
     print(result)
 
@@ -96,13 +108,14 @@ def main():
 
     # Plan subcommand
     plan_parser = subparsers.add_parser("plan", help="Plan a cycling route")
-    target = plan_parser.add_mutually_exclusive_group(required=True)
+    target = plan_parser.add_mutually_exclusive_group(required=False)
     target.add_argument("--duration", "-d", help="Ride duration (e.g. 2h, 1h30m, 90min)")
     target.add_argument("--distance", "-k", help="Target distance in km (e.g. 30, 50km)")
+    plan_parser.add_argument("--destination", "-D", default=None, help="Destination as place name or 'lat,lng'")
     plan_parser.add_argument("--surface", "-s", default="road", choices=["road", "gravel", "mtb"], help="Surface type (default: road)")
-    plan_parser.add_argument("--loop", "-l", action="store_true", default=True, help="Round-trip (default: true)")
+    plan_parser.add_argument("--loop", "-l", action="store_true", default=None, help="Round-trip route")
     plan_parser.add_argument("--no-loop", action="store_false", dest="loop", help="One-way route")
-    plan_parser.add_argument("--waypoints", "-w", default=None, help="Comma-separated place names to route through")
+    plan_parser.add_argument("--waypoints", "-w", default=None, help="Semicolon-separated locations to route through")
     plan_parser.add_argument("--date", default="tomorrow", help="When to ride (default: tomorrow)")
     plan_parser.add_argument("--time", "-t", default=None, help="Start time (e.g. 14:00, 2pm, 9am)")
     plan_parser.add_argument("--start", default=None, help="Start location as 'lat,lng' (default: from config)")

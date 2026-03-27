@@ -583,6 +583,56 @@ def _density_at(density: dict, lat: float, lng: float, grid_size: float = 0.005)
     return min(1.0, count / 10.0)
 
 
+def corridor_waypoints(
+    start_lat: float, start_lng: float,
+    dest_lat: float, dest_lng: float,
+    target_km: float, baseline_km: float,
+    max_waypoints: int = 3,
+) -> list[dict]:
+    """Generate waypoints in a corridor between start and destination to pad route distance.
+
+    When the direct route (baseline_km) is shorter than target_km, places waypoints
+    in an elliptical corridor to add distance.
+
+    Returns list of {"lat": float, "lng": float} dicts, or empty list if no padding needed.
+    """
+    if baseline_km >= target_km:
+        return []
+
+    mid_lat = (start_lat + dest_lat) / 2
+    mid_lng = (start_lng + dest_lng) / 2
+
+    dlat = dest_lat - start_lat
+    dlng = dest_lng - start_lng
+    straight_km = math.sqrt((dlat * 111) ** 2 + (dlng * 111 * math.cos(math.radians(mid_lat))) ** 2)
+
+    if straight_km < 1:
+        return []
+
+    extra_km = target_km - baseline_km
+    offset_km = extra_km / (2 * max_waypoints) * 1.2
+    offset_lat = offset_km / 111
+    offset_lng = offset_km / (111 * math.cos(math.radians(mid_lat)))
+
+    bearing = math.atan2(dlng, dlat)
+    perp = bearing + math.pi / 2
+
+    waypoints = []
+    for i in range(max_waypoints):
+        t = (i + 1) / (max_waypoints + 1)
+        base_lat = start_lat + dlat * t
+        base_lng = start_lng + dlng * t
+        sign = 1 if i % 2 == 0 else -1
+        wp_lat = base_lat + sign * offset_lat * math.sin(perp)
+        wp_lng = base_lng + sign * offset_lng * math.cos(perp)
+        waypoints.append({
+            "lat": round(wp_lat, 5),
+            "lng": round(wp_lng, 5),
+        })
+
+    return waypoints
+
+
 def smart_waypoints(
     lat: float, lng: float, target_km: float, surface: str,
     max_waypoints: int = 3,

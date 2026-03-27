@@ -110,6 +110,8 @@ def generate(
     output_path: str = None,
     waypoints: list = None,
     safety: float = 0.5,
+    destination: dict = None,
+    loop: bool = True,
 ) -> dict:
     """Generate a cycling loop GPX route.
 
@@ -120,7 +122,10 @@ def generate(
       - error: error message (if failed)
     """
     if name is None:
-        name = f"VeloMate {target_km:.0f}km {surface.title()} Loop"
+        if destination:
+            name = f"VeloMate {target_km:.0f}km {surface.title()} to {destination.get('name', 'destination')}"
+        else:
+            name = f"VeloMate {target_km:.0f}km {surface.title()} Loop"
     if output_path is None:
         output_path = f"/tmp/velomate_route_{surface}_{target_km:.0f}km.gpx"
 
@@ -138,16 +143,23 @@ def generate(
             costing_options = {}
         costing_options["use_roads"] = round(1.0 - safety, 1)
 
-    # Build loop waypoints — use provided waypoints or auto-generate a circular loop
+    # Build location list — loop, destination one-way, or destination round-trip
+    start = {"lat": start_lat, "lon": start_lng}
     if waypoints:
         loop_pts = [{"lat": w["lat"], "lon": w["lon"]} for w in waypoints]
-    else:
+    elif not destination:
         loop_pts = _loop_waypoints(start_lat, start_lng, target_km)
-    locations = (
-        [{"lat": start_lat, "lon": start_lng}]
-        + loop_pts
-        + [{"lat": start_lat, "lon": start_lng}]
-    )
+    else:
+        loop_pts = []
+
+    if destination:
+        dest = {"lat": destination["lat"], "lon": destination["lng"]}
+        if loop:
+            locations = [start] + loop_pts + [dest, start]
+        else:
+            locations = [start] + loop_pts + [dest]
+    else:
+        locations = [start] + loop_pts + [start]
 
     payload = {
         "locations": locations,

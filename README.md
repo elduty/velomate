@@ -206,6 +206,19 @@ python3 -m velomate.cli plan --distance 50km --surface gravel
 python3 -m velomate.cli plan --duration 3h --waypoints "Sintra,Cascais"
 python3 -m velomate.cli plan --duration 1h --surface mtb --safety 1.0
 python3 -m velomate.cli plan --distance 30 --preference comfort
+
+# Plan a route to a destination
+python3 -m velomate.cli plan --destination Cascais
+python3 -m velomate.cli plan --destination "38.69,-9.42" --surface gravel
+
+# Destination with waypoints along the way
+python3 -m velomate.cli plan --destination Cascais --waypoints "Oeiras;Estoril"
+
+# There-and-back via destination
+python3 -m velomate.cli plan --destination Cascais --loop
+
+# Padded to target distance
+python3 -m velomate.cli plan --destination Cascais --distance 50km
 ```
 
 ### Plan flags
@@ -214,17 +227,18 @@ python3 -m velomate.cli plan --distance 30 --preference comfort
 |------|---------|-------------|
 | `--duration` | * | Ride time (`2h`, `1h30m`, `90min`) |
 | `--distance` | * | Target distance (`30`, `50km`) |
+| `--destination` | — | End point — place name or `lat,lng`. Auto-disables loop |
 | `--surface` | `road` | `road`, `gravel`, or `mtb` |
 | `--safety` | `0.5` | 0.0 = fastest, 1.0 = safest (prefers bike lanes) |
 | `--preference` | `variety` | `variety` (new roads) or `comfort` (familiar) |
-| `--waypoints` | — | Comma-separated place names |
+| `--waypoints` | — | Semicolon-separated locations (`Cascais;38.7,-9.14;Sintra`) |
 | `--date` | `tomorrow` | When to ride (`today`, `saturday`, `2026-03-20`) |
 | `--time` | — | Start time (`14:00`, `2pm`, `9am`) |
-| `--start` | from config | Override start as `lat,lng` |
-| `--loop` | true | Round-trip route |
+| `--start` | from config | Start location — place name or `lat,lng` |
+| `--loop` | true** | Round-trip route |
 | `--output DIR` | — | Save preview HTML to directory (instead of opening browser) |
 
-\* Provide either `--duration` or `--distance` (one required, mutually exclusive).
+\* Provide `--duration` or `--distance` (one required unless `--destination` is set, mutually exclusive). \*\* Loop defaults to false when `--destination` is set.
 
 ### Example output
 
