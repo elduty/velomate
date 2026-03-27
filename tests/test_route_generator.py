@@ -139,3 +139,102 @@ class TestBuildGpx:
     def test_gpx_namespace(self):
         gpx = _build_gpx([(38.7, -9.14)], "Test", "road")
         assert "topografix.com/GPX/1/1" in gpx
+
+
+# --- destination location building ---
+
+from unittest.mock import patch, MagicMock
+
+
+class TestDestinationLocations:
+    """Test that generate() builds correct location lists for destination routes."""
+
+    def _mock_valhalla(self, mock_post, length=30.0):
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {
+            "trip": {"summary": {"length": length}, "legs": [{"shape": "??"}]}
+        }
+        mock_resp.raise_for_status = MagicMock()
+        mock_post.return_value = mock_resp
+
+    @patch("velomate.route_generator.requests.post")
+    def test_destination_no_loop(self, mock_post):
+        """One-way destination: start -> destination, no return."""
+        self._mock_valhalla(mock_post)
+
+        from velomate.route_generator import generate
+        generate(start_lat=38.7, start_lng=-9.1, target_km=30,
+                 destination={"lat": 38.69, "lng": -9.42}, loop=False)
+
+        payload = mock_post.call_args[1]["json"]
+        locations = payload["locations"]
+        assert locations[0] == {"lat": 38.7, "lon": -9.1}
+        assert locations[-1] == {"lat": 38.69, "lon": -9.42}
+        # Should NOT end at start
+        assert locations[-1] != locations[0]
+
+    @patch("velomate.route_generator.requests.post")
+    def test_destination_with_loop(self, mock_post):
+        """Round-trip destination: start -> destination -> start."""
+        self._mock_valhalla(mock_post, length=60.0)
+
+        from velomate.route_generator import generate
+        generate(start_lat=38.7, start_lng=-9.1, target_km=60,
+                 destination={"lat": 38.69, "lng": -9.42}, loop=True)
+
+        payload = mock_post.call_args[1]["json"]
+        locations = payload["locations"]
+        assert locations[0] == {"lat": 38.7, "lon": -9.1}
+        assert locations[-2] == {"lat": 38.69, "lon": -9.42}
+        assert locations[-1] == {"lat": 38.7, "lon": -9.1}
+
+    @patch("velomate.route_generator.requests.post")
+    def test_destination_with_waypoints(self, mock_post):
+        """Destination with waypoints: start -> waypoint -> destination."""
+        self._mock_valhalla(mock_post, length=40.0)
+
+        from velomate.route_generator import generate
+        generate(start_lat=38.7, start_lng=-9.1, target_km=40,
+                 destination={"lat": 38.69, "lng": -9.42}, loop=False,
+                 waypoints=[{"lat": 38.70, "lon": -9.30}])
+
+        payload = mock_post.call_args[1]["json"]
+        locations = payload["locations"]
+        assert locations[0] == {"lat": 38.7, "lon": -9.1}
+        assert locations[1] == {"lat": 38.70, "lon": -9.30}
+        assert locations[-1] == {"lat": 38.69, "lon": -9.42}
+
+    @patch("velomate.route_generator.requests.post")
+    def test_no_destination_still_loops(self, mock_post):
+        """Without destination, route still loops back to start."""
+        self._mock_valhalla(mock_post)
+
+        from velomate.route_generator import generate
+        generate(start_lat=38.7, start_lng=-9.1, target_km=30)
+
+        payload = mock_post.call_args[1]["json"]
+        locations = payload["locations"]
+        assert locations[0] == {"lat": 38.7, "lon": -9.1}
+        assert locations[-1] == {"lat": 38.7, "lon": -9.1}
+
+    @patch("velomate.route_generator.requests.post")
+    def test_destination_default_name(self, mock_post):
+        """Destination route gets 'to <name>' in default name."""
+        self._mock_valhalla(mock_post)
+
+        from velomate.route_generator import generate
+        result = generate(start_lat=38.7, start_lng=-9.1, target_km=30,
+                          destination={"lat": 38.69, "lng": -9.42, "name": "Cascais"}, loop=False)
+
+        assert "Cascais" in result["name"]
+        assert "Loop" not in result["name"]
+
+    @patch("velomate.route_generator.requests.post")
+    def test_no_destination_default_name_says_loop(self, mock_post):
+        """Without destination, default name says Loop."""
+        self._mock_valhalla(mock_post)
+
+        from velomate.route_generator import generate
+        result = generate(start_lat=38.7, start_lng=-9.1, target_km=30)
+
+        assert "Loop" in result["name"]

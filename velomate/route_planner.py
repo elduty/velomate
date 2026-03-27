@@ -219,22 +219,32 @@ def parse_distance(distance_str: str) -> float | None:
 
 
 def plan(duration_str: str = None, distance_str: str = None,
-         surface: str = "road", loop: bool = True,
+         surface: str = "road", loop: bool = None,
          waypoints_str: str = None, date_str: str = "tomorrow",
          time_str: str = None,
          home_lat: float = None, home_lng: float = None,
          preference: str = "variety",
          safety: float = 0.5,
-         output_dir: str = None) -> str:
+         output_dir: str = None,
+         destination: dict = None) -> str:
     """Generate a cycling route. Accepts either duration or distance."""
     safety = max(0.0, min(1.0, safety))
+
+    # Resolve loop default: False when destination set, True otherwise
+    if loop is None:
+        if destination:
+            import logging
+            logging.warning("--destination set, defaulting to one-way route (use --loop to override)")
+            loop = False
+        else:
+            loop = True
 
     # Parse duration or distance
     duration_min = parse_duration(duration_str) if duration_str else None
     target_distance = parse_distance(distance_str) if distance_str else None
 
-    if not duration_min and not target_distance:
-        return "Error: provide --duration (e.g. 2h) or --distance (e.g. 30km)"
+    if not duration_min and not target_distance and not destination:
+        return "Error: provide --duration (e.g. 2h), --distance (e.g. 30km), or --destination"
 
     ride_date = resolve_date(date_str)
     ride_time = parse_time(time_str)
@@ -260,8 +270,21 @@ def plan(duration_str: str = None, distance_str: str = None,
         # Estimate duration for display
         speed = float(avg_speed) if avg_speed else DEFAULT_SPEEDS.get(surface, 22)
         duration_min = int(target_distance / speed * 60) if speed > 0 else 60
-    else:
+    elif duration_min:
         distance_km = estimate_distance(duration_min, surface, avg_speed)
+    elif destination:
+        # Destination-only: estimate distance from straight-line + road factor
+        import math
+        dlat = destination["lat"] - home_lat
+        dlng = destination["lng"] - home_lng
+        mid_lat = (home_lat + destination["lat"]) / 2
+        straight_km = math.sqrt((dlat * 111) ** 2 + (dlng * 111 * math.cos(math.radians(mid_lat))) ** 2)
+        distance_km = round(straight_km * 1.3, 1)
+        speed = float(avg_speed) if avg_speed else DEFAULT_SPEEDS.get(surface, 22)
+        duration_min = int(distance_km / speed * 60) if speed > 0 else 60
+        if loop:
+            distance_km = distance_km * 2
+            duration_min = duration_min * 2
     distance_km, fitness_note = adjust_for_fitness(distance_km, fitness.get("tsb"))
 
     # Weather check
@@ -283,12 +306,13 @@ def plan(duration_str: str = None, distance_str: str = None,
     valhalla_waypoints = []
     preview_waypoints = []  # full data for map preview
     if waypoints_str:
-        from velomate.geocode import geocode_many
-        places = [p.strip() for p in waypoints_str.split(",")]
-        geocoded = geocode_many(places, home_lat, home_lng)
-        waypoint_names = [g["display_name"].split(",")[0] for g in geocoded]
+        from velomate.geocode import parse_location
+        places = [p.strip() for p in waypoints_str.split(";")]
+        geocoded = [parse_location(p, home_lat, home_lng) for p in places if p]
+        geocoded = [g for g in geocoded if g]  # filter failed lookups
+        waypoint_names = [g["name"] for g in geocoded]
         valhalla_waypoints = [{"lat": g["lat"], "lon": g["lng"]} for g in geocoded]
-        preview_waypoints = [{"lat": g["lat"], "lng": g["lng"], "name": g["display_name"].split(",")[0], "reason": "user waypoint"} for g in geocoded]
+        preview_waypoints = [{"lat": g["lat"], "lng": g["lng"], "name": g["name"], "reason": "user waypoint"} for g in geocoded]
     else:
         # No explicit waypoints — use route intelligence for smart placement
         try:
@@ -304,8 +328,45 @@ def plan(duration_str: str = None, distance_str: str = None,
         except Exception as e:
             print(f"  [intelligence] Skipped: {e}", file=sys.stderr)
 
+    # Distance padding for destination routes
+    if destination and (target_distance or duration_min) and not waypoints_str:
+        import math
+        dlat = destination["lat"] - home_lat
+        dlng = destination["lng"] - home_lng
+        mid_lat = (home_lat + destination["lat"]) / 2
+        straight_km = math.sqrt((dlat * 111) ** 2 + (dlng * 111 * math.cos(math.radians(mid_lat))) ** 2)
+        baseline_km = straight_km * 1.3  # road factor
+
+        if baseline_km >= distance_km:
+            import logging
+            logging.warning(
+                "Direct route to %s is ~%.0fkm, exceeding --%s %.0fkm — routing directly",
+                destination["name"], baseline_km,
+                "distance" if target_distance else "duration",
+                distance_km,
+            )
+        else:
+            try:
+                from velomate.route_intelligence import corridor_waypoints
+                corridor = corridor_waypoints(
+                    home_lat, home_lng,
+                    destination["lat"], destination["lng"],
+                    target_km=distance_km, baseline_km=baseline_km,
+                )
+                if corridor:
+                    valhalla_waypoints = [{"lat": w["lat"], "lon": w["lng"]} for w in corridor]
+                    print(f"  Added {len(corridor)} corridor waypoints for distance padding", file=sys.stderr)
+            except Exception as e:
+                print(f"  [corridor] Skipped: {e}", file=sys.stderr)
+    elif destination and waypoints_str and (target_distance or duration_min):
+        import logging
+        logging.warning("Explicit waypoints provided — ignoring --%s for padding",
+                        "distance" if target_distance else "duration")
+
     # Generate real GPX route via Valhalla
-    if target_distance:
+    if destination:
+        route_name = f"VeloMate {surface.title()} to {destination['name']}"
+    elif target_distance:
         route_name = f"VeloMate {target_distance:.0f}km {surface.title()}"
     else:
         route_name = f"VeloMate {duration_min // 60}h{duration_min % 60:02d}m {surface.title()}"
@@ -323,6 +384,8 @@ def plan(duration_str: str = None, distance_str: str = None,
         name=route_name,
         waypoints=valhalla_waypoints if valhalla_waypoints else None,
         safety=safety,
+        destination=destination,
+        loop=loop,
     )
 
     if "error" in result:

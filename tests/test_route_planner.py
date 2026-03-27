@@ -245,3 +245,240 @@ class TestAnalyzeWind:
         result = _analyze_wind(coords, wind_dir=0, wind_speed=30)
         assert result is not None
         assert "N" in result
+
+
+# --- waypoint parsing ---
+
+
+from unittest.mock import patch, MagicMock
+
+
+class TestWaypointParsing:
+    """Test that plan() parses semicolon-separated waypoints via parse_location."""
+
+    @patch("velomate.route_generator.generate")
+    @patch("velomate.route_planner._get_strava_token")
+    @patch("velomate.geocode.geocode")
+    @patch("velomate.db.get_connection", return_value=None)
+    @patch("velomate.weather.fetch_forecast", return_value=[])
+    def test_semicolon_separator(self, mock_weather, mock_db, mock_geocode, mock_token, mock_generate):
+        """Semicolon-separated waypoints should each be geocoded."""
+        mock_geocode.side_effect = [
+            {"lat": 38.69, "lng": -9.42, "display_name": "Cascais, Portugal"},
+            {"lat": 38.70, "lng": -9.40, "display_name": "Estoril, Portugal"},
+        ]
+        mock_token.return_value = None
+        mock_generate.return_value = {
+            "gpx_path": "/tmp/test.gpx",
+            "actual_km": 30.0,
+            "name": "test",
+            "coords": [(38.7, -9.1), (38.69, -9.42)],
+        }
+
+        from velomate.route_planner import plan
+        plan(
+            distance_str="30km",
+            home_lat=38.7, home_lng=-9.1,
+            waypoints_str="Cascais;Estoril",
+        )
+
+        assert mock_geocode.call_count == 2
+        mock_geocode.assert_any_call("Cascais", 38.7, -9.1)
+        mock_geocode.assert_any_call("Estoril", 38.7, -9.1)
+
+    @patch("velomate.route_generator.generate")
+    @patch("velomate.route_planner._get_strava_token")
+    @patch("velomate.geocode.geocode")
+    @patch("velomate.db.get_connection", return_value=None)
+    @patch("velomate.weather.fetch_forecast", return_value=[])
+    def test_single_waypoint_no_semicolon(self, mock_weather, mock_db, mock_geocode, mock_token, mock_generate):
+        """Single waypoint without semicolon still works."""
+        mock_geocode.return_value = {"lat": 38.69, "lng": -9.42, "display_name": "Cascais, Portugal"}
+        mock_token.return_value = None
+        mock_generate.return_value = {
+            "gpx_path": "/tmp/test.gpx",
+            "actual_km": 30.0,
+            "name": "test",
+            "coords": [(38.7, -9.1), (38.69, -9.42)],
+        }
+
+        from velomate.route_planner import plan
+        plan(
+            distance_str="30km",
+            home_lat=38.7, home_lng=-9.1,
+            waypoints_str="Cascais",
+        )
+
+        mock_geocode.assert_called_once_with("Cascais", 38.7, -9.1)
+
+
+# --- destination integration ---
+
+import logging
+
+
+class TestPlanWithDestination:
+    """Integration tests for plan() with --destination."""
+
+    @patch("velomate.route_generator.generate")
+    @patch("velomate.route_planner._get_strava_token")
+    @patch("velomate.db.get_connection", return_value=None)
+    @patch("velomate.weather.fetch_forecast", return_value=[])
+    def test_destination_only_no_distance(self, mock_weather, mock_db, mock_token, mock_generate):
+        mock_token.return_value = None
+        mock_generate.return_value = {
+            "gpx_path": "/tmp/test.gpx", "actual_km": 35.0,
+            "name": "test", "coords": [(38.7, -9.1), (38.69, -9.42)],
+        }
+        from velomate.route_planner import plan
+        result = plan(
+            home_lat=38.7, home_lng=-9.14,
+            destination={"lat": 38.69, "lng": -9.42, "name": "Cascais"},
+        )
+        assert "Error" not in result
+        call_kwargs = mock_generate.call_args[1]
+        assert call_kwargs["destination"] == {"lat": 38.69, "lng": -9.42, "name": "Cascais"}
+
+    @patch("velomate.route_generator.generate")
+    @patch("velomate.route_planner._get_strava_token")
+    @patch("velomate.db.get_connection", return_value=None)
+    @patch("velomate.weather.fetch_forecast", return_value=[])
+    def test_destination_no_loop(self, mock_weather, mock_db, mock_token, mock_generate):
+        mock_token.return_value = None
+        mock_generate.return_value = {
+            "gpx_path": "/tmp/test.gpx", "actual_km": 30.0,
+            "name": "test", "coords": [(38.7, -9.1), (38.69, -9.42)],
+        }
+        from velomate.route_planner import plan
+        plan(
+            home_lat=38.7, home_lng=-9.14,
+            destination={"lat": 38.69, "lng": -9.42, "name": "Cascais"},
+            loop=False,
+        )
+        assert mock_generate.call_args[1]["loop"] is False
+
+    @patch("velomate.route_generator.generate")
+    @patch("velomate.route_planner._get_strava_token")
+    @patch("velomate.db.get_connection", return_value=None)
+    @patch("velomate.weather.fetch_forecast", return_value=[])
+    def test_destination_with_loop_doubles_distance(self, mock_weather, mock_db, mock_token, mock_generate):
+        mock_token.return_value = None
+        mock_generate.return_value = {
+            "gpx_path": "/tmp/test.gpx", "actual_km": 60.0,
+            "name": "test", "coords": [(38.7, -9.1), (38.69, -9.42), (38.7, -9.1)],
+        }
+        from velomate.route_planner import plan
+        plan(
+            home_lat=38.7, home_lng=-9.14,
+            destination={"lat": 38.69, "lng": -9.42, "name": "Cascais"},
+            loop=True,
+        )
+        assert mock_generate.call_args[1]["loop"] is True
+        assert mock_generate.call_args[1]["target_km"] > 40
+
+    @patch("velomate.route_generator.generate")
+    @patch("velomate.route_planner._get_strava_token")
+    @patch("velomate.db.get_connection", return_value=None)
+    @patch("velomate.weather.fetch_forecast", return_value=[])
+    def test_destination_auto_disables_loop_in_plan(self, mock_weather, mock_db, mock_token, mock_generate):
+        """plan() with destination and loop=None should auto-set loop=False."""
+        mock_token.return_value = None
+        mock_generate.return_value = {
+            "gpx_path": "/tmp/test.gpx", "actual_km": 30.0,
+            "name": "test", "coords": [(38.7, -9.1), (38.69, -9.42)],
+        }
+        from velomate.route_planner import plan
+        plan(
+            home_lat=38.7, home_lng=-9.14,
+            destination={"lat": 38.69, "lng": -9.42, "name": "Cascais"},
+            # loop not passed — defaults to None, should resolve to False
+        )
+        assert mock_generate.call_args[1]["loop"] is False
+
+    def test_no_destination_no_distance_errors(self):
+        from velomate.route_planner import plan
+        result = plan(home_lat=38.7, home_lng=-9.14)
+        assert "Error" in result
+
+    @patch("velomate.route_generator.generate")
+    @patch("velomate.route_planner._get_strava_token")
+    @patch("velomate.db.get_connection", return_value=None)
+    @patch("velomate.weather.fetch_forecast", return_value=[])
+    def test_route_name_includes_destination(self, mock_weather, mock_db, mock_token, mock_generate):
+        mock_token.return_value = None
+        mock_generate.return_value = {
+            "gpx_path": "/tmp/test.gpx", "actual_km": 30.0,
+            "name": "test", "coords": [(38.7, -9.1), (38.69, -9.42)],
+        }
+        from velomate.route_planner import plan
+        plan(
+            home_lat=38.7, home_lng=-9.14,
+            destination={"lat": 38.69, "lng": -9.42, "name": "Cascais"},
+            loop=False,
+        )
+        assert "Cascais" in mock_generate.call_args[1]["name"]
+
+    @patch("velomate.route_generator.generate")
+    @patch("velomate.route_planner._get_strava_token")
+    @patch("velomate.db.get_connection", return_value=None)
+    @patch("velomate.weather.fetch_forecast", return_value=[])
+    def test_destination_valid_without_duration_or_distance(self, mock_weather, mock_db, mock_token, mock_generate):
+        mock_token.return_value = None
+        mock_generate.return_value = {
+            "gpx_path": "/tmp/test.gpx", "actual_km": 30.0,
+            "name": "test", "coords": [(38.7, -9.1), (38.69, -9.42)],
+        }
+        from velomate.route_planner import plan
+        result = plan(
+            home_lat=38.7, home_lng=-9.14,
+            destination={"lat": 38.69, "lng": -9.42, "name": "Cascais"},
+            loop=False,
+        )
+        assert "Error" not in result
+
+
+class TestDestinationWarnings:
+    """Test that log warnings fire for flag clashes."""
+
+    @patch("velomate.route_generator.generate")
+    @patch("velomate.route_planner._get_strava_token")
+    @patch("velomate.db.get_connection", return_value=None)
+    @patch("velomate.weather.fetch_forecast", return_value=[])
+    def test_warns_baseline_exceeds_target(self, mock_weather, mock_db, mock_token, mock_generate, caplog):
+        mock_token.return_value = None
+        mock_generate.return_value = {
+            "gpx_path": "/tmp/test.gpx", "actual_km": 10.0,
+            "name": "test", "coords": [(38.7, -9.1), (38.69, -9.42)],
+        }
+        from velomate.route_planner import plan
+        with caplog.at_level(logging.WARNING):
+            plan(
+                distance_str="10km",
+                home_lat=38.7, home_lng=-9.14,
+                destination={"lat": 38.69, "lng": -9.42, "name": "Cascais"},
+                loop=False,
+            )
+        assert any("routing directly" in r.message.lower() for r in caplog.records)
+
+    @patch("velomate.route_generator.generate")
+    @patch("velomate.route_planner._get_strava_token")
+    @patch("velomate.geocode.parse_location")
+    @patch("velomate.db.get_connection", return_value=None)
+    @patch("velomate.weather.fetch_forecast", return_value=[])
+    def test_warns_explicit_waypoints_skip_padding(self, mock_weather, mock_db, mock_parse, mock_token, mock_generate, caplog):
+        mock_parse.return_value = {"lat": 38.70, "lng": -9.30, "name": "Oeiras"}
+        mock_token.return_value = None
+        mock_generate.return_value = {
+            "gpx_path": "/tmp/test.gpx", "actual_km": 40.0,
+            "name": "test", "coords": [(38.7, -9.1), (38.70, -9.30), (38.69, -9.42)],
+        }
+        from velomate.route_planner import plan
+        with caplog.at_level(logging.WARNING):
+            plan(
+                distance_str="50km",
+                home_lat=38.7, home_lng=-9.14,
+                destination={"lat": 38.69, "lng": -9.42, "name": "Cascais"},
+                waypoints_str="Oeiras",
+                loop=False,
+            )
+        assert any("ignoring" in r.message.lower() for r in caplog.records)
