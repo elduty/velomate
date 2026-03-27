@@ -36,7 +36,7 @@ git remote get-url github >/dev/null 2>&1 || { echo "ERROR: 'github' remote not 
 
 # Fetch latest
 git fetch origin
-git fetch github
+git fetch github 2>/dev/null || echo "  Warning: could not fetch github (may be first push)"
 
 # Detect relationship between Gitea and GitHub histories
 DIVERGED=false
@@ -59,14 +59,14 @@ if [ "$DIVERGED" = false ] && [ "$NEW_COMMITS" -eq 0 ]; then
     exit 0
 fi
 
-# Block non-diverged push if excluded files are tracked (they'd leak to GitHub)
+# Check if excluded files are tracked — forces snapshot mode
 if [ "$DIVERGED" = false ]; then
     TREE=$(git ls-tree origin/main --name-only -r)
     for f in "${EXCLUDE_FROM_GITHUB[@]}"; do
         if echo "$TREE" | grep -q "^${f}\(/\|$\)"; then
-            echo "ERROR: '$f' is tracked on origin/main but excluded from GitHub."
-            echo "Histories must diverge to filter files. Force diverged push or remove the file."
-            exit 1
+            echo "  Excluded file '$f' is tracked — using snapshot mode."
+            DIVERGED=true
+            break
         fi
     done
 fi
@@ -122,25 +122,33 @@ if [ "$DIVERGED" = true ]; then
         fi
     done
     git add -A
-    # Build a meaningful commit message from new commits since last GitHub sync
-    LAST_GITHUB_SHA=$(git log github/main -1 --format='%s' | sed -n 's/.*(\([a-f0-9]*\)).*/\1/p')
+
+    # Check for actual changes
+    if git diff --cached --quiet 2>/dev/null; then
+        echo "Nothing to push — GitHub is up to date."
+        exit 0
+    fi
+
+    # Auto-generate commit message from Gitea commits since last sync
+    LAST_GITHUB_SHA=$(git log github/main -1 --format='%s' 2>/dev/null \
+        | sed -n 's/.*(\([a-f0-9]*\)).*/\1/p')
     if [ -n "$LAST_GITHUB_SHA" ] && git cat-file -t "$LAST_GITHUB_SHA" >/dev/null 2>&1; then
-        # Summarise: take unique prefixes (feat/fix/docs/etc) + first commit subject
         SUBJECTS=$(git log "$LAST_GITHUB_SHA..origin/main" --format='%s' --no-merges)
     else
         SUBJECTS=$(git log origin/main --format='%s' --no-merges -20)
     fi
-    # Extract category prefixes (feat, fix, docs, etc.) and deduplicate
     CATEGORIES=$(echo "$SUBJECTS" | sed -n 's/^\([a-z]*\):.*/\1/p' | sort -u | paste -sd ', ' -)
     FIRST_SUBJECT=$(echo "$SUBJECTS" | head -1)
-    if [ -n "$CATEGORIES" ]; then
+    if [ -n "$FIRST_SUBJECT" ] && [ -n "$CATEGORIES" ]; then
         COMMIT_MSG="$FIRST_SUBJECT
 
 Includes: $CATEGORIES changes since $SOURCE_SHA"
-    else
+    elif [ -n "$FIRST_SUBJECT" ]; then
         COMMIT_MSG="$FIRST_SUBJECT"
+    else
+        COMMIT_MSG="update from upstream ($SOURCE_SHA)"
     fi
-    git commit -m "$COMMIT_MSG" --allow-empty
+    git commit -m "$COMMIT_MSG"
     git push github _github_push:main --force-with-lease
 else
     git push github origin/main:main
