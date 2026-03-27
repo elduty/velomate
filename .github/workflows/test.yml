@@ -23,7 +23,7 @@ jobs:
         if: env.GITEA_ACTIONS == 'true'
         run: |
           python3.12 -m venv /tmp/velomate-ci-venv
-          /tmp/velomate-ci-venv/bin/python3 -m ensurepip --upgrade
+          curl -sS https://bootstrap.pypa.io/get-pip.py | /tmp/velomate-ci-venv/bin/python3
           echo "/tmp/velomate-ci-venv/bin" >> $GITHUB_PATH
 
       - name: Install dependencies
