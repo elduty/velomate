@@ -1,9 +1,11 @@
 #!/bin/bash
 # Push Gitea main to GitHub.
-# Usage: bash scripts/push-to-github.sh
+# Usage: bash scripts/push-to-github.sh ["optional commit message override"]
 set -e
 
 cd "$(git rev-parse --show-toplevel)"
+
+MESSAGE="${1:-}"  # Optional override; auto-generated if empty
 
 # Abort if working tree is dirty
 if ! git diff --quiet || ! git diff --cached --quiet; then
@@ -129,24 +131,28 @@ if [ "$DIVERGED" = true ]; then
         exit 0
     fi
 
-    # Auto-generate commit message from Gitea commits since last sync
-    LAST_GITHUB_SHA=$(git log github/main -1 --format='%s' 2>/dev/null \
-        | sed -n 's/.*(\([a-f0-9]*\)).*/\1/p')
-    if [ -n "$LAST_GITHUB_SHA" ] && git cat-file -t "$LAST_GITHUB_SHA" >/dev/null 2>&1; then
-        SUBJECTS=$(git log "$LAST_GITHUB_SHA..origin/main" --format='%s' --no-merges)
+    # Build commit message: explicit override > auto-generated > fallback
+    if [ -n "$MESSAGE" ]; then
+        COMMIT_MSG="$MESSAGE"
     else
-        SUBJECTS=$(git log origin/main --format='%s' --no-merges -20)
-    fi
-    CATEGORIES=$(echo "$SUBJECTS" | sed -n 's/^\([a-z]*\):.*/\1/p' | sort -u | paste -sd ', ' -)
-    FIRST_SUBJECT=$(echo "$SUBJECTS" | head -1)
-    if [ -n "$FIRST_SUBJECT" ] && [ -n "$CATEGORIES" ]; then
-        COMMIT_MSG="$FIRST_SUBJECT
+        LAST_GITHUB_SHA=$(git log github/main -1 --format='%s' 2>/dev/null \
+            | sed -n 's/.*(\([a-f0-9]*\)).*/\1/p')
+        if [ -n "$LAST_GITHUB_SHA" ] && git cat-file -t "$LAST_GITHUB_SHA" >/dev/null 2>&1; then
+            SUBJECTS=$(git log "$LAST_GITHUB_SHA..origin/main" --format='%s' --no-merges)
+        else
+            SUBJECTS=$(git log origin/main --format='%s' --no-merges -20)
+        fi
+        CATEGORIES=$(echo "$SUBJECTS" | sed -n 's/^\([a-z]*\):.*/\1/p' | sort -u | paste -sd ', ' -)
+        FIRST_SUBJECT=$(echo "$SUBJECTS" | head -1)
+        if [ -n "$FIRST_SUBJECT" ] && [ -n "$CATEGORIES" ]; then
+            COMMIT_MSG="$FIRST_SUBJECT
 
 Includes: $CATEGORIES changes since $SOURCE_SHA"
-    elif [ -n "$FIRST_SUBJECT" ]; then
-        COMMIT_MSG="$FIRST_SUBJECT"
-    else
-        COMMIT_MSG="update from upstream ($SOURCE_SHA)"
+        elif [ -n "$FIRST_SUBJECT" ]; then
+            COMMIT_MSG="$FIRST_SUBJECT"
+        else
+            COMMIT_MSG="update from upstream ($SOURCE_SHA)"
+        fi
     fi
     git commit -m "$COMMIT_MSG"
     git push github _github_push:main --force-with-lease
