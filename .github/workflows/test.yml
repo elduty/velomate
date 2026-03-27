@@ -22,7 +22,7 @@ jobs:
       - name: Set up venv (Gitea)
         if: env.GITEA_ACTIONS == 'true'
         run: |
-          python3.12 -m venv /tmp/velomate-ci-venv
+          python3.12 -m venv --without-pip /tmp/velomate-ci-venv
           curl -sS https://bootstrap.pypa.io/get-pip.py | /tmp/velomate-ci-venv/bin/python3
           echo "/tmp/velomate-ci-venv/bin" >> $GITHUB_PATH
 
