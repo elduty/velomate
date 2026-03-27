@@ -1,3 +1,38 @@
+# VeloMate v1.2.0
+
+Plan point-to-point routes with a new `--destination` flag. All location flags now accept both place names and coordinates.
+
+## What's New
+
+- **`--destination` flag** — plan routes to a named place or coordinates (`--destination Cascais` or `--destination "38.69,-9.42"`)
+- **Unified location parsing** — `--start`, `--waypoints`, and `--destination` all accept place names and `lat,lng`
+- **Corridor waypoints** — when destination + distance is set and the direct route is shorter than target, smart waypoints pad the distance via scenic detours
+- **There-and-back routing** — `--destination Cascais --loop` routes to the destination and back home
+- **Coordinate bounds validation** — rejects out-of-range lat/lng before they reach Valhalla
+
+## Breaking Changes
+
+- **Waypoints separator** changed from comma to semicolon: `--waypoints "Cascais;Estoril"` (commas reserved for coordinate notation)
+
+## Other Changes
+
+- `--duration`/`--distance` now optional when `--destination` is set
+- `--loop` auto-disables with `--destination` (override with explicit `--loop`)
+- Log warnings for flag clashes (baseline exceeds target, explicit waypoints skip padding)
+- CI venv pip bootstrap fix for macOS runner
+- 370 tests (up from 331)
+
+## Usage
+
+```bash
+python3 -m velomate.cli plan --destination Cascais
+python3 -m velomate.cli plan --destination Cascais --waypoints "Oeiras;Estoril"
+python3 -m velomate.cli plan --destination Cascais --loop
+python3 -m velomate.cli plan --destination Cascais --distance 50km
+```
+
+---
+
 # VeloMate v1.1.0
 
 All metrics now computed by the ingestor and stored in the database. Grafana reads stored values — no more inline recomputation.
