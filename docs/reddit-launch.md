@@ -16,10 +16,10 @@ I've been running TeslaMate for my car and loved the approach — pull data from
 - Polls Strava every 10 minutes for new rides (any device that syncs to Strava works)
 - Stores full per-second telemetry in PostgreSQL
 - Computes all the metrics Strava locks behind Premium — fitness (CTL/ATL/TSB), Normalized Power, training load, TRIMP, power zones — locally from raw data
-- Serves 3 Grafana dashboards with 98 panels
+- Serves 3 Grafana dashboards with 98 panels across 12 visualization types
 - CLI generates GPX cycling routes using Valhalla + 10 data sources (OSM, weather, elevation, Strava segments, etc.)
 
-**Stack:** Docker Compose (PostgreSQL 15 + Python ingestor + Grafana 12.4). 303 tests. AGPL-3.0 licensed.
+**Stack:** Docker Compose (PostgreSQL 15 + Python ingestor + Grafana 12.4). 370 tests. AGPL-3.0 licensed.
 
 **Screenshots:** [in the README]
 
@@ -71,7 +71,7 @@ GitHub: https://github.com/elduty/velomate
 
 ## r/grafana
 
-**Title:** Cycling analytics dashboards — 98 panels across 3 dashboards (10 panel types)
+**Title:** Cycling analytics dashboards — 98 panels across 3 dashboards (12 visualization types)
 
 Built a cycling analytics platform with 3 Grafana dashboards using stat, timeseries, barchart, gauge, piechart, xychart, candlestick, trend, table, and geomap panels. PostgreSQL backend, provisioned from JSON.
 
