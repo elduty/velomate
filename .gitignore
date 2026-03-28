@@ -15,6 +15,3 @@ config.yaml
 
 # Claude Code (local)
 .claude/settings.local.json
-
-# GitHub overlay (not for Gitea)
-scripts/github-overlay/
