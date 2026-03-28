@@ -1,15 +1,20 @@
+# Python
 __pycache__/
 *.pyc
-.env
-*.env
-venv/
-.venv/
-.DS_Store
-*.egg-info/
-dist/
-config.yaml
-.claude/settings.local.json
-.superpowers/
+
+# Testing
 .coverage
-scripts/github-overlay/
 .pytest_cache/
+
+# Environment / secrets
+*.env
+config.yaml
+
+# OS
+**/.DS_Store
+
+# Claude Code (local)
+.claude/settings.local.json
+
+# GitHub overlay (not for Gitea)
+scripts/github-overlay/
