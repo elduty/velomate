@@ -36,6 +36,7 @@ When analysing Raven review findings, apply judgement:
 - `ingestor/db.py` — Schema DDL, upserts, dedup, sync_state
 - `ingestor/strava.py` — Strava API client, token management
 - `grafana/dashboards/*.json` — Three dashboards: activity, overview, all-time-progression
+  - Activity Details has both Zone charts (5-6 standard buckets) and Distribution histograms (full granular shape) — these are not redundant, keep both
 
 ## Metrics (Validated)
 
@@ -70,4 +71,4 @@ All cycling metrics follow industry standards. The ingestor is the single source
 ## Memory
 
 Memory files in `.claude/memory/` are portable project context tracked on Gitea.
-On a new environment, symlink or copy them to `~/.claude/projects/<project-path>/memory/`.
+On a new environment, run `link-claude-memory <repo-path>` to symlink them into Claude Code's auto-memory.
