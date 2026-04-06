@@ -8,10 +8,15 @@ Prioritised backlog. Full rationale for all items lives in `docs/features-analys
 
 ## 📋 Backlog
 
-### High — Cluster A: Ride Analytics Depth
-Plan: `docs/superpowers/plans/2026-04-06-ride-analytics-depth.md`
-- [ ] Implement cardiac drift trend — stored `aerobic_decoupling` column + All Time Progression trend panel + Overview period stat (gap #1, plan Tasks 2–9)
-- [ ] Implement auto interval detection — `ingestor/intervals.py` + `ride_intervals` table + Activity Details interval table + monthly distribution chart (gap #6, plan Tasks 10–15)
+### High — Dashboard restructure: Overview + Training Report split
+Plan: `docs/superpowers/plans/2026-04-06-overview-training-report-split.md`
+- [ ] Create new `Training Report` dashboard with Period Summary (2×5) + vs Previous Period (2×5) + Trends (6 charts expanded) + Ride Patterns + Outdoor Records + Ride Map
+- [ ] Trim Overview to daily-glance view — keep Fitness + 4-stat "This Period" row (Rides/Distance/Hours/TSS) + Activities; remove delta section, Trends, Ride Patterns, Outdoor Records, Ride Map, Avg Decoupling panels
+- [ ] Update cross-dashboard nav links + provisioning for the new dashboard
+
+### Follow-up — verify decoupling delta card math
+- [ ] Run the verification SQL to confirm current vs previous 7-day averages match the card's displayed delta; debug if the card's previous-period subquery is computing the wrong window
+- [ ] Consider "sample too small" warning on delta cards when either period has < 3 qualifying rides (current dataset: 12 rides over 3 months → 7-day windows are noisy)
 
 ### High — Cluster B: Performance Modeling
 - [ ] CP/W' model with Monod-Scherrer + Morton fits — new `ingestor/critical_power.py` + `cp_estimates` table + CP/W' panel on All Time Progression (gap #3)
@@ -47,3 +52,6 @@ Plan: `docs/superpowers/plans/2026-04-06-ride-analytics-depth.md`
 - [x] Feature gap analysis covering 8 canonical competitor platforms (`docs/features-analysis-06apr26.md`)
 - [x] Cluster A implementation plan (`docs/superpowers/plans/2026-04-06-ride-analytics-depth.md`)
 - [x] `velomate-features-designer` project skill for ongoing gap evaluation
+- [x] Cluster A — Ride Analytics Depth (#91) — stored `aerobic_decoupling` column + trend panel + period stats, `ride_intervals` table + detection module + Activity Details interval table + monthly distribution chart
+- [x] Overview polish (#92) — decoupling collision fix, Δ Avg Decoupling, loosened steady-state filter, `now-30d` default, collapsible rows for secondary sections
+- [x] Overview + Training Report split design spec (`docs/superpowers/plans/2026-04-06-overview-training-report-split.md`)
