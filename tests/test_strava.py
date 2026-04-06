@@ -1,8 +1,10 @@
 """Tests for pure functions in ingestor/strava.py."""
 
+from unittest.mock import patch
+
 import pytest
 
-from strava import _detect_device, _parse_activity, _merge_detail, _parse_streams
+from strava import _detect_device, _parse_activity, _merge_detail, _parse_streams, backfill
 
 
 # --- _detect_device ---
@@ -257,3 +259,34 @@ class TestParseStreams:
         points = _parse_streams(raw)
         assert points[0]["lat"] == 38.7
         assert points[1]["lat"] is None
+
+
+# --- backfill (months parameter → after_epoch) ---
+
+class TestBackfill:
+    """backfill() maps months -> after_epoch and delegates to sync_activities."""
+
+    def test_positive_months_uses_cutoff(self):
+        """months=12 -> after_epoch is ~12*30 days before now (non-zero)."""
+        with patch("strava.sync_activities", return_value=7) as mock_sync:
+            result = backfill(conn="conn", months=12)
+        assert result == 7
+        args, kwargs = mock_sync.call_args
+        # sync_activities(conn, after_epoch) — positional
+        assert args[0] == "conn"
+        assert args[1] > 0  # a real epoch, not zero
+
+    def test_zero_months_means_full_history(self):
+        """months=0 -> after_epoch=0 signals full Strava history."""
+        with patch("strava.sync_activities", return_value=500) as mock_sync:
+            result = backfill(conn="conn", months=0)
+        assert result == 500
+        # months=0 uses the keyword form with after_epoch=0
+        mock_sync.assert_called_once_with("conn", after_epoch=0)
+
+    def test_default_is_twelve_months(self):
+        """No months arg -> defaults to 12 (current behaviour preserved)."""
+        with patch("strava.sync_activities", return_value=0) as mock_sync:
+            backfill(conn="conn")
+        args, _ = mock_sync.call_args
+        assert args[1] > 0  # a cutoff epoch, not full history

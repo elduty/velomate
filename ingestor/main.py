@@ -70,12 +70,30 @@ def poll_strava():
             conn.close()
 
 
+def _backfill_months() -> int:
+    """Resolve VELOMATE_BACKFILL_MONTHS env var. Default 12. 0 = full history.
+    Invalid values fall back to the default so a typo never blocks ingestion.
+    """
+    raw = os.environ.get("VELOMATE_BACKFILL_MONTHS", "")
+    if not raw:
+        return 12
+    try:
+        value = int(raw)
+    except ValueError:
+        print(f"[main] Invalid VELOMATE_BACKFILL_MONTHS={raw!r} — falling back to 12")
+        return 12
+    if value < 0:
+        print(f"[main] Negative VELOMATE_BACKFILL_MONTHS={value} — falling back to 12")
+        return 12
+    return value
+
+
 def run_backfill():
     """One-time backfill — call manually or on first run."""
     conn = get_connection()
     try:
         create_schema(conn)
-        count = backfill(conn, months=12)
+        count = backfill(conn, months=_backfill_months())
         recalculate_fitness(conn)
         print(f"[backfill] Complete — {count} Strava activities ingested")
         return count

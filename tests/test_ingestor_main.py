@@ -125,6 +125,76 @@ class TestRunBackfill:
             with pytest.raises(RuntimeError, match="backfill failed"):
                 ingestor_main.run_backfill()
 
+    def test_uses_default_12_months(self, monkeypatch):
+        """No VELOMATE_BACKFILL_MONTHS env var -> backfill called with months=12."""
+        monkeypatch.delenv("VELOMATE_BACKFILL_MONTHS", raising=False)
+        mock_conn = MagicMock()
+        mock_backfill = MagicMock(return_value=5)
+        with (
+            patch("main.get_connection", return_value=mock_conn),
+            patch("main.create_schema"),
+            patch("main.backfill", mock_backfill),
+            patch("main.recalculate_fitness"),
+        ):
+            ingestor_main.run_backfill()
+        mock_backfill.assert_called_once_with(mock_conn, months=12)
+
+    def test_reads_months_from_env(self, monkeypatch):
+        """VELOMATE_BACKFILL_MONTHS=24 -> backfill called with months=24."""
+        monkeypatch.setenv("VELOMATE_BACKFILL_MONTHS", "24")
+        mock_conn = MagicMock()
+        mock_backfill = MagicMock(return_value=5)
+        with (
+            patch("main.get_connection", return_value=mock_conn),
+            patch("main.create_schema"),
+            patch("main.backfill", mock_backfill),
+            patch("main.recalculate_fitness"),
+        ):
+            ingestor_main.run_backfill()
+        mock_backfill.assert_called_once_with(mock_conn, months=24)
+
+    def test_zero_means_full_history(self, monkeypatch):
+        """VELOMATE_BACKFILL_MONTHS=0 -> backfill called with months=0 (full history)."""
+        monkeypatch.setenv("VELOMATE_BACKFILL_MONTHS", "0")
+        mock_conn = MagicMock()
+        mock_backfill = MagicMock(return_value=5)
+        with (
+            patch("main.get_connection", return_value=mock_conn),
+            patch("main.create_schema"),
+            patch("main.backfill", mock_backfill),
+            patch("main.recalculate_fitness"),
+        ):
+            ingestor_main.run_backfill()
+        mock_backfill.assert_called_once_with(mock_conn, months=0)
+
+    def test_invalid_env_falls_back_to_default(self, monkeypatch):
+        """A typo in the env var should not block ingestion — default to 12."""
+        monkeypatch.setenv("VELOMATE_BACKFILL_MONTHS", "twelve")
+        mock_conn = MagicMock()
+        mock_backfill = MagicMock(return_value=5)
+        with (
+            patch("main.get_connection", return_value=mock_conn),
+            patch("main.create_schema"),
+            patch("main.backfill", mock_backfill),
+            patch("main.recalculate_fitness"),
+        ):
+            ingestor_main.run_backfill()
+        mock_backfill.assert_called_once_with(mock_conn, months=12)
+
+    def test_negative_env_falls_back_to_default(self, monkeypatch):
+        """Negative values are nonsensical — default to 12."""
+        monkeypatch.setenv("VELOMATE_BACKFILL_MONTHS", "-3")
+        mock_conn = MagicMock()
+        mock_backfill = MagicMock(return_value=5)
+        with (
+            patch("main.get_connection", return_value=mock_conn),
+            patch("main.create_schema"),
+            patch("main.backfill", mock_backfill),
+            patch("main.recalculate_fitness"),
+        ):
+            ingestor_main.run_backfill()
+        mock_backfill.assert_called_once_with(mock_conn, months=12)
+
 
 # ---------------------------------------------------------------------------
 # run_reclassify — guards against missing DB

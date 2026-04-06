@@ -348,7 +348,16 @@ def sync_activities(conn, after_epoch: int = None):
 
 
 def backfill(conn, months: int = 12):
-    """Fetch all activities in last N months, store with streams."""
+    """Fetch activities from Strava and store with streams.
+
+    months > 0: only rides newer than N months ago (fast, bounded).
+    months == 0: full history back to the athlete's first activity
+                 (slow — may take hours and span multiple days because
+                 of Strava's 200 req / 15 min and 2000 req / day limits).
+    """
+    if months == 0:
+        print("[strava] Backfilling FULL history — this may take hours and hit Strava rate limits")
+        return sync_activities(conn, after_epoch=0)
     cutoff = datetime.now(timezone.utc) - timedelta(days=months * 30)
     after_epoch = int(cutoff.timestamp())
     print(f"[strava] Backfilling {months} months (since {cutoff.date()})")
