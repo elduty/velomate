@@ -238,10 +238,20 @@ class TestO8StartupRetry:
                 succeeded[0] = True
             return mock_conn
 
+        # Return per-key sync_state values so the backfill-window detection sees
+        # a consistent baseline and does not force an unwanted re-backfill.
+        def mock_sync_state(conn, key):
+            if key == "strava_last_activity_epoch":
+                return "some_value"  # has_data truthy → no first-run backfill
+            if key == "configured_backfill_months":
+                return "12"  # matches default VELOMATE_BACKFILL_MONTHS → no force_backfill
+            return None  # configured_ftp / configured_max_hr / configured_resting_hr etc.
+
         with (
             patch("main.get_connection", side_effect=flaky_conn),
             patch("main.create_schema"),
-            patch("main.get_sync_state", return_value="some_value"),
+            patch("main.get_sync_state", side_effect=mock_sync_state),
+            patch("main.set_sync_state"),
             patch("main.time.sleep"),
             patch("main.recalculate_fitness"),
             patch("main.poll_strava"),

@@ -306,7 +306,7 @@ Configured via `.env` file:
 | `VELOMATE_FTP` | No | Your FTP in watts (0 = auto-estimate) |
 | `VELOMATE_RESTING_HR` | No | Resting heart rate in bpm (default 50) |
 | `VELOMATE_RESET_RIDE_FTP` | No | Set to `1` to reset all per-ride FTP values on next restart (one-shot) |
-| `VELOMATE_BACKFILL_MONTHS` | No | How far back to fetch activities on first run. Default `12`. Set to `0` for full Strava history (slow — can take hours and span multiple days due to rate limits). |
+| `VELOMATE_BACKFILL_MONTHS` | No | How far back to fetch activities. Default `12`. Set to `0` for full Strava history (slow — can take hours and span multiple days due to rate limits). **Increasing this value on a running deployment** triggers an auto-backfill on the next restart to pull the extended window. Decreasing it logs a note but leaves existing older activities in the DB (this controls the backfill horizon, not data retention). |
 
 ### CLI (local)
 

@@ -197,6 +197,134 @@ class TestRunBackfill:
 
 
 # ---------------------------------------------------------------------------
+# _parse_backfill_months
+# ---------------------------------------------------------------------------
+
+class TestParseBackfillMonths:
+    def test_none(self):
+        assert ingestor_main._parse_backfill_months(None) is None
+
+    def test_integer_string(self):
+        assert ingestor_main._parse_backfill_months("12") == 12
+
+    def test_zero(self):
+        assert ingestor_main._parse_backfill_months("0") == 0
+
+    def test_large_value(self):
+        assert ingestor_main._parse_backfill_months("240") == 240
+
+    def test_invalid_string(self):
+        assert ingestor_main._parse_backfill_months("twelve") is None
+
+    def test_empty_string(self):
+        assert ingestor_main._parse_backfill_months("") is None
+
+
+# ---------------------------------------------------------------------------
+# _describe_backfill_months
+# ---------------------------------------------------------------------------
+
+class TestDescribeBackfillMonths:
+    def test_zero_is_full_history(self):
+        assert ingestor_main._describe_backfill_months(0) == "FULL history"
+
+    def test_positive(self):
+        assert ingestor_main._describe_backfill_months(12) == "12 months"
+        assert ingestor_main._describe_backfill_months(24) == "24 months"
+
+
+# ---------------------------------------------------------------------------
+# _backfill_window_extended
+# ---------------------------------------------------------------------------
+
+class TestBackfillWindowExtended:
+    """True when the configured window grew and a re-backfill should be forced."""
+
+    def test_fresh_install_is_never_extended(self):
+        """has_data=False → False regardless of values (first-run path handles it)."""
+        assert ingestor_main._backfill_window_extended(12, None, has_data=False) is False
+        assert ingestor_main._backfill_window_extended(24, None, has_data=False) is False
+        assert ingestor_main._backfill_window_extended(0, None, has_data=False) is False
+        assert ingestor_main._backfill_window_extended(0, "12", has_data=False) is False
+
+    def test_existing_deployment_no_persisted_value_same_as_historical(self):
+        """old=None on existing deployment → assume historical default 12. new=12 is same."""
+        assert ingestor_main._backfill_window_extended(12, None, has_data=True) is False
+
+    def test_existing_deployment_no_persisted_value_extending(self):
+        """old=None on existing deployment → assume 12. new=24 extends."""
+        assert ingestor_main._backfill_window_extended(24, None, has_data=True) is True
+
+    def test_existing_deployment_no_persisted_value_full_history(self):
+        """old=None on existing deployment → assume 12. new=0 (full) extends."""
+        assert ingestor_main._backfill_window_extended(0, None, has_data=True) is True
+
+    def test_existing_deployment_no_persisted_value_shrinking(self):
+        """old=None on existing deployment → assume 12. new=6 is shrinking, not extending."""
+        assert ingestor_main._backfill_window_extended(6, None, has_data=True) is False
+
+    def test_same_value(self):
+        assert ingestor_main._backfill_window_extended(12, "12", has_data=True) is False
+        assert ingestor_main._backfill_window_extended(0, "0", has_data=True) is False
+
+    def test_extending(self):
+        assert ingestor_main._backfill_window_extended(24, "12", has_data=True) is True
+
+    def test_shrinking(self):
+        assert ingestor_main._backfill_window_extended(12, "24", has_data=True) is False
+
+    def test_bounded_to_full_history(self):
+        """Any bounded → 0 (infinite) is an extension."""
+        assert ingestor_main._backfill_window_extended(0, "12", has_data=True) is True
+        assert ingestor_main._backfill_window_extended(0, "24", has_data=True) is True
+
+    def test_full_history_to_bounded(self):
+        """0 (infinite) → any bounded is a shrink, not an extension."""
+        assert ingestor_main._backfill_window_extended(12, "0", has_data=True) is False
+        assert ingestor_main._backfill_window_extended(24, "0", has_data=True) is False
+
+    def test_corrupted_old_value_forces_refresh(self):
+        """Garbage in sync_state → safer to refresh than silently ignore."""
+        assert ingestor_main._backfill_window_extended(12, "foo", has_data=True) is True
+        assert ingestor_main._backfill_window_extended(0, "xyz", has_data=True) is True
+
+
+# ---------------------------------------------------------------------------
+# _backfill_window_shrunk (logging only, never triggers action)
+# ---------------------------------------------------------------------------
+
+class TestBackfillWindowShrunk:
+    def test_fresh_install(self):
+        assert ingestor_main._backfill_window_shrunk(12, None, has_data=False) is False
+
+    def test_no_persisted_value(self):
+        """old=None → False (no baseline to compare against for shrink detection)."""
+        assert ingestor_main._backfill_window_shrunk(6, None, has_data=True) is False
+
+    def test_same_value(self):
+        assert ingestor_main._backfill_window_shrunk(12, "12", has_data=True) is False
+
+    def test_shrinking_bounded(self):
+        assert ingestor_main._backfill_window_shrunk(12, "24", has_data=True) is True
+
+    def test_extending_bounded_not_shrunk(self):
+        assert ingestor_main._backfill_window_shrunk(24, "12", has_data=True) is False
+
+    def test_bounded_to_full_not_shrunk(self):
+        """Going to full history is extending, not shrinking."""
+        assert ingestor_main._backfill_window_shrunk(0, "12", has_data=True) is False
+
+    def test_full_to_bounded_is_shrunk(self):
+        """Going from full to bounded is a shrink."""
+        assert ingestor_main._backfill_window_shrunk(12, "0", has_data=True) is True
+        assert ingestor_main._backfill_window_shrunk(24, "0", has_data=True) is True
+
+    def test_corrupted_old_value(self):
+        """Corrupted values are handled by _backfill_window_extended — shrunk returns False."""
+        assert ingestor_main._backfill_window_shrunk(12, "foo", has_data=True) is False
+
+
+# ---------------------------------------------------------------------------
 # run_reclassify — guards against missing DB
 # ---------------------------------------------------------------------------
 

@@ -7,7 +7,7 @@ import traceback
 
 import schedule
 
-from db import get_connection, create_schema, get_sync_state
+from db import get_connection, create_schema, get_sync_state, set_sync_state
 from strava import sync_activities, backfill, reclassify_activities
 from fitness import recalculate_fitness
 
@@ -88,6 +88,73 @@ def _backfill_months() -> int:
     return value
 
 
+def _parse_backfill_months(value) -> int | None:
+    """Parse a persisted backfill months value. Returns None if missing/invalid."""
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        return None
+
+
+def _describe_backfill_months(months: int) -> str:
+    """Human-readable description. 0 == full history (infinite)."""
+    return "FULL history" if months == 0 else f"{months} months"
+
+
+def _backfill_window_extended(new_months: int, old_value, has_data: bool) -> bool:
+    """True if the backfill window grew since the last persisted value.
+
+    Semantics:
+      - 0 means full history / infinite
+      - First run (has_data falsy): False — normal first-run path handles it
+      - Existing deployment with no persisted value: assume historical default 12
+      - Same value: False
+      - Extending (new > old, or new=0 when old was bounded): True
+      - Shrinking (old > new, or bounded when old was 0): False
+      - Corrupted persisted value: True (safer to refresh)
+    """
+    if not has_data:
+        return False
+    if old_value is None:
+        old_months = 12  # historical default before this feature
+    else:
+        parsed = _parse_backfill_months(old_value)
+        if parsed is None:
+            return True  # corrupted — force refresh
+        old_months = parsed
+    if new_months == old_months:
+        return False
+    if new_months == 0 and old_months != 0:
+        return True
+    if old_months == 0:
+        return False
+    return new_months > old_months
+
+
+def _backfill_window_shrunk(new_months: int, old_value, has_data: bool) -> bool:
+    """True if the backfill window shrank vs the last persisted value.
+
+    Only used for logging — never triggers action, since shrinking is
+    non-destructive (the old data stays in the DB). Returns False for
+    first runs, missing, or corrupted old values.
+    """
+    if not has_data or old_value is None:
+        return False
+    parsed = _parse_backfill_months(old_value)
+    if parsed is None:
+        return False  # corrupted — extended() handles it
+    old_months = parsed
+    if new_months == old_months:
+        return False
+    if old_months == 0 and new_months != 0:
+        return True  # full history → bounded window
+    if new_months == 0:
+        return False  # bounded → full is extending, not shrinking
+    return new_months < old_months
+
+
 def run_backfill():
     """One-time backfill — call manually or on first run."""
     conn = get_connection()
@@ -131,7 +198,6 @@ def run():
 
     # Persist configured FTP/HR to sync_state so dashboards can read them.
     # If either value changed (added, removed, or updated), reset all derived metrics.
-    from db import set_sync_state
     try:
         env_ftp = os.environ.get("VELOMATE_FTP", "")
         env_hr = os.environ.get("VELOMATE_MAX_HR", "")
@@ -190,9 +256,74 @@ def run():
     except Exception as e:
         print(f"[main] Could not persist FTP/HR to sync_state (skipping): {e}")
 
-    # Backfill on first run if no activities yet
-    if not has_data:
-        print("[main] No previous sync — running backfill")
+    # Detect VELOMATE_BACKFILL_MONTHS changes vs last persisted value so that
+    # extending the window on a running deployment actually pulls older data.
+    new_backfill_months = _backfill_months()
+    force_backfill = False
+    old_backfill_raw = None
+    try:
+        conn = get_connection()
+        try:
+            old_backfill_raw = get_sync_state(conn, "configured_backfill_months")
+        finally:
+            conn.close()
+        force_backfill = _backfill_window_extended(
+            new_backfill_months, old_backfill_raw, has_data=bool(has_data)
+        )
+        new_desc = _describe_backfill_months(new_backfill_months)
+        old_parsed = _parse_backfill_months(old_backfill_raw)
+        if force_backfill:
+            if old_backfill_raw is None:
+                # First rollout of this feature on an existing deployment — historical default was 12
+                print(
+                    f"[main] VELOMATE_BACKFILL_MONTHS extended (historical default 12 months → "
+                    f"{new_desc}) — forcing re-backfill to pull older activities"
+                )
+            elif old_parsed is None:
+                # Corrupted persisted value — safer to refresh
+                print(
+                    f"[main] configured_backfill_months in sync_state is corrupted "
+                    f"({old_backfill_raw!r}) — forcing re-backfill"
+                )
+            else:
+                old_desc = _describe_backfill_months(old_parsed)
+                print(
+                    f"[main] VELOMATE_BACKFILL_MONTHS extended ({old_desc} → {new_desc}) — "
+                    f"forcing re-backfill to pull older activities"
+                )
+        elif _backfill_window_shrunk(
+            new_backfill_months, old_backfill_raw, has_data=bool(has_data)
+        ):
+            # Shrink path only runs when old_parsed is a valid int (_backfill_window_shrunk
+            # returns False for None/corrupted) so old_desc is always safe to compute.
+            old_desc = _describe_backfill_months(old_parsed)
+            print(
+                f"[main] VELOMATE_BACKFILL_MONTHS reduced ({old_desc} → {new_desc}) — "
+                f"existing older activities remain in the DB."
+            )
+            print(
+                "[main] This variable controls the backfill horizon, not data retention."
+            )
+            if new_backfill_months > 0:
+                print(
+                    "[main] To delete older activities manually, run:"
+                )
+                print(
+                    f"[main]   docker compose exec velomate-postgres psql -U velomate -d velomate \\"
+                )
+                print(
+                    f"[main]     -c \"DELETE FROM activities "
+                    f"WHERE date < NOW() - INTERVAL '{new_backfill_months} months';\""
+                )
+    except Exception as e:
+        print(f"[main] Could not check backfill window state (skipping detection): {e}")
+
+    # Backfill on first run OR when the configured window grew
+    if not has_data or force_backfill:
+        if force_backfill:
+            print("[main] Running backfill for extended window")
+        else:
+            print("[main] No previous sync — running backfill")
         run_backfill()
     else:
         # Recalculate fitness on startup to extend CTL/ATL/TSB decay through today
@@ -202,6 +333,18 @@ def run():
             print("[main] Fitness recalculated through today")
         finally:
             conn.close()
+
+    # Persist current backfill window so the next restart can detect changes.
+    # Done after run_backfill() so a crash during backfill leaves the old value
+    # in place and the next restart retries.
+    try:
+        conn = get_connection()
+        try:
+            set_sync_state(conn, "configured_backfill_months", str(new_backfill_months))
+        finally:
+            conn.close()
+    except Exception as e:
+        print(f"[main] Could not persist configured_backfill_months (non-fatal): {e}")
 
     interval = int(os.environ.get("POLL_INTERVAL_MINUTES", 10))
     schedule.every(interval).minutes.do(poll_strava)
