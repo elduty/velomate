@@ -11,6 +11,17 @@ def get_dashboard_files():
     return [f for f in os.listdir(DASHBOARD_DIR) if f.endswith(".json")]
 
 
+def iter_all_panels(dashboard):
+    """Yield every panel in the dashboard, including panels nested inside
+    collapsed row panels. A collapsed row stores its children in its own
+    `panels` array instead of the top-level one."""
+    for p in dashboard.get("panels", []):
+        yield p
+        if p.get("type") == "row":
+            for child in p.get("panels", []) or []:
+                yield child
+
+
 @pytest.mark.parametrize("filename", get_dashboard_files())
 class TestDashboardStructure:
     def load(self, filename):
@@ -31,18 +42,18 @@ class TestDashboardStructure:
 
     def test_all_panels_have_id(self, filename):
         d = self.load(filename)
-        for p in d["panels"]:
+        for p in iter_all_panels(d):
             assert "id" in p, f"Panel '{p.get('title', '?')}' missing id"
 
     def test_no_duplicate_panel_ids(self, filename):
         d = self.load(filename)
-        ids = [p["id"] for p in d["panels"]]
+        ids = [p["id"] for p in iter_all_panels(d)]
         dupes = [i for i in ids if ids.count(i) > 1]
         assert not dupes, f"Duplicate panel ids: {set(dupes)}"
 
     def test_all_panels_have_gridpos(self, filename):
         d = self.load(filename)
-        for p in d["panels"]:
+        for p in iter_all_panels(d):
             assert "gridPos" in p, f"Panel {p['id']} missing gridPos"
             gp = p["gridPos"]
             for key in ["h", "w", "x", "y"]:

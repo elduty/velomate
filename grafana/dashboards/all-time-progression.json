@@ -876,7 +876,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT a.date::date AS time,\n  ROUND(a.aerobic_decoupling::numeric, 2) AS \"Decoupling %\",\n  ROUND(AVG(a.aerobic_decoupling) OVER (ORDER BY a.date ROWS BETWEEN 9 PRECEDING AND CURRENT ROW)::numeric, 2) AS \"10-ride avg\"\nFROM activities a\nWHERE a.aerobic_decoupling IS NOT NULL\n  AND a.variability_index IS NOT NULL AND a.variability_index < 1.05\n  AND a.duration_s > 3600\n  AND $__timeFilter(a.date)\n  AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')\nORDER BY a.date;",
+          "rawSql": "SELECT a.date::date AS time,\n  ROUND(a.aerobic_decoupling::numeric, 2) AS \"Decoupling %\",\n  ROUND(AVG(a.aerobic_decoupling) OVER (ORDER BY a.date ROWS BETWEEN 9 PRECEDING AND CURRENT ROW)::numeric, 2) AS \"10-ride avg\"\nFROM activities a\nWHERE a.aerobic_decoupling IS NOT NULL\n  AND a.duration_s > 1800\n  AND $__timeFilter(a.date)\n  AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')\nORDER BY a.date;",
           "format": "table",
           "refId": "A"
         }
@@ -893,7 +893,7 @@
             "pointSize": 5
           },
           "unit": "percent",
-          "noValue": "No steady-state rides in period"
+          "noValue": "No rides \u226530 min in period"
         },
         "overrides": [
           {
@@ -929,7 +929,7 @@
           }
         ]
       },
-      "description": "Aerobic Decoupling (Friel) \u2014 cardiac drift on steady rides (VI < 1.05, duration > 60 min).\n\nFalling trend = aerobic base improving. Rising trend = aerobic fitness degrading or fatigue accumulating.\n\nRecommend looking at the 10-ride rolling average \u2014 the raw per-ride value is noisy.",
+      "description": "Aerobic Decoupling (Friel) \u2014 cardiac drift per ride, all rides \u226530 min.\n\nFalling trend = aerobic base improving. Rising trend = aerobic fitness degrading or fatigue accumulating.\n\nRecommend looking at the 10-ride rolling average \u2014 the raw per-ride value is noisy, especially on interval rides.",
       "transformations": [
         {
           "id": "regression",
