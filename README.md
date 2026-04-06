@@ -182,7 +182,7 @@ curl -X POST https://www.strava.com/oauth/token \
 docker compose up -d
 ```
 
-On first run, the ingestor backfills the last 12 months of Strava activities.
+On first run, the ingestor backfills the last 12 months of Strava activities. Configure the window via `VELOMATE_BACKFILL_MONTHS` (set to `0` for full history). Increasing this value on a running deployment auto-triggers a re-backfill on the next restart.
 
 ### 4. Set up the CLI
 

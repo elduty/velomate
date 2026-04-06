@@ -1,5 +1,25 @@
 # Changelog
 
+## v1.2.1 — 2026-04-06
+
+### New Features
+
+- **`VELOMATE_BACKFILL_MONTHS` env var** — configurable backfill window. Default `12` months (previous hardcoded behaviour), `0` pulls full Strava history (slow, multi-day due to rate limits) (#89)
+- **Auto-backfill on window extension** — increasing `VELOMATE_BACKFILL_MONTHS` on a running deployment now auto-triggers a re-backfill on the next restart to pull the additional history. Decreasing it logs a non-destructive note with a manual-prune SQL escape hatch; data retention is explicitly separated from the backfill horizon (#90)
+
+### Docs
+
+- Feature gap analysis comparing VeloMate against Strava Premium, GoldenCheetah, intervals.icu, TrainingPeaks, Xert, WKO5, Garmin, TrainerRoad, Wahoo SystM (`docs/features-analysis-06apr26.md`) — 8 top gaps, 12 secondary, 13 explicit non-gaps, grounded competitor cheat sheet
+- Cluster A implementation plan: cardiac drift trend + auto interval detection (`docs/superpowers/plans/2026-04-06-ride-analytics-depth.md`)
+- `TODO.md` populated with a prioritised backlog keyed to the features analysis
+- `velomate-features-designer` project-local Claude skill for ongoing feature-gap evaluation
+- Pruned obsolete docs: feedback-log, findings-metric-accuracy, golden-record, reddit-launch, fix-act-runner, old metric-consistency plan, Gitea runner setup
+- Preserved the GoldenCheetah NP-vs-xPower metric naming lesson in `CLAUDE.md` for future validation comparisons
+
+### Stats
+
+- 405 tests (up from 370)
+
 ## v1.2.0 — 2026-03-27
 
 ### New Features
