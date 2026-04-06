@@ -76,11 +76,3 @@ launchctl load ~/Library/LaunchAgents/com.gitea.act_runner.plist
 
 - Go to https://gitea.mrmartian.in/MrMartian/veloai/settings
 - Under "Units" → check "Actions"
-
-## 7. After runner is registered
-
-Tell Claude to:
-- Remove `.github/` from `.gitignore`
-- Track `.github/workflows/test.yml`
-- Remove Woodpecker CI (`.woodpecker.yml`)
-- Simplify the GitHub push script (no more overlay)

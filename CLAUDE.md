@@ -53,6 +53,15 @@ All cycling metrics follow industry standards. The ingestor is the single source
 - **HR Zones**: Max HR percentages (60/70/80/90%), default fallback 185 bpm
 - **Power Zones**: Coggan 7-zone including Z7 Neuromuscular (>150% FTP)
 
+### GoldenCheetah comparison
+
+When validating VeloMate metrics against GoldenCheetah, know which model GC uses for each value — they're not interchangeable:
+- **IsoPower** — 30-second SMA, used for Coggan TSS. This is what VeloMate stores as `np`.
+- **xPower** — 25-second EWMA, used for GC's VI, EF, BikeIntensity, BikeScore. VeloMate does *not* compute xPower — our VI/EF/IF all use NP (IsoPower).
+- **CP Estimate** — Critical Power model, independent of NP. Don't confuse it with NP when reading a GC ride report.
+
+Direct one-to-one comparison of VI, EF, and IF between VeloMate and GoldenCheetah will therefore differ slightly — VeloMate's values are NP-derived, GC's are xPower-derived. TSS and NP values should match.
+
 ## Important Design Decisions
 
 - **METRICS_VERSION** (currently "7"): Bumping triggers full recalculation + FTP backfill on next startup
