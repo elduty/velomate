@@ -81,6 +81,23 @@ def create_schema(conn):
                 value           TEXT
             );
 
+            CREATE TABLE IF NOT EXISTS ride_intervals (
+                id              SERIAL PRIMARY KEY,
+                activity_id     INTEGER REFERENCES activities(id) ON DELETE CASCADE,
+                start_offset_s  INTEGER NOT NULL,
+                duration_s      INTEGER NOT NULL,
+                avg_power       FLOAT,
+                np              FLOAT,
+                max_power       FLOAT,
+                avg_hr          INTEGER,
+                classification  TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_ride_intervals_activity_id
+                ON ride_intervals(activity_id);
+            CREATE INDEX IF NOT EXISTS idx_ride_intervals_classification
+                ON ride_intervals(classification);
+
             ALTER TABLE activities ADD COLUMN IF NOT EXISTS is_indoor BOOLEAN;
             ALTER TABLE activities ADD COLUMN IF NOT EXISTS sport_type TEXT;
             ALTER TABLE activities ADD COLUMN IF NOT EXISTS tss FLOAT;
@@ -91,6 +108,7 @@ def create_schema(conn):
             ALTER TABLE activities ADD COLUMN IF NOT EXISTS intensity_factor FLOAT;
             ALTER TABLE activities ADD COLUMN IF NOT EXISTS trimp FLOAT;
             ALTER TABLE activities ADD COLUMN IF NOT EXISTS variability_index FLOAT;
+            ALTER TABLE activities ADD COLUMN IF NOT EXISTS aerobic_decoupling FLOAT;
 
             CREATE INDEX IF NOT EXISTS idx_activities_date ON activities(date);
             CREATE INDEX IF NOT EXISTS idx_activity_streams_activity_id ON activity_streams(activity_id);

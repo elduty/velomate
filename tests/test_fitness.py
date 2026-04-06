@@ -6,6 +6,7 @@ import pytest
 from fitness import (
     calculate_tss, calculate_tss_power,
     compute_np, compute_trimp, compute_if, compute_vi,
+    compute_decoupling,
 )
 
 
@@ -166,3 +167,58 @@ class TestComputeVI:
 
     def test_none_np(self):
         assert compute_vi(None, 150) is None
+
+
+# --- compute_decoupling (Friel) ---
+
+class TestComputeDecoupling:
+    """Aerobic decoupling: (first_half_EF / second_half_EF - 1) * 100.
+    EF = avg_power / avg_hr. Positive = cardiac drift (HR rising relative to power).
+    """
+
+    def test_no_drift(self):
+        """Constant power and HR across both halves -> 0% decoupling."""
+        power = [200] * 200
+        hr = [150] * 200
+        assert compute_decoupling(power, hr) == 0.0
+
+    def test_cardiac_drift(self):
+        """HR rising in second half while power constant -> positive decoupling."""
+        power = [200] * 200
+        hr = [140] * 100 + [160] * 100
+        # first_ef = 200/140 = 1.4286; second_ef = 200/160 = 1.25
+        # decoupling = (1.4286/1.25 - 1) * 100 = 14.29
+        result = compute_decoupling(power, hr)
+        assert result == pytest.approx(14.29, abs=0.1)
+
+    def test_negative_drift(self):
+        """HR falling in second half -> negative decoupling (rare but valid)."""
+        power = [200] * 200
+        hr = [160] * 100 + [140] * 100
+        # first_ef = 1.25; second_ef = 1.4286; decoupling = (1.25/1.4286 - 1) * 100 = -12.5
+        result = compute_decoupling(power, hr)
+        assert result == pytest.approx(-12.5, abs=0.1)
+
+    def test_empty(self):
+        assert compute_decoupling([], []) is None
+
+    def test_mismatched_lengths(self):
+        assert compute_decoupling([200, 200], [150]) is None
+
+    def test_too_few_samples(self):
+        """Fewer than 2 samples per half -> None."""
+        assert compute_decoupling([200, 200], [150, 150]) is None
+
+    def test_zero_hr_in_first_half(self):
+        """Zero HR samples in first half should not produce infinity."""
+        power = [200] * 200
+        hr = [0] * 100 + [150] * 100
+        # first half has no valid HR -> cannot compute first_ef -> None
+        assert compute_decoupling(power, hr) is None
+
+    def test_none_samples_filtered(self):
+        """None values in the stream should be filtered, not cause TypeError."""
+        power = [200, None, 200] * 100
+        hr = [140, None, 140] * 100
+        result = compute_decoupling(power, hr)
+        assert result is not None

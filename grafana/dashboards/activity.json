@@ -1193,7 +1193,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH half AS (\n  SELECT MAX(time_offset) / 2 AS mid\n  FROM activity_streams\n  WHERE activity_id = ${activity_id}\n),\nhalves AS (\n  SELECT\n    CASE WHEN s.time_offset <= h.mid THEN 'first' ELSE 'second' END AS half,\n    s.power, s.hr\n  FROM activity_streams s\n  CROSS JOIN half h\n  WHERE s.activity_id = ${activity_id}\n    AND s.power IS NOT NULL\n    AND s.hr IS NOT NULL AND s.hr > 0\n)\nSELECT ROUND(((\n  (SELECT AVG(power)::float / NULLIF(AVG(hr), 0) FROM halves WHERE half = 'first') /\n  NULLIF((SELECT AVG(power)::float / NULLIF(AVG(hr), 0) FROM halves WHERE half = 'second'), 0)\n  - 1) * 100)::numeric, 1) AS \"Decoupling %\";",
+          "rawSql": "SELECT ROUND(aerobic_decoupling::numeric, 1) AS \"Decoupling %\" FROM activities WHERE id = ${activity_id};",
           "format": "table",
           "refId": "A"
         }
@@ -1237,6 +1237,84 @@
       "description": "Aerobic Decoupling (Friel)\nPower:HR ratio drift \u2014 first half vs second half.\n\nPositive = cardiac drift (HR rising relative to power).\n< 5% \u2014 Good aerobic fitness\n5-10% \u2014 Moderate drift\n> 10% \u2014 Significant drift, base fitness needs work"
     },
     {
+      "id": 1100,
+      "title": "Detected Intervals",
+      "type": "table",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 24
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  ROW_NUMBER() OVER (ORDER BY start_offset_s) AS \"#\",\n  TO_CHAR((start_offset_s || ' seconds')::interval, 'HH24:MI:SS') AS \"Start\",\n  LPAD((duration_s / 60)::text, 2, '0') || ':' || LPAD((duration_s % 60)::text, 2, '0') AS \"Duration\",\n  ROUND(avg_power::numeric, 0) AS \"Avg W\",\n  ROUND(np::numeric, 0) AS \"NP\",\n  ROUND(max_power::numeric, 0) AS \"Max W\",\n  classification AS \"Type\"\nFROM ride_intervals\nWHERE activity_id = ${activity_id}\nORDER BY start_offset_s;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No intervals detected"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Type"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "sprint": {
+                        "color": "purple",
+                        "index": 0
+                      },
+                      "anaerobic": {
+                        "color": "red",
+                        "index": 1
+                      },
+                      "vo2": {
+                        "color": "orange",
+                        "index": 2
+                      },
+                      "threshold": {
+                        "color": "yellow",
+                        "index": 3
+                      },
+                      "sweetspot": {
+                        "color": "green",
+                        "index": 4
+                      },
+                      "tempo": {
+                        "color": "blue",
+                        "index": 5
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "description": "Automatically detected sustained efforts in this ride, classified by duration and intensity (% of ride FTP). Thresholds: sprint >150% <30s, anaerobic 120\u2013150% 30s\u20132min, VO2 105\u2013120% 2\u20135min, threshold 95\u2013105% 5\u201320min, sweet spot 83\u201394% 15\u201360min, tempo 75\u201385% >20min."
+    },
+    {
       "id": 902,
       "type": "row",
       "title": "Zone Analysis",
@@ -1245,7 +1323,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 24
+        "y": 32
       },
       "panels": []
     },
@@ -1257,7 +1335,7 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 25
+        "y": 33
       },
       "datasource": {
         "type": "postgres",
@@ -1377,7 +1455,7 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 31
+        "y": 39
       },
       "datasource": {
         "type": "postgres",
@@ -1527,7 +1605,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 37
+        "y": 45
       },
       "datasource": {
         "type": "postgres",
@@ -1649,7 +1727,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 37
+        "y": 45
       },
       "datasource": {
         "type": "postgres",
@@ -1801,7 +1879,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 45
+        "y": 53
       },
       "datasource": {
         "type": "postgres",
@@ -1932,7 +2010,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 45
+        "y": 53
       },
       "datasource": {
         "type": "postgres",
@@ -2098,7 +2176,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 53
+        "y": 61
       },
       "panels": []
     },
@@ -2110,7 +2188,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 54
+        "y": 62
       },
       "datasource": {
         "type": "postgres",
@@ -2166,7 +2244,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 62
+        "y": 70
       },
       "panels": []
     },
@@ -2178,7 +2256,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 63
+        "y": 71
       },
       "datasource": {
         "type": "postgres",
@@ -2211,7 +2289,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 71
+        "y": 79
       },
       "panels": []
     },
@@ -2223,7 +2301,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 72
+        "y": 80
       },
       "datasource": {
         "type": "postgres",
@@ -2350,7 +2428,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 82
+        "y": 90
       },
       "datasource": {
         "type": "postgres",
@@ -2503,7 +2581,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 92
+        "y": 100
       },
       "datasource": {
         "type": "postgres",
@@ -2622,7 +2700,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 102
+        "y": 110
       },
       "panels": []
     },
@@ -2634,7 +2712,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 103
+        "y": 111
       },
       "datasource": {
         "type": "postgres",

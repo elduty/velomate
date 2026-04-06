@@ -861,6 +861,85 @@
       ]
     },
     {
+      "id": 1001,
+      "title": "Aerobic Decoupling Trend",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 36
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT a.date::date AS time,\n  ROUND(a.aerobic_decoupling::numeric, 2) AS \"Decoupling %\",\n  ROUND(AVG(a.aerobic_decoupling) OVER (ORDER BY a.date ROWS BETWEEN 9 PRECEDING AND CURRENT ROW)::numeric, 2) AS \"10-ride avg\"\nFROM activities a\nWHERE a.aerobic_decoupling IS NOT NULL\n  AND a.variability_index IS NOT NULL AND a.variability_index < 1.05\n  AND a.duration_s > 3600\n  AND $__timeFilter(a.date)\n  AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')\nORDER BY a.date;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "#fade2a",
+            "mode": "fixed"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 0,
+            "pointSize": 5
+          },
+          "unit": "percent",
+          "noValue": "No steady-state rides in period"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "10-ride avg"
+            },
+            "properties": [
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "custom.pointSize",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.spanNulls",
+                "value": true
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#f2cc0c",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "description": "Aerobic Decoupling (Friel) \u2014 cardiac drift on steady rides (VI < 1.05, duration > 60 min).\n\nFalling trend = aerobic base improving. Rising trend = aerobic fitness degrading or fatigue accumulating.\n\nRecommend looking at the 10-ride rolling average \u2014 the raw per-ride value is noisy.",
+      "transformations": [
+        {
+          "id": "regression",
+          "options": {
+            "modelType": "linear"
+          }
+        }
+      ]
+    },
+    {
       "id": 500,
       "title": "Weekly Power Range",
       "type": "candlestick",
@@ -1305,6 +1384,131 @@
         ]
       },
       "description": "Monthly time spent in each heart rate zone.\n\nZ1-2 = easy/endurance. Z3-4 = tempo/threshold. Z5 = VO2max.\n\nBased on configured max HR or auto-estimated."
+    },
+    {
+      "id": 1110,
+      "title": "Monthly Interval Distribution",
+      "type": "barchart",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 97
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  date_trunc('month', a.date)::date AS time,\n  COUNT(*) FILTER (WHERE ri.classification = 'sprint')    AS \"sprint\",\n  COUNT(*) FILTER (WHERE ri.classification = 'anaerobic') AS \"anaerobic\",\n  COUNT(*) FILTER (WHERE ri.classification = 'vo2')       AS \"vo2\",\n  COUNT(*) FILTER (WHERE ri.classification = 'threshold') AS \"threshold\",\n  COUNT(*) FILTER (WHERE ri.classification = 'sweetspot') AS \"sweetspot\",\n  COUNT(*) FILTER (WHERE ri.classification = 'tempo')     AS \"tempo\"\nFROM ride_intervals ri\nJOIN activities a ON a.id = ri.activity_id\nWHERE $__timeFilter(a.date)\n  AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')\nGROUP BY 1\nORDER BY 1;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No intervals in period",
+          "custom": {
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "sprint"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "purple"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "anaerobic"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "vo2"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "threshold"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "yellow"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "sweetspot"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "tempo"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "description": "Count of detected intervals per month, stacked by type. Useful for verifying your training polarisation and seeing whether you're actually doing the VO2 / threshold work you plan."
     },
     {
       "id": 103,
@@ -2122,7 +2326,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 97
+        "y": 105
       },
       "panels": []
     },
@@ -2134,7 +2338,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 98
+        "y": 106
       },
       "datasource": {
         "type": "postgres",
@@ -2207,7 +2411,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 98
+        "y": 106
       },
       "datasource": {
         "type": "postgres",
@@ -2238,7 +2442,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 106
+        "y": 114
       },
       "panels": []
     },
@@ -2250,7 +2454,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 107
+        "y": 115
       },
       "datasource": {
         "type": "postgres",
@@ -2313,7 +2517,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 117
+        "y": 125
       },
       "panels": []
     },
@@ -2325,7 +2529,7 @@
         "h": 14,
         "w": 24,
         "x": 0,
-        "y": 118
+        "y": 126
       },
       "datasource": {
         "type": "postgres",

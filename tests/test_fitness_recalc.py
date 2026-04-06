@@ -38,7 +38,9 @@ def _make_conn(activity_rows, power_activity_rows=None, tss_rows=None,
     """Build a mock connection that returns prescribed rows for each query.
 
     activity_rows: [(id, duration_s, avg_hr, avg_power, np, ride_ftp), ...]
-    power_activity_rows: [(id, avg_hr, avg_power), ...] -- for NP query
+    power_activity_rows: [(id, avg_hr, avg_power, existing_np, existing_decoupling), ...]
+        -- for Step 1 NP/decoupling loop. 3 cursors per activity:
+        SELECT power+hr stream, UPDATE np/ef/vi/work, UPDATE aerobic_decoupling.
     tss_rows: [(date, tss, distance_m, elevation_m), ...] -- for final readback
     backfill_count: number of rides needing FTP backfill (0 = skip backfill)
     trimp_activity_ids: [id, ...] -- activities needing TRIMP computation
@@ -48,13 +50,16 @@ def _make_conn(activity_rows, power_activity_rows=None, tss_rows=None,
     Cursor sequence in recalculate_fitness (called via patched wrapper):
       0: estimate_threshold_hr
       1: estimate_ftp (rolling 20-min) -- skipped when configured_ftp=True
-      2: SELECT power activities for NP/EF/VI
-      3..3+2*N-1: per-power-activity (NP rolling query + update with VI)
-      3+2*N: COUNT rides needing FTP backfill
+      2: SELECT power activities for Step 1 NP/EF/VI/decoupling loop
+      3..3+3*N-1: per-power-activity triplet
+          (stream SELECT + NP/EF/VI/work UPDATE + decoupling UPDATE)
+      3+3*N: COUNT rides needing FTP backfill
       When backfill_count > 0 and configured_ftp: 1 stamp cursor
       When backfill_count > 0 and auto-estimate: 2 cursors (backfill + stamp)
       When backfill_count == 0: no backfill/stamp cursors
-      Then: TSS+IF select, batch, TRIMP select, per-TRIMP cursors, readback
+      Then: Step 2.5 interval activities SELECT (returns [] in mock so the
+      loop is empty), TSS+IF select, batch, TRIMP select, per-TRIMP cursors,
+      readback.
     """
     conn = MagicMock()
     conn.autocommit = True
@@ -67,8 +72,9 @@ def _make_conn(activity_rows, power_activity_rows=None, tss_rows=None,
     else:
         b = 0
     ftp_cursor_offset = 1 if configured_ftp else 0  # estimate_ftp skipped when configured
-    backfill_count_idx = 3 + 2 * n_power - ftp_cursor_offset
-    tss_select_idx = backfill_count_idx + 1 + b
+    backfill_count_idx = 3 + 3 * n_power - ftp_cursor_offset
+    interval_select_idx = backfill_count_idx + 1 + b  # Step 2.5 top-level SELECT
+    tss_select_idx = interval_select_idx + 1
     tss_batch_idx = tss_select_idx + 1
     trimp_select_idx = tss_batch_idx + 1
     trimp_start_idx = trimp_select_idx + 1
@@ -96,17 +102,27 @@ def _make_conn(activity_rows, power_activity_rows=None, tss_rows=None,
         elif idx == np_select_idx:
             cur.fetchall.return_value = power_activity_rows or []
         elif np_select_idx < idx < backfill_count_idx:
-            # NP: per-activity power stream fetch (fetchall) + update (alternate)
+            # Per-activity triplet (Step 1):
+            #   0: stream SELECT (power, hr)
+            #   1: NP/EF/VI/work UPDATE
+            #   2: aerobic_decoupling UPDATE
             offset = idx - np_select_idx - 1
-            if offset % 2 == 0:
-                # SELECT power samples — return 60 samples at 200W
-                cur.fetchall.return_value = [(200, 200)] * 60
-            # else: UPDATE np/ef/vi (no special setup)
+            if offset % 3 == 0:
+                # SELECT power, hr samples — return 60 samples at (200W, 150bpm)
+                cur.fetchall.return_value = [(200, 150)] * 60
+            # else: UPDATE np/ef/vi/work or UPDATE aerobic_decoupling
+            # (no special setup needed for UPDATEs)
         elif idx == backfill_count_idx:
             cur.fetchone.return_value = (backfill_count,)
-        elif backfill_count_idx < idx < tss_select_idx:
+        elif backfill_count_idx < idx < interval_select_idx:
             # Backfill/stamp cursors (only when backfill_count > 0)
             cur.rowcount = backfill_count
+        elif idx == interval_select_idx:
+            # Step 2.5 interval activities SELECT — return [] so the
+            # detection loop doesn't iterate (tests don't exercise the
+            # stream-fetch/insert path; pure-function coverage is in
+            # tests/test_intervals.py).
+            cur.fetchall.return_value = []
         elif idx == tss_select_idx:
             cur.fetchall.return_value = activity_rows
         elif idx == tss_batch_idx:
@@ -285,8 +301,9 @@ class TestNPSkipGuard:
         """Activities with power streams and np IS NULL should get NP computed."""
         today = date.today()
         activity_rows = [(1, 3600, 150, 200, None, 200)]
-        # This activity appears in NP query (np IS NULL, has power streams)
-        power_activity_rows = [(1, 150, 200)]
+        # This activity appears in NP query (np IS NULL, aerobic_decoupling IS NULL, has power streams)
+        # 5-tuple: (id, avg_hr, avg_power, existing_np, existing_decoupling)
+        power_activity_rows = [(1, 150, 200, None, None)]
         tss_rows = [(today, 80.0, 50000, 500)]
 
         conn = _make_conn(activity_rows, power_activity_rows=power_activity_rows, tss_rows=tss_rows)
