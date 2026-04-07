@@ -71,8 +71,10 @@ def _make_conn(activity_rows, power_activity_rows=None, tss_rows=None,
         b = 1 if configured_ftp else 2  # stamp-only vs backfill+stamp
     else:
         b = 0
-    ftp_cursor_offset = 1 if configured_ftp else 0  # estimate_ftp skipped when configured
-    backfill_count_idx = 3 + 3 * n_power - ftp_cursor_offset
+    # estimate_ftp() is now ALWAYS called (even when configured_ftp is set), so
+    # the cursor sequence no longer skips index 1. Tests that previously set
+    # configured_ftp=True still need a (250,) response for that cursor.
+    backfill_count_idx = 3 + 3 * n_power
     interval_select_idx = backfill_count_idx + 1 + b  # Step 2.5 top-level SELECT
     tss_select_idx = interval_select_idx + 1
     tss_batch_idx = tss_select_idx + 1
@@ -93,11 +95,12 @@ def _make_conn(activity_rows, power_activity_rows=None, tss_rows=None,
         cursor_call_count[0] += 1
         captured_cursors.append((idx, cur))
 
-        np_select_idx = 2 - ftp_cursor_offset
+        np_select_idx = 2
 
         if idx == 0:
             cur.fetchone.return_value = (170,)
-        elif idx == 1 and not configured_ftp:
+        elif idx == 1:
+            # estimate_ftp — always called, even when configured_ftp is set
             cur.fetchone.return_value = (250,)
         elif idx == np_select_idx:
             cur.fetchall.return_value = power_activity_rows or []
@@ -496,22 +499,23 @@ class TestFTPBackfill:
 
     def test_configured_ftp_stamps_directly_no_backfill(self):
         """When VELOMATE_FTP is set, rides get stamped with configured FTP
-        instead of running the expensive stream-based backfill query."""
+        instead of running the expensive stream-based backfill query.
+        estimate_ftp() is still called (always) but its result is only used
+        as the diagnostic estimated_ftp value, not for the stamp."""
         today = date.today()
         activity_rows = [(1, 3600, None, 200, None, 200)]
         tss_rows = [(today, 80.0, 50000, 500)]
 
         # configured_ftp=True: mock expects 1 stamp cursor (not 2 for backfill+stamp)
-        # and no FTP estimate cursor (skipped when env var is set)
         conn = _make_conn(activity_rows, tss_rows=tss_rows, backfill_count=3,
                           configured_ftp=True)
 
         with patch.dict("os.environ", {"VELOMATE_FTP": "175"}):
             recalculate_fitness(conn)
 
-        # The stamp cursor is right after the COUNT cursor
-        # With configured_ftp: backfill_count_idx = 2, stamp = idx 3
-        stamp_idx = 3
+        # Cursor sequence with configured FTP: threshold(0), estimate_ftp(1),
+        # np_select(2), count(3), stamp(4). The stamp is right after the COUNT cursor.
+        stamp_idx = 4
         _, stamp_cur = conn._cursors[stamp_idx]
         sql = stamp_cur.execute.call_args[0][0]
         params = stamp_cur.execute.call_args[0][1]
@@ -526,8 +530,10 @@ class TestFTPBackfill:
                 assert "rolling_avg" not in sql_str, \
                     "Stream-based backfill should not run when FTP is configured"
 
-    def test_configured_ftp_adds_one_cursor_vs_auto(self):
-        """Configured FTP uses 1 cursor (stamp) vs auto-estimate's 2 (backfill+stamp)."""
+    def test_configured_ftp_uses_one_fewer_cursor_in_backfill(self):
+        """Configured FTP path stamps directly (1 cursor) vs auto-estimate's
+        backfill+stamp pair (2 cursors). estimate_ftp() is now called in BOTH
+        paths so it doesn't contribute to the difference any more."""
         today = date.today()
         activity_rows = [(1, 3600, None, 200, None, 200)]
         tss_rows = [(today, 80.0, 50000, 500)]
@@ -541,10 +547,11 @@ class TestFTPBackfill:
         with patch.dict("os.environ", {"VELOMATE_FTP": "175"}):
             recalculate_fitness(conn_cfg)
 
-        # Auto-estimate: estimate_ftp(1) + backfill(1) + stamp(1) = 3 extra
-        # Configured: no estimate_ftp + stamp(1) = 1 extra
-        # Net difference: 2 fewer cursors
-        assert conn_auto.cursor.call_count == conn_cfg.cursor.call_count + 2
+        # Both paths: estimate_ftp(1)
+        # Auto: backfill(1) + stamp(1) = 2 cursors
+        # Configured: stamp(1) = 1 cursor
+        # Net difference: 1 fewer cursor for configured
+        assert conn_auto.cursor.call_count == conn_cfg.cursor.call_count + 1
 
     def test_backfill_update_receives_ftp_fallback(self):
         """Backfill UPDATE should be called with global FTP (250) as COALESCE fallback."""
@@ -585,7 +592,10 @@ class TestRecalcEdgeCases:
         upsert_mock.assert_not_called()
 
     def test_env_var_overrides_auto_estimation(self):
-        """VELOMATE_MAX_HR and VELOMATE_FTP env vars skip auto-estimation."""
+        """VELOMATE_MAX_HR overrides auto-estimation. VELOMATE_FTP overrides
+        the FTP used for computation but estimate_ftp() is now still called
+        unconditionally so its result can be persisted as a diagnostic value
+        in sync_state.estimated_ftp alongside the configured FTP."""
         conn = MagicMock()
         conn.autocommit = True
         # Return empty results to short-circuit
@@ -596,13 +606,15 @@ class TestRecalcEdgeCases:
         with (
             patch.dict("os.environ", {"VELOMATE_MAX_HR": "180", "VELOMATE_FTP": "260"}),
             patch("fitness.estimate_threshold_hr") as mock_thr,
-            patch("fitness.estimate_ftp") as mock_ftp,
+            patch("fitness.estimate_ftp", return_value=200) as mock_ftp,
         ):
             try:
                 _original_recalc(conn)
             except (ValueError, StopIteration):
                 pass
 
-        # Auto-estimation functions should NOT be called when env vars are set
+        # estimate_threshold_hr is still skipped when VELOMATE_MAX_HR is set
         mock_thr.assert_not_called()
-        mock_ftp.assert_not_called()
+        # estimate_ftp is now ALWAYS called so its result can be persisted
+        # as the diagnostic estimated_ftp value, even when configured FTP is set
+        mock_ftp.assert_called_once()

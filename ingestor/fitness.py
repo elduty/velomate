@@ -232,11 +232,15 @@ def recalculate_fitness(conn):
         ftp_val = int(env_ftp) if env_ftp else 0
     except ValueError:
         ftp_val = 0
+
+    # Always compute the auto-estimate so it can be persisted as a diagnostic
+    # value alongside the configured FTP, regardless of which one is in use.
+    auto_ftp = estimate_ftp(conn)
     if ftp_val > 0:
         ftp = ftp_val
-        print(f"[fitness] Using configured FTP: {ftp}W")
+        print(f"[fitness] Using configured FTP: {ftp}W (algorithmic estimate: {auto_ftp}W)")
     else:
-        ftp = estimate_ftp(conn)
+        ftp = auto_ftp
         print(f"[fitness] Auto-estimated FTP: {ftp}W (rolling 90-day best 20min × 0.95)")
 
     env_rhr = os.environ.get("VELOMATE_RESTING_HR", "")
@@ -247,9 +251,12 @@ def recalculate_fitness(conn):
     resting_hr = rhr_val if rhr_val > 0 else 50
     print(f"[fitness] Resting HR: {resting_hr} {'(configured)' if rhr_val > 0 else '(default 50 bpm)'}")
 
-    # Persist estimated FTP so Grafana can read it directly from sync_state
+    # Persist the algorithmic estimate so Grafana can read it directly from
+    # sync_state. This is the auto-computed value, NOT the currently-active
+    # FTP — when configured_ftp is set, the two diverge and the difference is
+    # the diagnostic signal ("recalibrate?").
     import db as _db
-    _db.set_sync_state(conn, "estimated_ftp", str(ftp))
+    _db.set_sync_state(conn, "estimated_ftp", str(auto_ftp))
 
     # Check metrics version — reset all derived metrics if calculation logic changed
     stored_version = _db.get_sync_state(conn, "metrics_version")
