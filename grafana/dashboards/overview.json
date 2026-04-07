@@ -423,11 +423,11 @@
     },
     {
       "id": 223,
-      "title": "Est. FTP",
+      "title": "Configured FTP",
       "type": "stat",
       "gridPos": {
         "h": 3,
-        "w": 6,
+        "w": 3,
         "x": 6,
         "y": 21
       },
@@ -437,7 +437,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH ftp AS (\n  SELECT COALESCE(\n    (SELECT value::numeric FROM sync_state WHERE key = 'estimated_ftp' AND value::numeric > 0),\n    150\n  ) AS ftp_val\n) SELECT ftp_val AS \"FTP\" FROM ftp;",
+          "rawSql": "SELECT value::numeric AS \"FTP\"\nFROM sync_state\nWHERE key = 'configured_ftp' AND value::numeric > 0;",
           "format": "table",
           "refId": "A"
         }
@@ -459,10 +459,53 @@
             "fixedColor": "#8b5cf6",
             "mode": "fixed"
           },
-          "noValue": "No data"
+          "noValue": "auto"
         }
       },
-      "description": "Functional Threshold Power\n\nThe power you can sustain for ~1 hour.\nEstimated as 95% of your best 20-minute average power from the last 90 days.\nAnchors all power zones and TSS calculations.\nOverride with VELOMATE_FTP env var if known."
+      "description": "FTP from VELOMATE_FTP environment variable. When unset, this card shows \"auto\" and the Est. FTP card to the right is what gets used for TSS computation."
+    },
+    {
+      "id": 1020,
+      "title": "Est. FTP",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 3,
+        "x": 9,
+        "y": 21
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT value::numeric AS \"FTP\"\nFROM sync_state\nWHERE key = 'estimated_ftp' AND value::numeric > 0;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "unit": "watt",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          }
+        }
+      },
+      "description": "Algorithmic FTP estimate from rolling 90-day best 20-min \u00d7 0.95. Shown for diagnostic comparison against the configured value. When this differs from Configured FTP by more than ~10%, consider doing an FTP test and updating VELOMATE_FTP."
     },
     {
       "id": 201,
