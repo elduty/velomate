@@ -14,12 +14,6 @@ Plan: `docs/superpowers/plans/2026-04-06-overview-training-report-split.md`
 - [ ] Trim Overview to daily-glance view — keep Fitness + 4-stat "This Period" row (Rides/Distance/Hours/TSS) + Activities; remove delta section, Trends, Ride Patterns, Outdoor Records, Ride Map, Avg Decoupling panels
 - [ ] Update cross-dashboard nav links + provisioning for the new dashboard
 
-### High — Δ Avg Decoupling card bug fixes (verified 2026-04-06)
-- [x] Verify the delta card math against the DB — **math is correct**, card computes `current_period_avg − previous_period_avg` exactly as its SQL says
-- [ ] **Bug A**: `COALESCE(..., 0)` falls through to 0 when either period has no qualifying rides → delta shows e.g. `+7.00 red` when prev period has 0 rides, implying a huge regression where there's actually no comparable data. Fix: detect NULL from the subquery and return NULL or a sentinel so the card renders "No data" instead of a misleading number. Currently triggers on the default 30-day window (user has 6 rides in last 30d, 0 in the prior 30d).
-- [ ] **Bug B**: tiny-sample noise. When either period has < 3 qualifying rides the delta is meaningless (verified: last 7d = 1 ride, prev 7d = 2 rides produces a noisy +3.64 delta from the difference between a single ride at 4.44% vs two freak-low rides at 0.80%). Fix: display a "sample: N/M" footnote or suppress the delta with an info icon when either period is below the threshold. Threshold TBD — probably ≥3 rides per period, or require ≥50% of expected ride density.
-- [ ] Both fixes are card-level, unrelated to the Training Report split — can ship as a small standalone PR.
-
 ### High — Cluster B: Performance Modeling
 - [ ] CP/W' model with Monod-Scherrer + Morton fits — new `ingestor/critical_power.py` + `cp_estimates` table + CP/W' panel on All Time Progression (gap #3)
 - [ ] W'bal time series per ride — Skiba differential on stream + new Activity Details panel (gap #4, depends on CP/W')
@@ -57,3 +51,4 @@ Plan: `docs/superpowers/plans/2026-04-06-overview-training-report-split.md`
 - [x] Cluster A — Ride Analytics Depth (#91) — stored `aerobic_decoupling` column + trend panel + period stats, `ride_intervals` table + detection module + Activity Details interval table + monthly distribution chart
 - [x] Overview polish (#92) — decoupling collision fix, Δ Avg Decoupling, loosened steady-state filter, `now-30d` default, collapsible rows for secondary sections
 - [x] Overview + Training Report split design spec (`docs/superpowers/plans/2026-04-06-overview-training-report-split.md`)
+- [x] Δ Avg cards bug fixes (#93) — NULL-safe via CTE pattern + sample-size threshold (≥3 rides per period); fixes Bug A (COALESCE→0 misleading delta when prev period empty) and Bug B (tiny-sample noise) on all 4 average-based delta cards (Power, HR, Speed, Decoupling)
