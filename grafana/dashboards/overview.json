@@ -1314,7 +1314,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH curr AS (\n  SELECT AVG(avg_power) AS avg, COUNT(*) AS n FROM activities\n  WHERE avg_power > 0\n    AND $__timeFilter(date)\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n),\nprev AS (\n  SELECT AVG(avg_power) AS avg, COUNT(*) AS n FROM activities\n  WHERE avg_power > 0\n    AND date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz)\n    AND date < $__timeFrom()::timestamptz\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n)\nSELECT CASE\n  WHEN curr.n < 3 OR prev.n < 3 THEN NULL\n  ELSE ROUND((curr.avg - prev.avg)::numeric, 0)\nEND AS \"Delta\"\nFROM curr, prev;",
+          "rawSql": "WITH curr AS (\n  SELECT AVG(avg_power) AS avg FROM activities\n  WHERE avg_power > 0\n    AND $__timeFilter(date)\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n),\nprev AS (\n  SELECT AVG(avg_power) AS avg FROM activities\n  WHERE avg_power > 0\n    AND date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz)\n    AND date < $__timeFrom()::timestamptz\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n)\nSELECT ROUND((curr.avg - prev.avg)::numeric, 0) AS \"Delta\"\nFROM curr, prev;",
           "format": "table",
           "refId": "A"
         }
@@ -1331,7 +1331,7 @@
       },
       "fieldConfig": {
         "defaults": {
-          "noValue": "Insufficient data",
+          "noValue": "No data",
           "color": {
             "mode": "thresholds"
           },
@@ -1351,7 +1351,7 @@
           "unit": "watt"
         }
       },
-      "description": "Shows 'Insufficient data' when either period has fewer than 3 qualifying rides \u2014 small samples produce noisy and misleading deltas on average-based metrics."
+      "description": "Small samples (1-2 rides per period) can produce noisy deltas \u2014 use the All Time Progression trend panel for the smoothed long-term direction."
     },
     {
       "id": 308,
@@ -1369,7 +1369,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH curr AS (\n  SELECT AVG(avg_speed_kmh) AS avg, COUNT(*) AS n FROM activities\n  WHERE avg_speed_kmh > 0 AND distance_m > 5000\n    AND $__timeFilter(date)\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n),\nprev AS (\n  SELECT AVG(avg_speed_kmh) AS avg, COUNT(*) AS n FROM activities\n  WHERE avg_speed_kmh > 0 AND distance_m > 5000\n    AND date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz)\n    AND date < $__timeFrom()::timestamptz\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n)\nSELECT CASE\n  WHEN curr.n < 3 OR prev.n < 3 THEN NULL\n  ELSE ROUND((curr.avg - prev.avg)::numeric, 1)\nEND AS \"Delta\"\nFROM curr, prev;",
+          "rawSql": "WITH curr AS (\n  SELECT AVG(avg_speed_kmh) AS avg FROM activities\n  WHERE avg_speed_kmh > 0 AND distance_m > 5000\n    AND $__timeFilter(date)\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n),\nprev AS (\n  SELECT AVG(avg_speed_kmh) AS avg FROM activities\n  WHERE avg_speed_kmh > 0 AND distance_m > 5000\n    AND date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz)\n    AND date < $__timeFrom()::timestamptz\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n)\nSELECT ROUND((curr.avg - prev.avg)::numeric, 1) AS \"Delta\"\nFROM curr, prev;",
           "format": "table",
           "refId": "A"
         }
@@ -1386,7 +1386,7 @@
       },
       "fieldConfig": {
         "defaults": {
-          "noValue": "Insufficient data",
+          "noValue": "No data",
           "color": {
             "mode": "thresholds"
           },
@@ -1406,7 +1406,7 @@
           "unit": "velocitykmh"
         }
       },
-      "description": "Shows 'Insufficient data' when either period has fewer than 3 qualifying rides \u2014 small samples produce noisy and misleading deltas on average-based metrics."
+      "description": "Small samples (1-2 rides per period) can produce noisy deltas \u2014 use the All Time Progression trend panel for the smoothed long-term direction."
     },
     {
       "id": 309,
@@ -1424,7 +1424,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH curr AS (\n  SELECT AVG(avg_hr) AS avg, COUNT(*) AS n FROM activities\n  WHERE avg_hr > 0\n    AND $__timeFilter(date)\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n),\nprev AS (\n  SELECT AVG(avg_hr) AS avg, COUNT(*) AS n FROM activities\n  WHERE avg_hr > 0\n    AND date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz)\n    AND date < $__timeFrom()::timestamptz\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n)\nSELECT CASE\n  WHEN curr.n < 3 OR prev.n < 3 THEN NULL\n  ELSE ROUND((curr.avg - prev.avg)::numeric, 0)\nEND AS \"Delta\"\nFROM curr, prev;",
+          "rawSql": "WITH curr AS (\n  SELECT AVG(avg_hr) AS avg FROM activities\n  WHERE avg_hr > 0\n    AND $__timeFilter(date)\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n),\nprev AS (\n  SELECT AVG(avg_hr) AS avg FROM activities\n  WHERE avg_hr > 0\n    AND date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz)\n    AND date < $__timeFrom()::timestamptz\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n)\nSELECT ROUND((curr.avg - prev.avg)::numeric, 0) AS \"Delta\"\nFROM curr, prev;",
           "format": "table",
           "refId": "A"
         }
@@ -1441,7 +1441,7 @@
       },
       "fieldConfig": {
         "defaults": {
-          "noValue": "Insufficient data",
+          "noValue": "No data",
           "color": {
             "mode": "thresholds"
           },
@@ -1460,7 +1460,7 @@
           }
         }
       },
-      "description": "Shows 'Insufficient data' when either period has fewer than 3 qualifying rides \u2014 small samples produce noisy and misleading deltas on average-based metrics."
+      "description": "Small samples (1-2 rides per period) can produce noisy deltas \u2014 use the All Time Progression trend panel for the smoothed long-term direction."
     },
     {
       "id": 500,
@@ -2528,7 +2528,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH curr AS (\n  SELECT AVG(aerobic_decoupling) AS avg, COUNT(*) AS n FROM activities\n  WHERE aerobic_decoupling IS NOT NULL AND duration_s > 1800\n    AND $__timeFilter(date)\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n),\nprev AS (\n  SELECT AVG(aerobic_decoupling) AS avg, COUNT(*) AS n FROM activities\n  WHERE aerobic_decoupling IS NOT NULL AND duration_s > 1800\n    AND date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz)\n    AND date < $__timeFrom()::timestamptz\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n)\nSELECT CASE\n  WHEN curr.n < 3 OR prev.n < 3 THEN NULL\n  ELSE ROUND((curr.avg - prev.avg)::numeric, 2)\nEND AS \"Delta\"\nFROM curr, prev;",
+          "rawSql": "WITH curr AS (\n  SELECT AVG(aerobic_decoupling) AS avg FROM activities\n  WHERE aerobic_decoupling IS NOT NULL AND duration_s > 1800\n    AND $__timeFilter(date)\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n),\nprev AS (\n  SELECT AVG(aerobic_decoupling) AS avg FROM activities\n  WHERE aerobic_decoupling IS NOT NULL AND duration_s > 1800\n    AND date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz)\n    AND date < $__timeFrom()::timestamptz\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n)\nSELECT ROUND((curr.avg - prev.avg)::numeric, 2) AS \"Delta\"\nFROM curr, prev;",
           "format": "table",
           "refId": "A"
         }
@@ -2545,7 +2545,7 @@
       },
       "fieldConfig": {
         "defaults": {
-          "noValue": "Insufficient data",
+          "noValue": "No data",
           "unit": "percent",
           "color": {
             "mode": "thresholds"
@@ -2565,7 +2565,7 @@
           }
         }
       },
-      "description": "Change in average aerobic decoupling vs the previous period of equal length. Negative (green) = decoupling decreased, aerobic base improving.\n\nShows 'Insufficient data' when either period has fewer than 3 qualifying rides \u2014 small samples produce noisy and misleading deltas on average-based metrics."
+      "description": "Change in average aerobic decoupling vs the previous period of equal length. Negative (green) = decoupling decreased, aerobic base improving.\n\nSmall samples (1-2 rides per period) can produce noisy deltas \u2014 use the All Time Progression trend panel for the smoothed long-term direction."
     }
   ],
   "annotations": {
