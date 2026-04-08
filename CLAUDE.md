@@ -38,6 +38,54 @@ When analysing Raven review findings, apply judgement:
 - `grafana/dashboards/*.json` — Three dashboards: activity, overview, all-time-progression
   - Activity Details has both Zone charts (5-6 standard buckets) and Distribution histograms (full granular shape) — these are not redundant, keep both
 
+## Dashboard Conventions
+
+### Panel tooltip formatting
+
+Panel `description` fields are the hover tooltips users see in Grafana. Follow this format whenever a description contains numeric ranges or thresholds:
+
+- **One range per line.** Never jam multiple ranges onto one line with commas or a compressed sentence. Each threshold / bucket gets its own line.
+- **Blank line separator between ranges.** The colored-bullet panels (Form, TSS, Intensity Factor, Power Zones, etc.) use double-newlines between entries because Grafana's Markdown renderer collapses single newlines — blank lines force line breaks.
+- **Format: `<marker> <range> — <label>`.** Optional emoji bullet, then the threshold or range expression, em-dash (`—`, U+2014), then the human-readable label.
+- **Lead with context.** Put a one-line definition or formula first, then a blank line, then the range list, then any closing note. Don't lead with the ranges.
+- **Use `—` (em-dash), not `-` (hyphen)**, as the separator between threshold and label. The hyphen reads as a minus sign in numeric contexts.
+- **Use `–` (en-dash) or `to`** for numeric ranges inside a bucket label (e.g. `30s – 2 min`, `5-10%`). Either is fine; be consistent within a single description.
+
+**Reference panels** (already compliant — use as templates when adding new panels):
+- `overview.json` → Form (TSB) id 222, TSS id 6, Days Since Ride id 225
+- `activity.json` → Intensity Factor id 35, Variability Index id 36, Power Zones id 32
+
+**Example — good:**
+
+```
+Training Stress Balance (Form)
+CTL minus ATL — are you fresh or fatigued?
+
+🔴 < -10 — Overreached, need rest
+
+🟠 -10 to 0 — Tired, normal training fatigue
+
+🟢 0 to 15 — Optimal, good balance
+
+🔵 > 15 — Fresh, race-ready (fitness may be declining)
+```
+
+**Example — bad (pre-PR #98 state):**
+
+```
+Aerobic Decoupling (Friel)
+Power:HR ratio drift — first half vs second half.
+
+Positive = cardiac drift (HR rising relative to power).
+< 5% — Good aerobic fitness
+5-10% — Moderate drift
+> 10% — Significant drift, base fitness needs work
+```
+
+Ranges jammed onto consecutive lines with no blank separators render as one squished paragraph in the tooltip. Always insert a blank line between each range.
+
+This rule applies whenever you add, edit, or migrate panel descriptions. Run `python3 -m pytest tests/test_dashboards.py -q` after any dashboard JSON change.
+
 ## Metrics (Validated)
 
 All cycling metrics follow industry standards. The ingestor is the single source of truth — Grafana reads stored values from the activities table.
