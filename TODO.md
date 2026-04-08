@@ -41,6 +41,8 @@ Plan: `docs/superpowers/plans/2026-04-06-overview-training-report-split.md`
 - [ ] Form-zone auto-annotation on fitness timeline (peak/productive/overreaching)
 - [ ] Route library with metadata (favourite routes, tags, repeat analysis)
 - [ ] Strava webhook subscriptions — push instead of 10-min polling
+- [ ] Interval detector: lower `threshold_pct` from 0.85 → 0.78 so tempo (75-85% FTP) and sweetspot-floor (83%) efforts become detectable. Currently the detection threshold sits inside the sweetspot band so sustained 83-85% FTP rides can't be classified. Not blocking for urban-surge-dominant riders (power profile doesn't touch that band anyway), but needed once structured training enters the mix. One-line default + METRICS_VERSION bump.
+- [ ] Consider "surge vs interval" heuristic: urban riders generate many 30-120s anaerobic classifications from traffic light accelerations (verified in prod data: 21 anaerobic intervals with max/avg ratios 1.4-2.1 = classic spike-then-decay traffic surges). Not a bug — classification is mathematically correct — but represents "traffic physics" rather than training intent. Possible heuristics: require max/avg ratio < 1.6 for "real" anaerobic class, or require ≥3 similar efforts within a 30-min window, or add a "surge" class for spike-pattern efforts. Deferred pending more thought about the right abstraction.
 
 ## ✅ Done
 - [x] Configurable backfill window via `VELOMATE_BACKFILL_MONTHS` (#89)
