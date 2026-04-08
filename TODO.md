@@ -44,6 +44,12 @@ Plan: `docs/superpowers/plans/2026-04-06-overview-training-report-split.md`
 - [ ] Interval detector: lower `threshold_pct` from 0.85 → 0.78 so tempo (75-85% FTP) and sweetspot-floor (83%) efforts become detectable. Currently the detection threshold sits inside the sweetspot band so sustained 83-85% FTP rides can't be classified. Not blocking for urban-surge-dominant riders (power profile doesn't touch that band anyway), but needed once structured training enters the mix. One-line default + METRICS_VERSION bump.
 - [ ] Consider "surge vs interval" heuristic: urban riders generate many 30-120s anaerobic classifications from traffic light accelerations (verified in prod data: 21 anaerobic intervals with max/avg ratios 1.4-2.1 = classic spike-then-decay traffic surges). Not a bug — classification is mathematically correct — but represents "traffic physics" rather than training intent. Possible heuristics: require max/avg ratio < 1.6 for "real" anaerobic class, or require ≥3 similar efforts within a 30-min window, or add a "surge" class for spike-pattern efforts. Deferred pending more thought about the right abstraction.
 
+## 📬 External tooling feedback
+
+Items that aren't VeloAI code changes but are worth tracking for the tools that interact with this repo. Raven is the code-review bot running against Gitea PRs on this project.
+
+- [ ] **Raven**: add yourself as a reviewer when the PR is opened, not only when you have reviewed it. Currently Raven only appears in the Reviewers list after posting its first review, which means a newly-opened PR looks unreviewed until Raven gets to it. Adding itself at PR open time would make the pending review visible immediately in the PR list and in notifications.
+
 ## ✅ Done
 - [x] Configurable backfill window via `VELOMATE_BACKFILL_MONTHS` (#89)
 - [x] Auto-backfill when `VELOMATE_BACKFILL_MONTHS` is extended (#90)
