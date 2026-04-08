@@ -433,6 +433,43 @@ class TestBatchTSSUpdate:
         # IF = 220/175 = 1.26
         assert tss_data[1][1] == pytest.approx(1.26, abs=0.01)
 
+    def test_hr_tss_uses_lthr_not_max_hr(self):
+        """Regression guard for the HR TSS fallback path.
+
+        Coggan HR TSS formula is `duration_h × (avg_hr / LTHR)² × 100` where
+        LTHR (Lactate Threshold HR) is approximately 89% of max HR per Friel's
+        convention. Previously the call site passed configured max HR directly
+        into calculate_tss as if it were LTHR, underestimating HR TSS by
+        (0.89² = 0.79) — a ~21% shortfall. Only fires on HR-only rides (no
+        power stream) so it was latent on datasets where every ride has power,
+        but would skew any HR-only ride (dead power meter, HR-only fitness
+        tracker workout).
+
+        Test ride: 1h at avg_hr 150 with mocked estimated max_hr = 170.
+          LTHR = round(170 × 0.89) = 151
+          Old wrong (max_hr): (150/170)² × 100 = 77.9 TSS
+          New right (LTHR):   (150/151)² × 100 = 98.7 TSS
+        """
+        today = date.today()
+        # HR-only activity: avg_hr=150, avg_power=None, np=None → HR TSS path
+        activity_rows = [(1, 3600, 150, None, None, 200)]
+        tss_rows = [(today, 50.0, 40000, 300)]
+
+        conn = _make_conn(activity_rows, tss_rows=tss_rows)
+        import psycopg2.extras as extras_mock
+
+        with patch.dict(sys.modules, {"db": MagicMock()}):
+            recalculate_fitness(conn)
+
+        batch_call = extras_mock.execute_batch.call_args
+        tss_data = batch_call[0][2]
+        # With mock max_hr=170, LTHR=151, HR TSS ≈ 98.7
+        # The old buggy value using max_hr directly would be ~77.9
+        assert 96 <= tss_data[0][0] <= 101, (
+            f"HR TSS should be LTHR-based (~99), got {tss_data[0][0]} "
+            f"— likely still using max_hr (77.9) as threshold"
+        )
+
     def test_ride_ftp_none_falls_back_to_global_ftp(self):
         """Activity with ride_ftp=None should use global FTP (250) for TSS.
         Defensive path: in production, backfill+stamp would set ride_ftp before

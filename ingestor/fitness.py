@@ -498,7 +498,13 @@ def recalculate_fitness(conn):
             tss = calculate_tss_power(duration_s, tss_power, act_ftp)
             if_val = compute_if(tss_power, act_ftp)
         elif avg_hr and avg_hr > 0:
-            tss = calculate_tss(duration_s, avg_hr, threshold_hr)
+            # Coggan HR TSS = duration_h × (avg_hr / LTHR)² × 100.
+            # LTHR (Lactate Threshold HR) ≈ 89% of max HR per Friel convention.
+            # threshold_hr at this point holds max HR (from VELOMATE_MAX_HR or
+            # the estimate_threshold_hr auto-estimate), so derive LTHR here
+            # before feeding it into the HR TSS formula.
+            lthr = int(round(threshold_hr * 0.89))
+            tss = calculate_tss(duration_s, avg_hr, lthr)
             if_val = None
         else:
             tss = 0
