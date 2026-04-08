@@ -1269,7 +1269,7 @@
           }
         ]
       },
-      "description": "Monthly time spent in each Coggan power zone.\n\nPolarized training = more time in Z1-2 and Z5-7, less in Z3-4.\n\nZ1 < 55% FTP \u2014 Recovery\n\nZ2 55-75% FTP \u2014 Endurance\n\nZ3 75-90% FTP \u2014 Tempo\n\nZ4 90-105% FTP \u2014 Threshold\n\nZ5 105-120% FTP \u2014 VO2max\n\nZ6 120-150% FTP \u2014 Anaerobic\n\nZ7 > 150% FTP \u2014 Neuromuscular\n\nBased on configured FTP or auto-estimated FTP."
+      "description": "Monthly time spent in each Coggan power zone.\n\nPolarized training = more time in Z1-2 and Z5-7, less in Z3-4.\n\n\ud83d\udd18 Z1 < 55% FTP \u2014 Recovery\n\n\ud83d\udd35 Z2 55-75% FTP \u2014 Endurance\n\n\ud83d\udfe2 Z3 75-90% FTP \u2014 Tempo\n\n\ud83d\udfe1 Z4 90-105% FTP \u2014 Threshold\n\n\ud83d\udfe0 Z5 105-120% FTP \u2014 VO2max\n\n\ud83d\udd34 Z6 120-150% FTP \u2014 Anaerobic\n\n\ud83d\udfe3 Z7 > 150% FTP \u2014 Neuromuscular\n\nBased on configured FTP or auto-estimated FTP."
     },
     {
       "id": 31,
@@ -1383,7 +1383,7 @@
           }
         ]
       },
-      "description": "Monthly time spent in each heart rate zone.\n\nZ1 < 60% max HR \u2014 Recovery\n\nZ2 60-70% max HR \u2014 Endurance\n\nZ3 70-80% max HR \u2014 Tempo\n\nZ4 80-90% max HR \u2014 Threshold\n\nZ5 > 90% max HR \u2014 VO2max\n\nBased on configured max HR or auto-estimated."
+      "description": "Monthly time spent in each heart rate zone.\n\n\ud83d\udd18 Z1 < 60% max HR \u2014 Recovery\n\n\ud83d\udd35 Z2 60-70% max HR \u2014 Endurance\n\n\ud83d\udfe2 Z3 70-80% max HR \u2014 Tempo\n\n\ud83d\udfe1 Z4 80-90% max HR \u2014 Threshold\n\n\ud83d\udd34 Z5 > 90% max HR \u2014 VO2max\n\nBased on configured max HR or auto-estimated."
     },
     {
       "id": 1110,

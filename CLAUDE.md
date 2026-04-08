@@ -46,43 +46,78 @@ Panel `description` fields are the hover tooltips users see in Grafana. Follow t
 
 - **One range per line.** Never jam multiple ranges onto one line with commas or a compressed sentence. Each threshold / bucket gets its own line.
 - **Blank line separator between ranges.** The colored-bullet panels (Form, TSS, Intensity Factor, Power Zones, etc.) use double-newlines between entries because Grafana's Markdown renderer collapses single newlines — blank lines force line breaks.
-- **Format: `<marker> <range> — <label>`.** Optional emoji bullet, then the threshold or range expression, em-dash (`—`, U+2014), then the human-readable label.
+- **Format: `<emoji> <range> — <label>`.** Emoji bullet (see palette below), then the threshold or range expression, em-dash (`—`, U+2014), then the human-readable label.
 - **Lead with context.** Put a one-line definition or formula first, then a blank line, then the range list, then any closing note. Don't lead with the ranges.
 - **Use `—` (em-dash), not `-` (hyphen)**, as the separator between threshold and label. The hyphen reads as a minus sign in numeric contexts.
 - **Use `–` (en-dash) or `to`** for numeric ranges inside a bucket label (e.g. `30s – 2 min`, `5-10%`). Either is fine; be consistent within a single description.
 
-**Reference panels** (already compliant — use as templates when adding new panels):
-- `overview.json` → Form (TSB) id 222, TSS id 6, Days Since Ride id 225
-- `activity.json` → Intensity Factor id 35, Variability Index id 36, Power Zones id 32
+### Tooltip color icons MUST match the panel's actual chart colors
+
+**Rule:** whenever a panel is visually color-coded (threshold steps, zone color overrides, cell color mappings), the tooltip description MUST include an emoji bullet on each range that matches the actual color shown on the chart. Users should be able to hover a red bar on a chart and find a matching 🔴 emoji in the tooltip explaining what red means.
+
+This applies to:
+- Stat panels with `thresholds` color steps (Form TSB, Days Since Ride, TRIMP, Aerobic Decoupling, IF, VI, etc.)
+- Bar/stacked charts with per-series `color` overrides (HR Zones, Power Zones, Monthly Zone Distribution, etc.)
+- Table panels with `color-background` cell `mappings` (Detected Intervals)
+
+**Unified emoji palette** — matches the actual chart hex colors. Use these when adding new color-coded panels or editing existing ones:
+
+| Emoji | Chart color | Generic meaning | Used for |
+|---|---|---|---|
+| 🔘 | grey `#808080` | Baseline / recovery / easy floor | Power Z1, HR Z1, TRIMP < 50 |
+| 🔵 | blue `#3498db` | Easy endurance / fresh | Power Z2, HR Z2, TRIMP 50-75, Detected Intervals tempo, Form (TSB) "fresh" |
+| 🟢 | green `#2ecc71` | Good / optimal / moderate | Power Z3, HR Z3, TRIMP 75-100, Detected Intervals sweetspot, Aerobic Decoupling < 5%, VI normal, Form (TSB) optimal, Days Since Ride active |
+| 🟡 | yellow `#f1c40f` | Moderate warning / threshold | Power Z4, HR Z4, TRIMP 100-125, Detected Intervals threshold, Aerobic Decoupling 5-10% |
+| 🟠 | orange `#e67e22` | Warning / hard | **Power Z5 (7-zone)**, TRIMP 125-150, Detected Intervals vo2, Days Since Ride extended |
+| 🔴 | red `#e74c3c` | Very hard / danger / top of compressed palettes | **Power Z6 (7-zone), HR Z5 (5-zone max)**, TRIMP > 150, Detected Intervals anaerobic, Aerobic Decoupling > 10%, Form (TSB) overreached |
+| 🟣 | purple `#9333ea` | Maximum / sprint / supramaximal | **Power Z7 (7-zone)**, Detected Intervals sprint |
+
+**Compressed palettes**: Power Zones is a **7-zone** system that uses the full palette. HR Zones is a **5-zone** system that compresses to 5 colours, truncating at red — so HR Z5 (the top zone, VO2max) uses 🔴 red, **not** 🟠 orange, even though both are called "VO2max". The chart defines the color for each panel; the "Generic meaning" column above is descriptive of where each emoji gets used across the codebase, not a prescriptive Z-number mapping.
+
+TRIMP, Form (TSB), Days Since Ride, Aerobic Decoupling, VI, and other non-zone metrics have their own threshold-based palettes (2-6 colors) that select a subset of this unified palette based on the panel's own threshold count. Always defer to the panel's chart colors as the source of truth.
+
+Single-direction deltas (e.g. `Δ Avg Decoupling`, `6w Fitness Δ`) are fine without emojis — they have a threshold but not a "range" per se. The rule applies to panels with ≥2 named range buckets.
+
+**Reference panels** — use as templates when adding new panels:
+- `overview.json` → Form (TSB) id 222, Days Since Ride id 225
+- `activity.json` → Intensity Factor id 35, Variability Index id 36, Power Zones id 32, TRIMP id 43, Aerobic Decoupling id 411, HR Zones id 31, Detected Intervals id 1100
 
 **Example — good:**
 
 ```
-Training Stress Balance (Form)
-CTL minus ATL — are you fresh or fatigued?
+Time in each power zone.
 
-🔴 < -10 — Overreached, need rest
+Zones based on FTP, estimated from best 20-min power × 0.95 or configured via VELOMATE_FTP.
 
-🟠 -10 to 0 — Tired, normal training fatigue
+🔘 Z1 < 55% — Recovery
 
-🟢 0 to 15 — Optimal, good balance
+🔵 Z2 55-75% — Endurance
 
-🔵 > 15 — Fresh, race-ready (fitness may be declining)
+🟢 Z3 75-90% — Tempo
+
+🟡 Z4 90-105% — Threshold
+
+🟠 Z5 105-120% — VO2max
+
+🔴 Z6 120-150% — Anaerobic
+
+🟣 Z7 > 150% — Neuromuscular
 ```
 
-**Example — bad (pre-PR #98 state):**
+**Example — bad:**
 
 ```
-Aerobic Decoupling (Friel)
-Power:HR ratio drift — first half vs second half.
+Time in each power zone.
 
-Positive = cardiac drift (HR rising relative to power).
-< 5% — Good aerobic fitness
-5-10% — Moderate drift
-> 10% — Significant drift, base fitness needs work
+Z1 < 55% — Recovery
+Z2 55-75% — Endurance
+...
+Z7 > 150% — Neuromuscular
 ```
 
-Ranges jammed onto consecutive lines with no blank separators render as one squished paragraph in the tooltip. Always insert a blank line between each range.
+Two problems: ranges jammed with no blank-line separators (renders as one paragraph) AND no color icons (user can't connect chart colors to description).
+
+**When the panel's palette is wrong:** if you find a panel whose color icons in the tooltip don't match the chart colors (e.g. tooltip uses ⚡ but chart uses purple), fix the tooltip to match the chart, not the other way around. The chart colors are the source of truth because users see them continuously; the tooltip is a hover aid.
 
 This rule applies whenever you add, edit, or migrate panel descriptions. Run `python3 -m pytest tests/test_dashboards.py -q` after any dashboard JSON change.
 

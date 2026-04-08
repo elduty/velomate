@@ -1175,7 +1175,7 @@
           }
         }
       },
-      "description": "TRIMP (Training Impulse) \u2014 Banister formula\nExponential HR-based effort score.\n\n< 75 \u2014 Easy\n\n75-150 \u2014 Moderate\n\n150-250 \u2014 Hard\n\n250-400 \u2014 Very hard\n\n400+ \u2014 Extreme\n\nNote: TRIMP and TSS measure different things. On stop-and-go rides (urban, MTB, crit) TRIMP can be notably higher than TSS \u2014 your HR stays elevated through coasting while power drops to zero. Both values are honest; the ride's true load sits between them."
+      "description": "TRIMP (Training Impulse) \u2014 Banister formula\nExponential HR-based effort score calibrated for 1\u20132 hour rides.\n\n\ud83d\udd18 < 50 \u2014 Recovery\n\n\ud83d\udd35 50-75 \u2014 Easy endurance\n\n\ud83d\udfe2 75-100 \u2014 Moderate endurance\n\n\ud83d\udfe1 100-125 \u2014 Tempo / sustained\n\n\ud83d\udfe0 125-150 \u2014 Threshold / hard\n\n\ud83d\udd34 > 150 \u2014 Very hard / extreme\n\nNote: TRIMP and TSS measure different things. On stop-and-go rides (urban, MTB, crit) TRIMP can be notably higher than TSS \u2014 your HR stays elevated through coasting while power drops to zero. Both values are honest; the ride's true load sits between them."
     },
     {
       "id": 411,
@@ -1234,7 +1234,7 @@
           }
         }
       },
-      "description": "Aerobic Decoupling (Friel)\nPower:HR ratio drift \u2014 first half vs second half.\n\nPositive = cardiac drift (HR rising relative to power).\n\n< 5% \u2014 Good aerobic fitness\n\n5-10% \u2014 Moderate drift\n\n> 10% \u2014 Significant drift, base fitness needs work"
+      "description": "Aerobic Decoupling (Friel)\nPower:HR ratio drift \u2014 first half vs second half.\n\nPositive = cardiac drift (HR rising relative to power).\n\n\ud83d\udfe2 < 5% \u2014 Good aerobic fitness\n\n\ud83d\udfe1 5-10% \u2014 Moderate drift\n\n\ud83d\udd34 > 10% \u2014 Significant drift, base fitness needs work"
     },
     {
       "id": 1100,
@@ -1312,7 +1312,7 @@
           }
         ]
       },
-      "description": "Automatically detected sustained efforts in this ride, classified by duration and intensity (% of ride FTP).\n\nSprint \u2014 > 150% FTP, < 30s\n\nAnaerobic \u2014 120\u2013150% FTP, 30s \u2013 2 min\n\nVO2 \u2014 105\u2013120% FTP, 2 \u2013 5 min\n\nThreshold \u2014 95\u2013105% FTP, 5 \u2013 20 min\n\nSweet spot \u2014 83\u201394% FTP, 15 \u2013 60 min\n\nTempo \u2014 75\u201385% FTP, > 20 min"
+      "description": "Automatically detected sustained efforts in this ride, classified by duration and intensity (% of ride FTP).\n\n\ud83d\udfe3 Sprint \u2014 > 150% FTP, < 30s\n\n\ud83d\udd34 Anaerobic \u2014 120\u2013150% FTP, 30s \u2013 2 min\n\n\ud83d\udfe0 VO2 \u2014 105\u2013120% FTP, 2 \u2013 5 min\n\n\ud83d\udfe1 Threshold \u2014 95\u2013105% FTP, 5 \u2013 20 min\n\n\ud83d\udfe2 Sweet spot \u2014 83\u201394% FTP, 15 \u2013 60 min\n\n\ud83d\udd35 Tempo \u2014 75\u201385% FTP, > 20 min"
     },
     {
       "id": 902,
@@ -1445,7 +1445,7 @@
           }
         ]
       },
-      "description": "HR zone distribution per kilometer.\n\nShows where on the route you were working hard.\nStacked to 100% \u2014 each bar shows the zone split for that km."
+      "description": "HR zone distribution per kilometer.\n\nShows where on the route you were working hard. Stacked to 100% \u2014 each bar shows the zone split for that km.\n\n\ud83d\udd18 Z1 < 60% max HR \u2014 Recovery\n\n\ud83d\udd35 Z2 60-70% max HR \u2014 Endurance\n\n\ud83d\udfe2 Z3 70-80% max HR \u2014 Tempo\n\n\ud83d\udfe1 Z4 80-90% max HR \u2014 Threshold\n\n\ud83d\udd34 Z5 > 90% max HR \u2014 VO2max"
     },
     {
       "id": 403,
@@ -1595,7 +1595,7 @@
           }
         ]
       },
-      "description": "Power zone distribution per kilometer.\n\nShows where on the route you produced the most power.\n6 Coggan zones based on FTP."
+      "description": "Power zone distribution per kilometer.\n\nShows where on the route you produced the most power. 7 Coggan zones based on FTP.\n\n\ud83d\udd18 Z1 < 55% FTP \u2014 Recovery\n\n\ud83d\udd35 Z2 55-75% FTP \u2014 Endurance\n\n\ud83d\udfe2 Z3 75-90% FTP \u2014 Tempo\n\n\ud83d\udfe1 Z4 90-105% FTP \u2014 Threshold\n\n\ud83d\udfe0 Z5 105-120% FTP \u2014 VO2max\n\n\ud83d\udd34 Z6 120-150% FTP \u2014 Anaerobic\n\n\ud83d\udfe3 Z7 > 150% FTP \u2014 Neuromuscular"
     },
     {
       "id": 31,
@@ -1717,7 +1717,7 @@
           }
         ]
       },
-      "description": "Time in each heart rate zone.\nBased on % of max HR.\n\nZ1 < 60% \u2014 Recovery\n\nZ2 60-70% \u2014 Endurance\n\nZ3 70-80% \u2014 Tempo\n\nZ4 80-90% \u2014 Threshold\n\nZ5 > 90% \u2014 VO2max"
+      "description": "Time in each heart rate zone.\nBased on % of max HR.\n\n\ud83d\udd18 Z1 < 60% \u2014 Recovery\n\n\ud83d\udd35 Z2 60-70% \u2014 Endurance\n\n\ud83d\udfe2 Z3 70-80% \u2014 Tempo\n\n\ud83d\udfe1 Z4 80-90% \u2014 Threshold\n\n\ud83d\udd34 Z5 > 90% \u2014 VO2max"
     },
     {
       "id": 32,
@@ -1869,7 +1869,7 @@
           }
         ]
       },
-      "description": "Time in each power zone.\n\nZones based on FTP, estimated from best 20-min power \u00d7 0.95 or configured via VELOMATE_FTP.\n\n\ud83d\udd18 Z1 < 55% \u2014 Recovery\n\n\ud83d\udd35 Z2 55-75% \u2014 Endurance\n\n\ud83d\udfe2 Z3 75-90% \u2014 Tempo\n\n\ud83d\udfe1 Z4 90-105% \u2014 Threshold\n\n\ud83d\udfe0 Z5 105-120% \u2014 VO2max\n\n\ud83d\udd34 Z6 120-150% \u2014 Anaerobic\n\n\u26a1 Z7 > 150% \u2014 Neuromuscular"
+      "description": "Time in each power zone.\n\nZones based on FTP, estimated from best 20-min power \u00d7 0.95 or configured via VELOMATE_FTP.\n\n\ud83d\udd18 Z1 < 55% \u2014 Recovery\n\n\ud83d\udd35 Z2 55-75% \u2014 Endurance\n\n\ud83d\udfe2 Z3 75-90% \u2014 Tempo\n\n\ud83d\udfe1 Z4 90-105% \u2014 Threshold\n\n\ud83d\udfe0 Z5 105-120% \u2014 VO2max\n\n\ud83d\udd34 Z6 120-150% \u2014 Anaerobic\n\n\ud83d\udfe3 Z7 > 150% \u2014 Neuromuscular"
     },
     {
       "id": 42,

@@ -2553,7 +2553,7 @@
           }
         }
       },
-      "description": "Average aerobic decoupling across rides \u226530 min in the selected period. Lower = better aerobic fitness. Includes interval rides (noisy per ride, but the period average is still directional)."
+      "description": "Average aerobic decoupling across rides \u226530 min in the selected period.\nLower = better aerobic fitness.\n\n\ud83d\udfe2 < 5% \u2014 Good aerobic fitness\n\n\ud83d\udfe1 5-10% \u2014 Moderate drift\n\n\ud83d\udd34 > 10% \u2014 Significant drift\n\nIncludes interval rides (noisy per ride, but the period average is still directional)."
     },
     {
       "id": 1012,
