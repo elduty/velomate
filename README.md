@@ -260,32 +260,38 @@ python3 -m velomate.cli plan --destination Cascais --distance 50km
 ## Fitness Metrics
 
 ```
-Power TSS = (duration_s × NP × IF) / (FTP × 3600) × 100   (preferred)
-HR TSS    = (duration_h) × (avg_hr / threshold_hr)² × 100  (fallback)
+Power TSS = (duration_s × P × IF) / (FTP × 3600) × 100     where P is VI-aware
+            — P = NP when VI ≤ 1.30 (Coggan standard)
+            — P = avg_power when VI > 1.30 (high-variability urban rides)
+HR TSS    = (duration_h) × (avg_hr / threshold_hr)² × 100  (fallback, no power)
 CTL       = 42-day EMA of daily TSS   (chronic training load / fitness)
 ATL       = 7-day EMA of daily TSS    (acute training load / fatigue)
 TSB       = CTL − ATL                 (training stress balance / form)
 ```
 
-- **NP**: Normalized Power — 30-second SMA (circular buffer), 4th power, mean, 4th root. Matches GoldenCheetah IsoPower (Coggan standard)
-- **IF**: Intensity Factor = NP / FTP. Uses per-ride FTP for historical accuracy
-- **VI**: Variability Index = NP / avg power. Higher = more variable effort
+- **NP**: Normalized Power — 30-second SMA (circular buffer), 4th power, mean, 4th root. Matches GoldenCheetah IsoPower (Coggan standard). Computed and stored on every power ride
+- **VI-aware TSS**: The Coggan NP model is calibrated for VI ≈ 1.0–1.2. On rides with VI > 1.30 (urban stop-and-go, crit-style surges, technical MTB) the 4th-power weighting overestimates sustained load. VeloMate switches to avg_power-based TSS above this boundary so high-VI rides get a physiologically realistic TSS. Steady rides (the majority) are unaffected
+- **IF**: Intensity Factor — computed from the same power used for TSS (NP or avg_power depending on VI) divided by per-ride FTP, so `TSS ≈ duration_h × IF² × 100` holds on every ride
+- **VI**: Variability Index = NP / avg_power. Higher = more variable effort. Drives the VI-aware TSS routing above
 - **EF**: Efficiency Factor = NP / avg HR. Rising EF indicates improving aerobic fitness
 - **TRIMP**: Banister exponential formula from per-second HR data. HRR capped at 1.0 to prevent blowup when HR exceeds configured max
-- **FTP**: auto-estimated from rolling 90-day best 20-minute power × 0.95, or configured via `VELOMATE_FTP`
+- **Aerobic decoupling**: `(first_half_EF / second_half_EF − 1) × 100`. Positive = cardiac drift. Computed per ride by the ingestor, stored on `activities.aerobic_decoupling`, trended on All Time Progression
+- **FTP**: auto-estimated from rolling 90-day best 20-minute power × 0.95, or configured via `VELOMATE_FTP`. The algorithmic estimate is always computed and stored as a diagnostic value alongside the configured one — Overview shows both side-by-side so a mismatch is visible at a glance
 - **Work**: Total energy output in kJ = sum of per-second power from stream data
 - **Threshold HR**: 95th percentile of your max HRs, or configured via `VELOMATE_MAX_HR`
+- **Auto interval detection**: Coggan-style classification (sprint / anaerobic / vo2 / threshold / sweetspot / tempo) from the power stream, stored in the `ride_intervals` table. Classification uses per-ride FTP for historical accuracy
 - **TSB interpretation**: > +10 fresh · -10 to +10 neutral · < -10 fatigued
 
 ## Database Schema
 
 | Table | Contents |
 |-------|----------|
-| `activities` | Every ride — distance, duration, HR, power, cadence, elevation, calories, TSS, NP, IF, VI, EF, TRIMP, Work (kJ), ride FTP, sport type, device |
+| `activities` | Every ride — distance, duration, HR, power, cadence, elevation, calories, TSS, NP, IF, VI, EF, TRIMP, Work (kJ), aerobic decoupling, ride FTP, sport type, device |
 | `activity_streams` | Per-second telemetry — HR, power, cadence, speed, altitude, lat/lng |
+| `ride_intervals` | Auto-detected intervals with duration, power, classification (sprint/anaerobic/vo2/threshold/sweetspot/tempo) |
 | `athlete_stats` | Daily fitness metrics — CTL, ATL, TSB, weekly volume |
 | `routes` | Legacy — created by schema but not actively written to |
-| `sync_state` | Ingestor bookmarks (last synced timestamps) |
+| `sync_state` | Ingestor bookmarks + configured/estimated FTP + metrics version |
 
 Schema is managed in code (`ingestor/db.py:create_schema()`) using `IF NOT EXISTS` / `ADD COLUMN IF NOT EXISTS`. No migration tool.
 
