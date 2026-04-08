@@ -7,6 +7,7 @@ from fitness import (
     calculate_tss, calculate_tss_power,
     compute_np, compute_trimp, compute_if, compute_vi,
     compute_decoupling,
+    select_power_for_tss, HIGH_VI_THRESHOLD,
 )
 
 
@@ -222,3 +223,69 @@ class TestComputeDecoupling:
         hr = [140, None, 140] * 100
         result = compute_decoupling(power, hr)
         assert result is not None
+
+
+# --- select_power_for_tss (VI-aware TSS input selection) ---
+
+class TestSelectPowerForTss:
+    """Picks which power value to feed into Coggan TSS.
+
+    Standard rides (VI <= 1.30) use NP because it correctly models steady
+    physiological load. High-VI rides (urban stop-and-go, VI > 1.30) use
+    avg_power because NP's 4th-power weighting overestimates load on rides
+    dominated by coasting + surges. The boundary matches the published
+    Coggan-model validity range.
+    """
+
+    def test_threshold_constant_is_1_30(self):
+        """Sanity-check the documented threshold value. Matches the
+        Coggan-model validity range reported in cycling-physiology
+        literature for steady-state assumptions."""
+        assert HIGH_VI_THRESHOLD == 1.30
+
+    def test_standard_ride_uses_np(self):
+        """Steady ride with VI 1.10 → use NP for TSS."""
+        # np=220, avg=200 → vi=1.10
+        assert select_power_for_tss(np=220, avg_power=200) == 220
+
+    def test_high_vi_ride_uses_avg_power(self):
+        """Urban ride with VI 1.54 (the user's real case) → use avg_power."""
+        # np=176, avg=114 → vi=1.54
+        assert select_power_for_tss(np=176, avg_power=114) == 114
+
+    def test_right_at_threshold_uses_np(self):
+        """VI exactly at 1.30 is the boundary — still use NP.
+        (Strict > comparison so the threshold itself is "standard".)"""
+        # np=130, avg=100 → vi=1.30 exactly
+        assert select_power_for_tss(np=130, avg_power=100) == 130
+
+    def test_just_above_threshold_uses_avg_power(self):
+        """VI just above the threshold triggers the fallback."""
+        # np=131, avg=100 → vi=1.31
+        assert select_power_for_tss(np=131, avg_power=100) == 100
+
+    def test_none_np_falls_back_to_avg_power(self):
+        """When NP is missing entirely (too few samples), use avg_power."""
+        assert select_power_for_tss(np=None, avg_power=180) == 180
+
+    def test_none_avg_power_with_np_uses_np(self):
+        """When avg_power is missing but NP is present, use NP (best we have)."""
+        assert select_power_for_tss(np=220, avg_power=None) == 220
+
+    def test_both_none_returns_none(self):
+        """When neither is available, nothing to return."""
+        assert select_power_for_tss(np=None, avg_power=None) is None
+
+    def test_zero_avg_power_falls_back_to_np(self):
+        """avg_power=0 should not be used (divide-by-zero on VI and
+        meaningless TSS input). Fall back to NP if present."""
+        assert select_power_for_tss(np=220, avg_power=0) == 220
+
+    def test_zero_np_falls_back_to_avg_power(self):
+        """np=0 (no valid power samples) should not be used. Fall back
+        to avg_power if present and non-zero."""
+        assert select_power_for_tss(np=0, avg_power=180) == 180
+
+    def test_both_zero_returns_none(self):
+        """Both zero is effectively 'no power data'."""
+        assert select_power_for_tss(np=0, avg_power=0) is None

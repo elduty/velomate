@@ -41,10 +41,10 @@ When analysing Raven review findings, apply judgement:
 ## Metrics (Validated)
 
 All cycling metrics follow industry standards. The ingestor is the single source of truth — Grafana reads stored values from the activities table.
-- **TSS**: Coggan formula using NP — `(duration × NP × IF) / (FTP × 3600) × 100`
-- **NP**: 30-second SMA (circular buffer) → 4th power → mean → 4th root (Coggan standard, matches GoldenCheetah). Computed in Python. Includes zero-power (coasting)
-- **FTP**: Rolling 90-day best 20-min power × 0.95. Per-ride FTP stored in `activities.ride_ftp`
-- **IF**: NP / ride_ftp (per-ride FTP, consistent with TSS). Stored in `activities.intensity_factor`
+- **TSS**: Coggan formula — `(duration × P × IF) / (FTP × 3600) × 100` where P is **VI-aware**: NP when VI ≤ 1.30 (standard Coggan), avg_power when VI > 1.30 (urban stop-and-go rides where NP's 4th-power weighting overestimates sustained load). Threshold constant `HIGH_VI_THRESHOLD` in `fitness.py`
+- **NP**: 30-second SMA (circular buffer) → 4th power → mean → 4th root (Coggan standard, matches GoldenCheetah). Computed in Python. Includes zero-power (coasting). Always stored; whether it drives TSS depends on VI
+- **FTP**: Rolling 90-day best 20-min power × 0.95. Per-ride FTP stored in `activities.ride_ftp`. Algorithmic estimate always stored in `sync_state.estimated_ftp` for diagnostic display even when `VELOMATE_FTP` is configured
+- **IF**: Computed from the SAME power used for TSS (NP or avg_power depending on VI) divided by ride_ftp, so `TSS ≈ duration_h × IF² × 100` holds. Stored in `activities.intensity_factor`
 - **VI**: NP / avg_power. Stored in `activities.variability_index`
 - **TRIMP**: Banister exponential formula (male: k=0.64, c=1.92), HRR capped at 1.0. Stored in `activities.trimp`
 - **CTL/ATL/TSB**: Exponential moving averages (42/7 day constants)
@@ -64,7 +64,7 @@ Direct one-to-one comparison of VI, EF, and IF between VeloMate and GoldenCheeta
 
 ## Important Design Decisions
 
-- **METRICS_VERSION** (currently "7"): Bumping triggers full recalculation + FTP backfill on next startup
+- **METRICS_VERSION** (currently "10"): Bumping triggers full recalculation + FTP backfill on next startup
 - **estimated_ftp** persisted to sync_state — Grafana reads pre-computed FTP instead of recalculating
 - **Resting HR** included in config change detection — changing it triggers TRIMP recalculation
 - **Per-ride FTP**: Historical rides preserve their TSS and IF via `ride_ftp` column + backfill from 90-day rolling best

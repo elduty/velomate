@@ -387,6 +387,52 @@ class TestBatchTSSUpdate:
         assert tss_data[2][0] == 0
         assert tss_data[2][1] is None
 
+    def test_high_vi_ride_uses_avg_power_for_tss(self):
+        """Regression test for the VI-aware TSS fix: on a high-VI ride
+        (np=176, avg=114 → VI=1.54) the TSS loop must compute TSS from
+        avg_power, not NP. Locks in the behaviour so future refactors
+        can't silently revert to the NP-overestimation bug.
+
+        User's real 2026-04-03 ride: NP=176, avg=114, 86 min, FTP=175.
+        NP-based TSS: (86*60 * 176 * 176/175) / (175 * 3600) * 100 = 145.5
+        Avg-based TSS: (86*60 * 114 * 114/175) / (175 * 3600) * 100 = 63.7
+        """
+        today = date.today()
+        # (id, duration_s, avg_hr, avg_power, np, ride_ftp)
+        activity_rows = [
+            (1, 86 * 60, 140, 114, 176, 175),  # high VI = 1.54 → avg_power path
+            (2, 3600, 150, 200, 220, 175),     # normal VI = 1.10 → NP path
+        ]
+        tss_rows = [(today, 50.0, 40000, 300)]
+
+        conn = _make_conn(activity_rows, tss_rows=tss_rows)
+        import psycopg2.extras as extras_mock
+
+        with patch.dict(sys.modules, {"db": MagicMock()}):
+            recalculate_fitness(conn)
+
+        batch_call = extras_mock.execute_batch.call_args
+        tss_data = batch_call[0][2]
+        # High-VI ride: TSS computed from avg_power (114), not NP (176).
+        # Hand computed: (86*60 * 114 * (114/175)) / (175 * 3600) * 100
+        # = 5160 * 114 * 0.6514 / 630000 * 100
+        # ≈ 60.8
+        assert 55 <= tss_data[0][0] <= 68, (
+            f"high-VI ride TSS should be avg_power-based (~61), got {tss_data[0][0]} "
+            f"— likely reverted to NP-based (would be ~145)"
+        )
+        # IF should also be avg_power-based: 114/175 = 0.65
+        assert tss_data[0][1] == pytest.approx(0.65, abs=0.01)
+
+        # Normal VI ride: TSS computed from NP (220), not avg_power (200).
+        # (3600 * 220 * (220/175)) / (175 * 3600) * 100
+        # = 220 * 1.257 / 175 * 100 ≈ 158
+        assert 150 <= tss_data[1][0] <= 165, (
+            f"normal-VI ride TSS should be NP-based (~158), got {tss_data[1][0]}"
+        )
+        # IF = 220/175 = 1.26
+        assert tss_data[1][1] == pytest.approx(1.26, abs=0.01)
+
     def test_ride_ftp_none_falls_back_to_global_ftp(self):
         """Activity with ride_ftp=None should use global FTP (250) for TSS.
         Defensive path: in production, backfill+stamp would set ride_ftp before
@@ -414,9 +460,13 @@ class TestBatchTSSUpdate:
         # Activity 2 (ride FTP=200):   TSS = (3600 * 200 * 1.0) / (200 * 3600) * 100 = 100.0
         assert tss_data[0][0] == 64.0
         assert tss_data[1][0] == 100.0
-        # Both have avg_power (not NP), so IF is None (IF only set when NP available)
-        assert tss_data[0][1] is None
-        assert tss_data[1][1] is None
+        # Both have avg_power (no NP), so IF is computed from avg_power / FTP
+        # (VI-aware TSS: when NP is absent, avg_power drives both TSS and IF so
+        # the invariant IF² × duration_h × 100 ≈ TSS holds).
+        # Activity 1: IF = 200/250 = 0.80
+        # Activity 2: IF = 200/200 = 1.00
+        assert tss_data[0][1] == 0.80
+        assert tss_data[1][1] == 1.00
 
 
 # ---------------------------------------------------------------------------

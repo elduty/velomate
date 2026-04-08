@@ -12,9 +12,16 @@ from intervals import detect_intervals
 DEFAULT_THRESHOLD_HR = 170
 DEFAULT_FTP = 150  # Estimated FTP (watts) — fallback only
 
+# VI boundary above which the Coggan NP-based TSS overestimates physiological
+# load. Stop-and-go urban rides (coasting + surges) drive NP's 4th-power
+# weighting way above the sustained effort the rider actually produced. Above
+# this threshold, VeloMate computes TSS from avg_power instead of NP. Below
+# (the typical 1.0–1.3 range) NP remains the right input for the Coggan model.
+HIGH_VI_THRESHOLD = 1.30
+
 # Bump this when NP/EF/Work calculation logic changes.
 # On startup, if the stored version differs, all values are recalculated.
-METRICS_VERSION = "9"  # v9: auto-detect and store ride_intervals
+METRICS_VERSION = "10"  # v10: VI-aware TSS uses avg_power when VI > 1.30
 
 
 def calculate_tss(duration_s: int, avg_hr: int, threshold_hr: int) -> float:
@@ -88,6 +95,35 @@ def compute_vi(np: float, avg_power: int) -> float | None:
     if not np or not avg_power or avg_power <= 0:
         return None
     return round(np / avg_power, 2)
+
+
+def select_power_for_tss(np, avg_power):
+    """Pick which power value to feed into Coggan TSS given the ride's VI.
+
+    The Coggan NP-based TSS formula assumes steady or near-steady effort
+    (VI ≈ 1.0–1.2). On rides dominated by coasting + surges (VI > 1.30) —
+    urban commutes, crit-style bunch rides, technical MTB — the NP 4th-power
+    weighting overestimates sustained physiological load, which in turn
+    inflates TSS, ATL, and pushes TSB unnaturally negative.
+
+    Rule:
+      - Both present and VI > HIGH_VI_THRESHOLD → use avg_power
+      - Both present and VI ≤ HIGH_VI_THRESHOLD → use NP (Coggan standard)
+      - Only one usable (non-None, > 0) → use whichever is usable
+      - Neither usable → return None (caller falls back to HR-based TSS or 0)
+
+    Returns the chosen power value (watts) or None.
+    """
+    np_ok = bool(np and np > 0)
+    avg_ok = bool(avg_power and avg_power > 0)
+    if np_ok and avg_ok:
+        vi = np / avg_power
+        return avg_power if vi > HIGH_VI_THRESHOLD else np
+    if np_ok:
+        return np
+    if avg_ok:
+        return avg_power
+    return None
 
 
 def compute_decoupling(power_samples: list, hr_samples: list) -> float | None:
@@ -441,8 +477,11 @@ def recalculate_fitness(conn):
 
     print(f"[fitness] Detected {interval_row_count} intervals across {interval_activity_count} activities")
 
-    # Step 3: Compute TSS using per-ride FTP (ride_ftp), NP preferred, fallbacks
-    # Standard Coggan TSS = (duration × NP × IF) / (FTP × 3600) × 100 where IF = NP/FTP
+    # Step 3: Compute TSS using per-ride FTP (ride_ftp). VI-aware input:
+    # NP for standard-variability rides (VI ≤ 1.30), avg_power for high-VI
+    # rides (urban stop-and-go) where NP overestimates sustained load. HR
+    # fallback when no power stream exists. IF is computed from the SAME
+    # power input used for TSS so IF² × duration_h × 100 ≈ TSS holds.
     with conn.cursor() as cur:
         cur.execute("""
             SELECT id, duration_s, avg_hr, avg_power, np, ride_ftp
@@ -454,15 +493,16 @@ def recalculate_fitness(conn):
     tss_updates = []
     for act_id, duration_s, avg_hr, avg_power, np_val, ride_ftp_val in activity_rows:
         act_ftp = ride_ftp_val if ride_ftp_val and ride_ftp_val > 0 else ftp
-        if np_val and np_val > 0:
-            tss = calculate_tss_power(duration_s, np_val, act_ftp)
-        elif avg_power and avg_power > 0:
-            tss = calculate_tss_power(duration_s, avg_power, act_ftp)
+        tss_power = select_power_for_tss(np_val, avg_power)
+        if tss_power is not None:
+            tss = calculate_tss_power(duration_s, tss_power, act_ftp)
+            if_val = compute_if(tss_power, act_ftp)
         elif avg_hr and avg_hr > 0:
             tss = calculate_tss(duration_s, avg_hr, threshold_hr)
+            if_val = None
         else:
             tss = 0
-        if_val = compute_if(np_val, act_ftp) if np_val and np_val > 0 else None
+            if_val = None
         tss_updates.append((round(tss, 1), if_val, act_id))
 
     with conn.cursor() as cur:
