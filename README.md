@@ -263,7 +263,7 @@ python3 -m velomate.cli plan --destination Cascais --distance 50km
 Power TSS = (duration_s × P × IF) / (FTP × 3600) × 100     where P is VI-aware
             — P = NP when VI ≤ 1.30 (Coggan standard)
             — P = avg_power when VI > 1.30 (high-variability urban rides)
-HR TSS    = (duration_h) × (avg_hr / threshold_hr)² × 100  (fallback, no power)
+HR TSS    = (duration_h) × (avg_hr / LTHR)² × 100          (fallback, no power)
 CTL       = 42-day EMA of daily TSS   (chronic training load / fitness)
 ATL       = 7-day EMA of daily TSS    (acute training load / fatigue)
 TSB       = CTL − ATL                 (training stress balance / form)
@@ -274,11 +274,12 @@ TSB       = CTL − ATL                 (training stress balance / form)
 - **IF**: Intensity Factor — computed from the same power used for TSS (NP or avg_power depending on VI) divided by per-ride FTP, so `TSS ≈ duration_h × IF² × 100` holds on every ride
 - **VI**: Variability Index = NP / avg_power. Higher = more variable effort. Drives the VI-aware TSS routing above
 - **EF**: Efficiency Factor = NP / avg HR. Rising EF indicates improving aerobic fitness
-- **TRIMP**: Banister exponential formula from per-second HR data. HRR capped at 1.0 to prevent blowup when HR exceeds configured max
+- **TRIMP**: Banister exponential formula from per-second HR data. Uses max HR for HRR normalization. HRR capped at 1.0 to prevent blowup when HR exceeds configured max
 - **Aerobic decoupling**: `(first_half_EF / second_half_EF − 1) × 100`. Positive = cardiac drift. Computed per ride by the ingestor, stored on `activities.aerobic_decoupling`, trended on All Time Progression
 - **FTP**: auto-estimated from rolling 90-day best 20-minute power × 0.95, or configured via `VELOMATE_FTP`. The algorithmic estimate is always computed and stored as a diagnostic value alongside the configured one — Overview shows both side-by-side so a mismatch is visible at a glance
 - **Work**: Total energy output in kJ = sum of per-second power from stream data
-- **Threshold HR**: 95th percentile of your max HRs, or configured via `VELOMATE_MAX_HR`
+- **Max HR**: 95th percentile of ride max HRs, or configured via `VELOMATE_MAX_HR`. Used for Banister TRIMP
+- **LTHR (Lactate Threshold HR)**: derived as ~89% of max HR per Friel convention. Used as the threshold value in HR-based TSS when no power stream is available
 - **Auto interval detection**: Coggan-style classification (sprint / anaerobic / vo2 / threshold / sweetspot / tempo) from the power stream, stored in the `ride_intervals` table. Classification uses per-ride FTP for historical accuracy
 - **TSB interpretation**: > +10 fresh · -10 to +10 neutral · < -10 fatigued
 
