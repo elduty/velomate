@@ -8,12 +8,6 @@ Prioritised backlog. Full rationale for all items lives in `docs/features-analys
 
 ## 📋 Backlog
 
-### High — Dashboard restructure: Overview + Training Report split
-Plan: `docs/superpowers/plans/2026-04-06-overview-training-report-split.md`
-- [ ] Create new `Training Report` dashboard with Period Summary (2×5) + vs Previous Period (2×5) + Trends (6 charts expanded) + Ride Patterns + Outdoor Records + Ride Map
-- [ ] Trim Overview to daily-glance view — keep Fitness + 4-stat "This Period" row (Rides/Distance/Hours/TSS) + Activities; remove delta section, Trends, Ride Patterns, Outdoor Records, Ride Map, Avg Decoupling panels
-- [ ] Update cross-dashboard nav links + provisioning for the new dashboard
-
 ### High — Cluster B: Performance Modeling
 - [ ] CP/W' model with Monod-Scherrer + Morton fits — new `ingestor/critical_power.py` + `cp_estimates` table + CP/W' panel on All Time Progression (gap #3)
 - [ ] W'bal time series per ride — Skiba differential on stream + new Activity Details panel (gap #4, depends on CP/W')
@@ -62,3 +56,4 @@ Plan: `docs/superpowers/plans/2026-04-06-overview-training-report-split.md`
 - [x] HR TSS uses LTHR, not max HR (#99) — latent bug in the HR-only TSS fallback path. `calculate_tss` was being passed max HR directly as `threshold_hr`, but the Coggan formula expects LTHR (~0.89 × max HR), underestimating HR TSS by ~21% on any ride without power. Fix derives LTHR at the call site. TDD verified with RED confirming `got 77.9` (buggy) vs expected ~99 (LTHR-based).
 - [x] Tooltip color icons + unified palette + rule update (#100) — 10 panels had color-coded ranges but no emoji icons in tooltips, plus 2 panels had wrong content (TRIMP bands didn't match panel thresholds, Power Zones Z7 used ⚡ when chart uses purple). Fixed all. Rewrote TRIMP bands to `50/75/100/125/150` matching the panel's actual threshold steps. Added a "Tooltip color icons MUST match the panel's actual chart colors" rule to Dashboard Conventions with a unified 7-emoji palette table (🔘 grey → 🟣 purple) and a "Compressed palettes" note explaining why HR Z5 uses red in 5-zone systems.
 - [x] Power Distribution Z7 scale + bucket size (#101) — Z7 Neuromuscular was rendered on a separate Y-axis because its override was missing `unit: min` while Z1-Z6 had it. Added the missing unit so all 7 series share the primary axis. Also widened buckets from 10W to 25W, reducing visual noise from ~55 sparse bars to ~22 cleaner bars across 0-550W range, matching GoldenCheetah's default histogram resolution.
+- [x] Overview + Training Report dashboard split (#102) — Overview was doing too many jobs (44 panels with sparse third rows on Period Summary / vs Previous Period after PR #92). Split into two single-purpose surfaces: Overview trimmed to ~17 panels answering "am I OK right now?" (Fitness row + 4-stat Period Summary at w=6 + Activities), new Training Report dashboard with ~33 panels answering "how did this period go vs last?" (full 9-stat Period Summary in 2×5 at w=4, full 9-delta vs Previous Period mirroring, expanded Trends with all 6 timeseries, Ride Patterns, Outdoor Records, Ride Map). Cross-dashboard nav links wired in both directions. Records and Ride Map gained sport_type filtering as part of Raven round 2 fixes; Rolling Weekly Volume gained an all-sport disclaimer because `athlete_stats` is sport-agnostic by design.
