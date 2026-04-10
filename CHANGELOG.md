@@ -40,6 +40,30 @@ Major release: ride analytics depth, dashboard overhaul, new metrics.
 - Dashboard Conventions section in CLAUDE.md: tooltip formatting, colour icon palette, compressed palette rules
 - W/kg metric + weight-preservation design documented in CLAUDE.md and README
 
+### Migration from v1.2.0
+
+1. **Pull and rebuild:**
+   ```bash
+   git pull && docker compose build && docker compose up -d
+   ```
+
+2. **New env vars (optional):**
+   ```bash
+   # Add to .env if desired:
+   VELOMATE_WEIGHT=75          # your weight in kg — enables W/kg panels
+   VELOMATE_BACKFILL_MONTHS=12 # default, increase for more history
+   ```
+
+3. **Automatic on first restart:**
+   - `METRICS_VERSION` 9→10 triggers full recalculation of TSS/IF (VI-aware routing) and TRIMP (LTHR fix). This runs once and takes a few minutes depending on ride count.
+   - New DB columns (`aerobic_decoupling`, `ride_weight`, `ride_intervals` table) are created automatically via `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`.
+   - NP, EF, aerobic decoupling, and intervals are computed for all rides with power stream data.
+   - If `VELOMATE_WEIGHT` is set, all rides are stamped with `ride_weight` for W/kg.
+
+4. **Dashboard changes load automatically** — Grafana provisioning picks up the updated JSON files. No manual import needed. Clear browser cache if panels look stale.
+
+5. **Breaking changes:** None. All changes are additive. Existing data is preserved; derived metrics are recalculated with corrected formulas.
+
 ### Stats
 
 - 443 tests (up from 370)
