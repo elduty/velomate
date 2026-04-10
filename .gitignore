@@ -15,3 +15,4 @@ config.yaml
 
 # Claude Code (local)
 .claude/settings.local.json
+.superpowers/

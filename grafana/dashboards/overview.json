@@ -16,12 +16,6 @@
   "refresh": "5m",
   "links": [
     {
-      "title": "Training Report",
-      "url": "/d/velomate-training-report/training-report",
-      "type": "link",
-      "icon": "dashboard"
-    },
-    {
       "title": "Activity Detail",
       "url": "/d/velomate-activity/activity-details",
       "type": "link",
@@ -139,7 +133,7 @@
       "gridPos": {
         "x": 0,
         "y": 1,
-        "w": 6,
+        "w": 4,
         "h": 3
       },
       "datasource": {
@@ -187,9 +181,9 @@
       "title": "Distance",
       "type": "stat",
       "gridPos": {
-        "x": 6,
+        "x": 4,
         "y": 1,
-        "w": 6,
+        "w": 4,
         "h": 3
       },
       "datasource": {
@@ -234,13 +228,64 @@
       }
     },
     {
+      "id": 3,
+      "title": "Elevation",
+      "type": "stat",
+      "gridPos": {
+        "x": 8,
+        "y": 1,
+        "w": 4,
+        "h": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND(COALESCE(SUM(elevation_m), 0)::numeric, 0) AS \"Elevation\" FROM activities WHERE $__timeFilter(date) AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}');",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-blue"
+          },
+          "unit": "lengthm",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-blue",
+                "value": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
       "id": 4,
       "title": "Duration",
       "type": "stat",
       "gridPos": {
         "x": 12,
         "y": 1,
-        "w": 6,
+        "w": 4,
         "h": 3
       },
       "datasource": {
@@ -289,9 +334,9 @@
       "title": "TSS",
       "type": "stat",
       "gridPos": {
-        "x": 18,
+        "x": 16,
         "y": 1,
-        "w": 6,
+        "w": 4,
         "h": 3
       },
       "datasource": {
@@ -336,13 +381,728 @@
       "description": "Training Stress Score\n\nHow much training load this period produced.\n\nCalculated from power (preferred) or heart rate.\n\n\u2022 < 150 \u2014 Easy week\n\n\u2022 150-300 \u2014 Moderate training\n\n\u2022 300-450 \u2014 Hard training\n\n\u2022 450+ \u2014 Very heavy load, watch recovery"
     },
     {
+      "id": 7,
+      "title": "Avg Power",
+      "type": "stat",
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 4,
+        "h": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND(AVG(avg_power)::numeric, 0) AS \"Power\" FROM activities WHERE $__timeFilter(date) AND avg_power > 0 AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}');",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-purple"
+          },
+          "unit": "watt",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-purple",
+                "value": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 9,
+      "title": "Avg HR",
+      "type": "stat",
+      "gridPos": {
+        "x": 4,
+        "y": 4,
+        "w": 4,
+        "h": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND(AVG(avg_hr)::numeric, 0) AS \"HR\" FROM activities WHERE $__timeFilter(date) AND avg_hr > 0 AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}');",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-orange"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-orange",
+                "value": null
+              }
+            ]
+          },
+          "unit": "bpm"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "title": "Avg Speed",
+      "type": "stat",
+      "gridPos": {
+        "x": 8,
+        "y": 4,
+        "w": 4,
+        "h": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND(AVG(avg_speed_kmh)::numeric, 1) AS \"Speed\" FROM activities WHERE $__timeFilter(date) AND avg_speed_kmh > 0 AND distance_m > 5000 AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}');",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-purple"
+          },
+          "unit": "velocitykmh",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-blue",
+                "value": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 1011,
+      "title": "Avg Decoupling (steady)",
+      "type": "stat",
+      "gridPos": {
+        "x": 12,
+        "y": 4,
+        "w": 4,
+        "h": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND(AVG(aerobic_decoupling)::numeric, 2) AS \"Avg Decoupling\"\nFROM activities\nWHERE aerobic_decoupling IS NOT NULL\n  AND duration_s > 1800\n  AND $__timeFilter(date)\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}');",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "N/A",
+          "unit": "percent",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 5
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          }
+        }
+      },
+      "description": "Average aerobic decoupling across rides \u226530 min in the selected period.\nLower = better aerobic fitness.\n\n\ud83d\udfe2 < 5% \u2014 Good aerobic fitness\n\n\ud83d\udfe1 5-10% \u2014 Moderate drift\n\n\ud83d\udd34 > 10% \u2014 Significant drift\n\nIncludes interval rides (noisy per ride, but the period average is still directional)."
+    },
+    {
+      "id": 300,
+      "type": "row",
+      "title": "vs Previous Period",
+      "collapsed": true,
+      "gridPos": {
+        "x": 0,
+        "y": 7,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 301,
+          "title": "\u0394 Rides",
+          "type": "stat",
+          "gridPos": {
+            "x": 0,
+            "y": 8,
+            "w": 4,
+            "h": 3
+          },
+          "datasource": {
+            "type": "postgres",
+            "uid": "velomate"
+          },
+          "targets": [
+            {
+              "rawSql": "SELECT ROUND((COALESCE((SELECT COUNT(*) FROM activities WHERE $__timeFilter(date) AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0) - COALESCE((SELECT COUNT(*) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0))::numeric, 0) AS \"Delta\";",
+              "format": "table",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "noValue": "No data",
+              "color": {
+                "mode": "thresholds"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "red",
+                    "value": null
+                  },
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": 302,
+          "title": "\u0394 Distance",
+          "type": "stat",
+          "gridPos": {
+            "x": 4,
+            "y": 8,
+            "w": 4,
+            "h": 3
+          },
+          "datasource": {
+            "type": "postgres",
+            "uid": "velomate"
+          },
+          "targets": [
+            {
+              "rawSql": "SELECT ROUND((COALESCE((SELECT SUM(distance_m)/1000.0 FROM activities WHERE $__timeFilter(date) AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0) - COALESCE((SELECT SUM(distance_m)/1000.0 FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0))::numeric, 1) AS \"Delta\";",
+              "format": "table",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "noValue": "No data",
+              "color": {
+                "mode": "thresholds"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "red",
+                    "value": null
+                  },
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              },
+              "unit": "lengthkm"
+            }
+          }
+        },
+        {
+          "id": 303,
+          "title": "\u0394 Elevation",
+          "type": "stat",
+          "gridPos": {
+            "x": 8,
+            "y": 8,
+            "w": 4,
+            "h": 3
+          },
+          "datasource": {
+            "type": "postgres",
+            "uid": "velomate"
+          },
+          "targets": [
+            {
+              "rawSql": "SELECT ROUND((COALESCE((SELECT SUM(elevation_m) FROM activities WHERE $__timeFilter(date) AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0) - COALESCE((SELECT SUM(elevation_m) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0))::numeric, 0) AS \"Delta\";",
+              "format": "table",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "noValue": "No data",
+              "color": {
+                "mode": "thresholds"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "red",
+                    "value": null
+                  },
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              },
+              "unit": "lengthm"
+            }
+          }
+        },
+        {
+          "id": 304,
+          "title": "\u0394 Duration",
+          "type": "stat",
+          "gridPos": {
+            "x": 12,
+            "y": 8,
+            "w": 4,
+            "h": 3
+          },
+          "datasource": {
+            "type": "postgres",
+            "uid": "velomate"
+          },
+          "targets": [
+            {
+              "rawSql": "SELECT ROUND((COALESCE((SELECT SUM(duration_s) FROM activities WHERE $__timeFilter(date) AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0) - COALESCE((SELECT SUM(duration_s) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0)) / 60.0::numeric, 0) AS \"Delta\";",
+              "format": "table",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "noValue": "No data",
+              "color": {
+                "mode": "thresholds"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "red",
+                    "value": null
+                  },
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              },
+              "unit": "min"
+            }
+          }
+        },
+        {
+          "id": 306,
+          "title": "\u0394 TSS",
+          "type": "stat",
+          "gridPos": {
+            "x": 16,
+            "y": 8,
+            "w": 4,
+            "h": 3
+          },
+          "datasource": {
+            "type": "postgres",
+            "uid": "velomate"
+          },
+          "targets": [
+            {
+              "rawSql": "SELECT ROUND((COALESCE((SELECT SUM(tss) FROM activities WHERE $__timeFilter(date) AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0) - COALESCE((SELECT SUM(tss) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0))::numeric, 0) AS \"Delta\";",
+              "format": "table",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "noValue": "No data",
+              "color": {
+                "mode": "thresholds"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "red",
+                    "value": null
+                  },
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": 307,
+          "title": "\u0394 Avg Power",
+          "type": "stat",
+          "gridPos": {
+            "x": 0,
+            "y": 11,
+            "w": 4,
+            "h": 3
+          },
+          "datasource": {
+            "type": "postgres",
+            "uid": "velomate"
+          },
+          "targets": [
+            {
+              "rawSql": "WITH curr AS (\n  SELECT AVG(avg_power) AS avg FROM activities\n  WHERE avg_power > 0\n    AND $__timeFilter(date)\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n),\nprev AS (\n  SELECT AVG(avg_power) AS avg FROM activities\n  WHERE avg_power > 0\n    AND date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz)\n    AND date < $__timeFrom()::timestamptz\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n)\nSELECT ROUND((curr.avg - prev.avg)::numeric, 0) AS \"Delta\"\nFROM curr, prev;",
+              "format": "table",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "noValue": "No data",
+              "color": {
+                "mode": "thresholds"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "red",
+                    "value": null
+                  },
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              },
+              "unit": "watt"
+            }
+          },
+          "description": "Small samples (1-2 rides per period) can produce noisy deltas \u2014 use the All Time Progression trend panel for the smoothed long-term direction."
+        },
+        {
+          "id": 309,
+          "title": "\u0394 Avg HR",
+          "type": "stat",
+          "gridPos": {
+            "x": 4,
+            "y": 11,
+            "w": 4,
+            "h": 3
+          },
+          "datasource": {
+            "type": "postgres",
+            "uid": "velomate"
+          },
+          "targets": [
+            {
+              "rawSql": "WITH curr AS (\n  SELECT AVG(avg_hr) AS avg FROM activities\n  WHERE avg_hr > 0\n    AND $__timeFilter(date)\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n),\nprev AS (\n  SELECT AVG(avg_hr) AS avg FROM activities\n  WHERE avg_hr > 0\n    AND date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz)\n    AND date < $__timeFrom()::timestamptz\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n)\nSELECT ROUND((curr.avg - prev.avg)::numeric, 0) AS \"Delta\"\nFROM curr, prev;",
+              "format": "table",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "noValue": "No data",
+              "color": {
+                "mode": "thresholds"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 0
+                  }
+                ]
+              },
+              "unit": "bpm"
+            }
+          },
+          "description": "Small samples (1-2 rides per period) can produce noisy deltas \u2014 use the All Time Progression trend panel for the smoothed long-term direction."
+        },
+        {
+          "id": 308,
+          "title": "\u0394 Avg Speed",
+          "type": "stat",
+          "gridPos": {
+            "x": 8,
+            "y": 11,
+            "w": 4,
+            "h": 3
+          },
+          "datasource": {
+            "type": "postgres",
+            "uid": "velomate"
+          },
+          "targets": [
+            {
+              "rawSql": "WITH curr AS (\n  SELECT AVG(avg_speed_kmh) AS avg FROM activities\n  WHERE avg_speed_kmh > 0 AND distance_m > 5000\n    AND $__timeFilter(date)\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n),\nprev AS (\n  SELECT AVG(avg_speed_kmh) AS avg FROM activities\n  WHERE avg_speed_kmh > 0 AND distance_m > 5000\n    AND date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz)\n    AND date < $__timeFrom()::timestamptz\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n)\nSELECT ROUND((curr.avg - prev.avg)::numeric, 1) AS \"Delta\"\nFROM curr, prev;",
+              "format": "table",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "noValue": "No data",
+              "color": {
+                "mode": "thresholds"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "red",
+                    "value": null
+                  },
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              },
+              "unit": "velocitykmh"
+            }
+          },
+          "description": "Small samples (1-2 rides per period) can produce noisy deltas \u2014 use the All Time Progression trend panel for the smoothed long-term direction."
+        },
+        {
+          "id": 1012,
+          "title": "\u0394 Avg Decoupling",
+          "type": "stat",
+          "gridPos": {
+            "x": 12,
+            "y": 11,
+            "w": 4,
+            "h": 3
+          },
+          "datasource": {
+            "type": "postgres",
+            "uid": "velomate"
+          },
+          "targets": [
+            {
+              "rawSql": "WITH curr AS (\n  SELECT AVG(aerobic_decoupling) AS avg FROM activities\n  WHERE aerobic_decoupling IS NOT NULL AND duration_s > 1800\n    AND $__timeFilter(date)\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n),\nprev AS (\n  SELECT AVG(aerobic_decoupling) AS avg FROM activities\n  WHERE aerobic_decoupling IS NOT NULL AND duration_s > 1800\n    AND date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz)\n    AND date < $__timeFrom()::timestamptz\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n)\nSELECT ROUND((curr.avg - prev.avg)::numeric, 2) AS \"Delta\"\nFROM curr, prev;",
+              "format": "table",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "noValue": "No data",
+              "unit": "percent",
+              "color": {
+                "mode": "thresholds"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 0
+                  }
+                ]
+              }
+            }
+          },
+          "description": "Change in average aerobic decoupling vs the previous period of equal length. Negative (green) = decoupling decreased, aerobic base improving.\n\nSmall samples (1-2 rides per period) can produce noisy deltas \u2014 use the All Time Progression trend panel for the smoothed long-term direction."
+        }
+      ],
+      "description": "Compares the current time range against the equivalent\nprevious window. E.g., if viewing Last 7 days, compares\nagainst the 7 days before that.\n\n\ud83d\udfe2 Positive = improvement (for most metrics)\n\n\ud83d\udd34 Negative = decline (for most metrics)\n\nInverted on \u0394 Avg HR and \u0394 Avg Decoupling, where lower\nis better \u2014 green still means improvement, but the arrow\ndirection is reversed."
+    },
+    {
       "id": 200,
       "type": "row",
       "title": "Fitness",
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 4,
+        "y": 8,
         "w": 24,
         "h": 1
       },
@@ -354,7 +1114,7 @@
       "type": "stat",
       "gridPos": {
         "x": 0,
-        "y": 5,
+        "y": 9,
         "w": 6,
         "h": 3
       },
@@ -462,7 +1222,7 @@
       "type": "stat",
       "gridPos": {
         "x": 6,
-        "y": 5,
+        "y": 9,
         "w": 3,
         "h": 3
       },
@@ -505,7 +1265,7 @@
       "type": "stat",
       "gridPos": {
         "x": 9,
-        "y": 5,
+        "y": 9,
         "w": 3,
         "h": 3
       },
@@ -549,7 +1309,7 @@
       "type": "stat",
       "gridPos": {
         "x": 12,
-        "y": 5,
+        "y": 9,
         "w": 6,
         "h": 3
       },
@@ -591,7 +1351,7 @@
       "type": "stat",
       "gridPos": {
         "x": 18,
-        "y": 5,
+        "y": 9,
         "w": 6,
         "h": 3
       },
@@ -652,7 +1412,7 @@
       "type": "gauge",
       "gridPos": {
         "x": 0,
-        "y": 8,
+        "y": 12,
         "w": 8,
         "h": 6
       },
@@ -713,7 +1473,7 @@
       "type": "piechart",
       "gridPos": {
         "x": 8,
-        "y": 8,
+        "y": 12,
         "w": 8,
         "h": 6
       },
@@ -821,7 +1581,7 @@
       "type": "stat",
       "gridPos": {
         "x": 16,
-        "y": 8,
+        "y": 12,
         "w": 8,
         "h": 6
       },
@@ -875,7 +1635,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 14,
+        "y": 18,
         "w": 24,
         "h": 8
       },
@@ -968,13 +1728,650 @@
       "description": "Fitness Curves\n\n\ud83d\udd35 CTL (Chronic Training Load) \u2014 42-day rolling fitness.\n\n\ud83d\udfe0 ATL (Acute Training Load) \u2014 7-day rolling fatigue.\n\n\ud83d\udfe2 TSB (Form) \u2014 CTL minus ATL.\n\nCTL rising = getting fitter.\n\nATL spiking = recent hard training.\n\nTSB negative = fatigued, positive = fresh."
     },
     {
+      "id": 501,
+      "type": "row",
+      "title": "Trends",
+      "collapsed": true,
+      "gridPos": {
+        "x": 0,
+        "y": 26,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 601,
+          "title": "Distance & Elevation",
+          "type": "timeseries",
+          "gridPos": {
+            "x": 0,
+            "y": 27,
+            "w": 24,
+            "h": 8
+          },
+          "datasource": {
+            "type": "postgres",
+            "uid": "velomate"
+          },
+          "targets": [
+            {
+              "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.distance_m) / 1000.0, 0) AS \"Distance (km)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs  AND (CASE WHEN '${sport_type}' = 'all' THEN TRUE ELSE a.sport_type = '${sport_type}' END) GROUP BY gs ORDER BY gs;",
+              "format": "time_series",
+              "refId": "A"
+            },
+            {
+              "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.elevation_m), 0) AS \"Elevation (m)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs  AND (CASE WHEN '${sport_type}' = 'all' THEN TRUE ELSE a.sport_type = '${sport_type}' END) GROUP BY gs ORDER BY gs;",
+              "format": "time_series",
+              "refId": "B"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2,
+                "fillOpacity": 8,
+                "pointSize": 5,
+                "showPoints": "auto",
+                "spanNulls": 604800000,
+                "stacking": {
+                  "mode": "none"
+                }
+              },
+              "noValue": "No data"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Distance (km)"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "#33658a",
+                      "mode": "fixed"
+                    }
+                  },
+                  {
+                    "id": "custom.axisPlacement",
+                    "value": "left"
+                  },
+                  {
+                    "id": "min",
+                    "value": 0
+                  },
+                  {
+                    "id": "unit",
+                    "value": "lengthkm"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Elevation (m)"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "#73bf69",
+                      "mode": "fixed"
+                    }
+                  },
+                  {
+                    "id": "custom.axisPlacement",
+                    "value": "right"
+                  },
+                  {
+                    "id": "min",
+                    "value": 0
+                  },
+                  {
+                    "id": "unit",
+                    "value": "lengthm"
+                  }
+                ]
+              }
+            ]
+          },
+          "description": "Volume \u2014 how far and how much climbing per period.\nRising together = bigger rides.\nDistance rising but elevation flat = more flat routes."
+        },
+        {
+          "id": 602,
+          "title": "Duration & TSS",
+          "type": "timeseries",
+          "gridPos": {
+            "x": 0,
+            "y": 35,
+            "w": 24,
+            "h": 8
+          },
+          "datasource": {
+            "type": "postgres",
+            "uid": "velomate"
+          },
+          "targets": [
+            {
+              "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.duration_s / 3600.0), 0) AS \"Duration (h)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs  AND (CASE WHEN '${sport_type}' = 'all' THEN TRUE ELSE a.sport_type = '${sport_type}' END) GROUP BY gs ORDER BY gs;",
+              "format": "time_series",
+              "refId": "A"
+            },
+            {
+              "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.tss), 0) AS \"TSS\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.tss IS NOT NULL AND (CASE WHEN '${sport_type}' = 'all' THEN TRUE ELSE a.sport_type = '${sport_type}' END) GROUP BY gs ORDER BY gs;",
+              "format": "time_series",
+              "refId": "B"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2,
+                "fillOpacity": 8,
+                "pointSize": 5,
+                "showPoints": "auto",
+                "spanNulls": 604800000,
+                "stacking": {
+                  "mode": "none"
+                }
+              },
+              "noValue": "No data"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Duration (h)"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "#6ed0ff",
+                      "mode": "fixed"
+                    }
+                  },
+                  {
+                    "id": "custom.axisPlacement",
+                    "value": "left"
+                  },
+                  {
+                    "id": "min",
+                    "value": 0
+                  },
+                  {
+                    "id": "unit",
+                    "value": "h"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "TSS"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "#ff9830",
+                      "mode": "fixed"
+                    }
+                  },
+                  {
+                    "id": "custom.axisPlacement",
+                    "value": "right"
+                  },
+                  {
+                    "id": "min",
+                    "value": 0
+                  }
+                ]
+              }
+            ]
+          },
+          "description": "Training load \u2014 duration provides context for TSS.\n\nHigh TSS from short rides = intense sessions. High TSS from long rides = endurance work."
+        },
+        {
+          "id": 603,
+          "title": "Avg Power & Avg HR",
+          "type": "timeseries",
+          "gridPos": {
+            "x": 0,
+            "y": 43,
+            "w": 24,
+            "h": 8
+          },
+          "datasource": {
+            "type": "postgres",
+            "uid": "velomate"
+          },
+          "targets": [
+            {
+              "rawSql": "SELECT gs AS \"time\", ROUND(AVG(a.avg_power)::numeric, 0) AS \"Power (W)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.avg_power > 0 AND (CASE WHEN '${sport_type}' = 'all' THEN TRUE ELSE a.sport_type = '${sport_type}' END) GROUP BY gs ORDER BY gs;",
+              "format": "time_series",
+              "refId": "A"
+            },
+            {
+              "rawSql": "SELECT gs AS \"time\", ROUND(AVG(a.avg_hr)::numeric, 0) AS \"HR (bpm)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.avg_hr > 0 AND (CASE WHEN '${sport_type}' = 'all' THEN TRUE ELSE a.sport_type = '${sport_type}' END) GROUP BY gs ORDER BY gs;",
+              "format": "time_series",
+              "refId": "B"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2,
+                "fillOpacity": 8,
+                "pointSize": 5,
+                "showPoints": "auto",
+                "spanNulls": 604800000,
+                "stacking": {
+                  "mode": "none"
+                }
+              },
+              "noValue": "No data"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Power (W)"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "#8b5cf6",
+                      "mode": "fixed"
+                    }
+                  },
+                  {
+                    "id": "custom.axisPlacement",
+                    "value": "left"
+                  },
+                  {
+                    "id": "min",
+                    "value": 0
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "HR (bpm)"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "#ff5286",
+                      "mode": "fixed"
+                    }
+                  },
+                  {
+                    "id": "custom.axisPlacement",
+                    "value": "right"
+                  },
+                  {
+                    "id": "min",
+                    "value": 0
+                  }
+                ]
+              }
+            ]
+          },
+          "description": "Efficiency \u2014 same power at lower HR over time = fitness improving.\n\nWhen these lines diverge (power up, HR down), aerobic fitness is building."
+        },
+        {
+          "id": 604,
+          "title": "Avg Speed & Avg Cadence",
+          "type": "timeseries",
+          "gridPos": {
+            "x": 0,
+            "y": 51,
+            "w": 24,
+            "h": 8
+          },
+          "datasource": {
+            "type": "postgres",
+            "uid": "velomate"
+          },
+          "targets": [
+            {
+              "rawSql": "SELECT gs AS \"time\", ROUND(AVG(a.avg_speed_kmh)::numeric, 1) AS \"Speed (km/h)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.avg_speed_kmh > 0 AND a.distance_m > 5000 AND (CASE WHEN '${sport_type}' = 'all' THEN TRUE ELSE a.sport_type = '${sport_type}' END) GROUP BY gs ORDER BY gs;",
+              "format": "time_series",
+              "refId": "A"
+            },
+            {
+              "rawSql": "SELECT gs AS \"time\", ROUND(AVG(a.avg_cadence)::numeric, 0) AS \"Cadence (rpm)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.avg_cadence > 0 AND (CASE WHEN '${sport_type}' = 'all' THEN TRUE ELSE a.sport_type = '${sport_type}' END) GROUP BY gs ORDER BY gs;",
+              "format": "time_series",
+              "refId": "B"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2,
+                "fillOpacity": 8,
+                "pointSize": 5,
+                "showPoints": "auto",
+                "spanNulls": 604800000,
+                "stacking": {
+                  "mode": "none"
+                }
+              },
+              "noValue": "No data"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Speed (km/h)"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "#33658a",
+                      "mode": "fixed"
+                    }
+                  },
+                  {
+                    "id": "custom.axisPlacement",
+                    "value": "left"
+                  },
+                  {
+                    "id": "min",
+                    "value": 0
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Cadence (rpm)"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "#73bf69",
+                      "mode": "fixed"
+                    }
+                  },
+                  {
+                    "id": "custom.axisPlacement",
+                    "value": "right"
+                  },
+                  {
+                    "id": "min",
+                    "value": 0
+                  }
+                ]
+              }
+            ]
+          },
+          "description": "Technique \u2014 higher cadence at same speed = more efficient pedaling.\n\nWatch for cadence trends after bike fit changes or drill blocks."
+        },
+        {
+          "id": 605,
+          "title": "Calories & Rides",
+          "type": "timeseries",
+          "gridPos": {
+            "x": 0,
+            "y": 59,
+            "w": 24,
+            "h": 8
+          },
+          "datasource": {
+            "type": "postgres",
+            "uid": "velomate"
+          },
+          "targets": [
+            {
+              "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.calories), 0) AS \"Calories (kcal)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.calories IS NOT NULL AND (CASE WHEN '${sport_type}' = 'all' THEN TRUE ELSE a.sport_type = '${sport_type}' END) GROUP BY gs ORDER BY gs;",
+              "format": "time_series",
+              "refId": "A"
+            },
+            {
+              "rawSql": "SELECT gs AS \"time\", COALESCE(COUNT(a.id), 0) AS \"Rides\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs  AND (CASE WHEN '${sport_type}' = 'all' THEN TRUE ELSE a.sport_type = '${sport_type}' END) GROUP BY gs ORDER BY gs;",
+              "format": "time_series",
+              "refId": "B"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2,
+                "fillOpacity": 8,
+                "pointSize": 5,
+                "showPoints": "auto",
+                "spanNulls": 604800000,
+                "stacking": {
+                  "mode": "none"
+                }
+              },
+              "noValue": "No data"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Calories (kcal)"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "#33658a",
+                      "mode": "fixed"
+                    }
+                  },
+                  {
+                    "id": "custom.axisPlacement",
+                    "value": "left"
+                  },
+                  {
+                    "id": "min",
+                    "value": 0
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Rides"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "#ff9830",
+                      "mode": "fixed"
+                    }
+                  },
+                  {
+                    "id": "custom.axisPlacement",
+                    "value": "right"
+                  },
+                  {
+                    "id": "min",
+                    "value": 0
+                  }
+                ]
+              }
+            ]
+          },
+          "description": "Activity summary \u2014 energy output and riding frequency per period."
+        },
+        {
+          "id": 610,
+          "title": "Rolling Weekly Volume",
+          "type": "timeseries",
+          "gridPos": {
+            "x": 0,
+            "y": 67,
+            "w": 24,
+            "h": 8
+          },
+          "datasource": {
+            "type": "postgres",
+            "uid": "velomate"
+          },
+          "targets": [
+            {
+              "rawSql": "SELECT date AS time,\n  ROUND((weekly_distance_m / 1000.0)::numeric, 1) AS \"Weekly Distance (km)\",\n  ROUND(weekly_elevation_m::numeric, 0) AS \"Weekly Elevation (m)\"\nFROM athlete_stats\nWHERE $__timeFilter(date)\nORDER BY date;",
+              "format": "time_series",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2,
+                "fillOpacity": 8,
+                "pointSize": 5,
+                "showPoints": "auto",
+                "spanNulls": 604800000,
+                "stacking": {
+                  "mode": "none"
+                }
+              },
+              "noValue": "No data"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Weekly Distance (km)"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "#33658a",
+                      "mode": "fixed"
+                    }
+                  },
+                  {
+                    "id": "custom.axisPlacement",
+                    "value": "left"
+                  },
+                  {
+                    "id": "unit",
+                    "value": "lengthkm"
+                  },
+                  {
+                    "id": "min",
+                    "value": 0
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Weekly Elevation (m)"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "#ff9830",
+                      "mode": "fixed"
+                    }
+                  },
+                  {
+                    "id": "custom.axisPlacement",
+                    "value": "right"
+                  },
+                  {
+                    "id": "unit",
+                    "value": "lengthm"
+                  },
+                  {
+                    "id": "min",
+                    "value": 0
+                  }
+                ]
+              }
+            ]
+          },
+          "description": "7-day rolling distance and elevation from daily fitness calculations.\n\nSmoother than per-ride charts \u2014 shows your training volume trend.\n\nNote: always shows **all sports** combined. `athlete_stats` is sport-agnostic by design (training load / CTL are whole-athlete metrics), so this panel ignores the Sport Type filter."
+        }
+      ]
+    },
+    {
+      "id": 450,
+      "type": "row",
+      "title": "Ride Patterns",
+      "collapsed": true,
+      "gridPos": {
+        "x": 0,
+        "y": 27,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 400,
+          "title": "When You Ride",
+          "type": "barchart",
+          "gridPos": {
+            "x": 0,
+            "y": 28,
+            "w": 24,
+            "h": 8
+          },
+          "datasource": {
+            "type": "postgres",
+            "uid": "velomate"
+          },
+          "targets": [
+            {
+              "rawSql": "SELECT\n  CASE EXTRACT(ISODOW FROM date)::int\n    WHEN 1 THEN 'Mon' WHEN 2 THEN 'Tue' WHEN 3 THEN 'Wed'\n    WHEN 4 THEN 'Thu' WHEN 5 THEN 'Fri' WHEN 6 THEN 'Sat' WHEN 7 THEN 'Sun'\n  END AS \"Day\",\n  COUNT(*) AS \"Rides\"\nFROM activities\nWHERE $__timeFilter(date)\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nGROUP BY 1, EXTRACT(ISODOW FROM date)::int\nORDER BY EXTRACT(ISODOW FROM date)::int;",
+              "format": "table",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "orientation": "horizontal",
+            "showValue": "auto",
+            "stacking": "none",
+            "barWidth": 0.8
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "fixedColor": "#33658a",
+                "mode": "fixed"
+              },
+              "custom": {
+                "fillOpacity": 80
+              },
+              "noValue": "No data",
+              "decimals": 0
+            }
+          },
+          "description": "Ride count by day of week."
+        }
+      ]
+    },
+    {
       "id": 104,
       "type": "row",
       "title": "Activities",
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 22,
+        "y": 28,
         "w": 24,
         "h": 1
       },
@@ -986,7 +2383,7 @@
       "type": "table",
       "gridPos": {
         "x": 0,
-        "y": 23,
+        "y": 29,
         "w": 24,
         "h": 10
       },
