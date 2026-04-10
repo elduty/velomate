@@ -133,6 +133,7 @@ All cycling metrics follow industry standards. The ingestor is the single source
 - **CTL/ATL/TSB**: Exponential moving averages (42/7 day constants)
 - **EF**: NP / avg_hr
 - **Decoupling**: `first_EF / second_EF - 1` (positive = drift, per Friel/TrainingPeaks). Includes coasting samples.
+- **W/kg**: NP / ride_weight. Uses NP (not avg_power) for physiological accuracy. Per-ride `ride_weight` from `VELOMATE_WEIGHT`, preserved on weight change
 - **HR Zones**: Max HR percentages (60/70/80/90%), default fallback 185 bpm
 - **Power Zones**: Coggan 7-zone including Z7 Neuromuscular (>150% FTP)
 
@@ -151,6 +152,7 @@ Direct one-to-one comparison of VI, EF, and IF between VeloMate and GoldenCheeta
 - **estimated_ftp** persisted to sync_state — Grafana reads pre-computed FTP instead of recalculating
 - **Resting HR** included in config change detection — changing it triggers TRIMP recalculation
 - **Per-ride FTP**: Historical rides preserve their TSS and IF via `ride_ftp` column + backfill from 90-day rolling best
+- **Per-ride weight**: `ride_weight` column stores configured weight at time of processing. Unlike `ride_ftp`, weight changes do NOT reset historical rides — old rides keep their stamped weight, only new rides get the new value. Weight is intentionally excluded from the METRICS_VERSION reset because it's user-configured, not derived
 - **Grafana reads stored NP/EF/IF/VI/TRIMP** from activities table; stream-level SQL only for historical charts (FTP Progression, Best Efforts, Power Duration Curve)
 - **FTP in Grafana**: All panels use standardised fallback: configured_ftp → estimated_ftp → 150
 

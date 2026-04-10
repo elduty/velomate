@@ -305,6 +305,8 @@ def recalculate_fitness(conn):
     if stored_version != METRICS_VERSION:
         print(f"[fitness] Metrics version changed ({stored_version} → {METRICS_VERSION}), recalculating everything...")
         with conn.cursor() as cur:
+            # ride_weight intentionally excluded — it's user-configured, not derived.
+            # Historical rides preserve their stamped weight across version bumps.
             cur.execute("UPDATE activities SET tss = NULL, np = NULL, ef = NULL, work_kj = NULL, ride_ftp = NULL, intensity_factor = NULL, trimp = NULL, variability_index = NULL, aerobic_decoupling = NULL")
             cur.execute("DELETE FROM athlete_stats")
             cur.execute("DELETE FROM ride_intervals")

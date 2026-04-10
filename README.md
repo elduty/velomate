@@ -280,6 +280,7 @@ TSB       = CTL − ATL                 (training stress balance / form)
 - **Work**: Total energy output in kJ = sum of per-second power from stream data
 - **Max HR**: 95th percentile of ride max HRs, or configured via `VELOMATE_MAX_HR`. Used for Banister TRIMP
 - **LTHR (Lactate Threshold HR)**: derived as ~89% of max HR per Friel convention. Used as the threshold value in HR-based TSS when no power stream is available
+- **W/kg**: NP / ride_weight. Uses NP (not avg_power) because it better reflects the physiological cost of variable efforts. Per-ride `ride_weight` stored from `VELOMATE_WEIGHT` — historical rides preserve their weight if the setting changes later. Shown on Activity Details and as NP/kg Trend on All Time Progression
 - **Auto interval detection**: Coggan-style classification (sprint / anaerobic / vo2 / threshold / sweetspot / tempo) from the power stream, stored in the `ride_intervals` table. Classification uses per-ride FTP for historical accuracy
 - **TSB interpretation**: > +10 fresh · -10 to +10 neutral · < -10 fatigued
 
@@ -312,6 +313,7 @@ Configured via `.env` file:
 | `VELOMATE_MAX_HR` | No | Your max heart rate (0 = auto-estimate) |
 | `VELOMATE_FTP` | No | Your FTP in watts (0 = auto-estimate) |
 | `VELOMATE_RESTING_HR` | No | Resting heart rate in bpm (default 50) |
+| `VELOMATE_WEIGHT` | No | Your weight in kg (0 = disabled). Enables W/kg on Activity Details and NP/kg Trend on All Time Progression. Stored per ride — historical rides preserve their weight if you change it later |
 | `VELOMATE_RESET_RIDE_FTP` | No | Set to `1` to reset all per-ride FTP values on next restart (one-shot) |
 | `VELOMATE_BACKFILL_MONTHS` | No | How far back to fetch activities. Default `12`. Set to `0` for full Strava history (slow — can take hours and span multiple days due to rate limits). **Increasing this value on a running deployment** triggers an auto-backfill on the next restart to pull the extended window. Decreasing it logs a note but leaves existing older activities in the DB (this controls the backfill horizon, not data retention). |
 
