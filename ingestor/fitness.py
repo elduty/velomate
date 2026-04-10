@@ -287,6 +287,12 @@ def recalculate_fitness(conn):
     resting_hr = rhr_val if rhr_val > 0 else 50
     print(f"[fitness] Resting HR: {resting_hr} {'(configured)' if rhr_val > 0 else '(default 50 bpm)'}")
 
+    env_weight = os.environ.get("VELOMATE_WEIGHT", "")
+    try:
+        weight = float(env_weight) if env_weight else 0.0
+    except ValueError:
+        weight = 0.0
+
     # Persist the algorithmic estimate so Grafana can read it directly from
     # sync_state. This is the auto-computed value, NOT the currently-active
     # FTP — when configured_ftp is set, the two diverge and the difference is
@@ -408,6 +414,14 @@ def recalculate_fitness(conn):
                 """, (ftp,))
                 if cur.rowcount > 0:
                     print(f"[fitness] Stamped estimated FTP ({ftp}W) on {cur.rowcount} rides without historical data")
+
+    # Step 2.1: Backfill ride_weight for rides that don't have one.
+    # Unlike FTP, weight can't be auto-estimated — purely user-configured.
+    if weight > 0:
+        with conn.cursor() as cur:
+            cur.execute("UPDATE activities SET ride_weight = %s WHERE ride_weight IS NULL AND date IS NOT NULL", (weight,))
+            if cur.rowcount > 0:
+                print(f"[fitness] Stamped weight ({weight}kg) on {cur.rowcount} rides")
 
     # Step 2.5: Detect intervals for rides with no ride_intervals rows yet.
     # Runs AFTER ride_ftp backfill (Step 2) so classification uses per-ride historical

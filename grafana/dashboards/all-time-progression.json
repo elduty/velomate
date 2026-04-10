@@ -866,7 +866,7 @@
       "type": "timeseries",
       "gridPos": {
         "h": 8,
-        "w": 24,
+        "w": 12,
         "x": 0,
         "y": 36
       },
@@ -2577,6 +2577,69 @@
         "overrides": []
       },
       "description": "Every outdoor ride ever recorded.\nGPS points sampled every 10 seconds.\nDenser clusters = frequently ridden routes."
+    },
+    {
+      "id": 1002,
+      "title": "NP / kg Trend",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 36,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT a.date::date AS time,\n  ROUND((a.np / a.ride_weight)::numeric, 2) AS \"NP/kg\",\n  ROUND(AVG(a.np / a.ride_weight) OVER (ORDER BY a.date ROWS BETWEEN 9 PRECEDING AND CURRENT ROW)::numeric, 2) AS \"10-ride avg\"\nFROM activities a\nWHERE a.np IS NOT NULL AND a.np > 0\n  AND a.ride_weight IS NOT NULL AND a.ride_weight > 0\n  AND $__timeFilter(a.date)\n  AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')\nORDER BY a.date;",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "decimals": 2,
+          "color": {
+            "fixedColor": "#e67e22",
+            "mode": "fixed"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 0,
+            "pointSize": 5
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "10-ride avg"
+            },
+            "properties": [
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "custom.pointSize",
+                "value": 0
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#e67e22",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "description": "Normalized power-to-weight ratio per ride over time.\n\nA rising trend means you're getting faster \u2014 whether from gaining\npower, losing weight, or both.\n\nRequires VELOMATE_WEIGHT to be configured."
     }
   ]
 }

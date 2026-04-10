@@ -202,6 +202,7 @@ def run():
         env_ftp = os.environ.get("VELOMATE_FTP", "")
         env_hr = os.environ.get("VELOMATE_MAX_HR", "")
         env_rhr = os.environ.get("VELOMATE_RESTING_HR", "")
+        env_weight = os.environ.get("VELOMATE_WEIGHT", "")
         conn = get_connection()
         try:
             ftp = int(env_ftp) if env_ftp else 0
@@ -210,13 +211,21 @@ def run():
             ftp_str = str(ftp) if ftp > 0 else "0"
             hr_str = str(hr) if hr > 0 else "0"
             rhr_str = str(rhr) if rhr > 0 else "0"
+            try:
+                weight = float(env_weight) if env_weight else 0.0
+            except ValueError:
+                weight = 0.0
+            weight_str = str(weight) if weight > 0 else "0"
 
             # Check if values changed
             old_ftp = get_sync_state(conn, "configured_ftp") or "0"
             old_hr = get_sync_state(conn, "configured_max_hr") or "0"
             old_rhr = get_sync_state(conn, "configured_resting_hr") or "0"
+            old_weight = get_sync_state(conn, "configured_weight") or "0"
             # FTP/max HR affect TSS, IF, CTL/ATL/TSB. Resting HR affects TRIMP.
+            # Weight only affects ride_weight (W/kg display) — handled separately.
             ftp_changed = (ftp_str != old_ftp)
+            weight_changed = (weight_str != old_weight)
             config_changed = ftp_changed or (hr_str != old_hr) or (rhr_str != old_rhr)
 
             # If thresholds changed, reset all derived metrics BEFORE persisting new values.
@@ -242,13 +251,21 @@ def run():
                     cur.execute("UPDATE activities SET ride_ftp = NULL, tss = NULL, intensity_factor = NULL")
                     cur.execute("DELETE FROM athlete_stats")
 
+            # Weight only affects ride_weight — no TSS/IF/TRIMP/athlete_stats impact
+            if weight_changed:
+                with conn.cursor() as cur:
+                    cur.execute("UPDATE activities SET ride_weight = NULL")
+                print("[main] ride_weight reset — will be re-backfilled with new weight")
+
             # Persist current values (0 = auto-estimate, dashboard queries use value > 0)
             set_sync_state(conn, "configured_ftp", ftp_str)
             set_sync_state(conn, "configured_max_hr", hr_str)
             set_sync_state(conn, "configured_resting_hr", rhr_str)
+            set_sync_state(conn, "configured_weight", weight_str)
             print(f"[main] FTP: {ftp}W {'(configured)' if ftp > 0 else '(auto-estimate)'}")
             print(f"[main] Max HR: {hr} {'(configured)' if hr > 0 else '(auto-estimate)'}")
             print(f"[main] Resting HR: {rhr if rhr > 0 else 50} {'(configured)' if rhr > 0 else '(default 50 bpm)'}")
+            print(f"[main] Weight: {weight}kg" if weight > 0 else "[main] Weight: not configured (W/kg disabled)")
         finally:
             conn.close()
     except (ValueError, TypeError) as e:

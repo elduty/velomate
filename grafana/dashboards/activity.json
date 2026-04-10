@@ -1069,10 +1069,10 @@
       "title": "Work",
       "type": "stat",
       "gridPos": {
-        "h": 3,
-        "w": 8,
         "x": 0,
-        "y": 21
+        "y": 21,
+        "w": 6,
+        "h": 3
       },
       "datasource": {
         "type": "postgres",
@@ -1112,10 +1112,10 @@
       "title": "TRIMP",
       "type": "stat",
       "gridPos": {
-        "h": 3,
-        "w": 8,
-        "x": 8,
-        "y": 21
+        "x": 6,
+        "y": 21,
+        "w": 6,
+        "h": 3
       },
       "datasource": {
         "type": "postgres",
@@ -1182,10 +1182,10 @@
       "title": "Aerobic Decoupling",
       "type": "stat",
       "gridPos": {
-        "h": 3,
-        "w": 8,
-        "x": 16,
-        "y": 21
+        "x": 12,
+        "y": 21,
+        "w": 6,
+        "h": 3
       },
       "datasource": {
         "type": "postgres",
@@ -2764,6 +2764,58 @@
         "overrides": []
       },
       "description": "Scatter plot showing power output vs heart rate.\n\nA tight cluster = good aerobic efficiency.\nPoints drifting right over time = cardiac drift."
+    },
+    {
+      "id": 37,
+      "title": "W/kg (NP)",
+      "description": "Normalized power-to-weight ratio for this ride.\n\nCalculated as NP / ride_weight. Uses NP rather than avg_power\nbecause it better reflects the physiological cost of variable efforts.\n\nSet your weight via VELOMATE_WEIGHT in .env.",
+      "type": "stat",
+      "gridPos": {
+        "x": 18,
+        "y": 21,
+        "w": 6,
+        "h": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND((a.np / a.ride_weight)::numeric, 2) AS \"W/kg\" FROM activities a WHERE a.id = ${activity_id} AND a.np IS NOT NULL AND a.np > 0 AND a.ride_weight IS NOT NULL AND a.ride_weight > 0;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No weight",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-orange"
+          },
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-orange",
+                "value": null
+              }
+            ]
+          }
+        }
+      }
     }
   ]
 }

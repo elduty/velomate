@@ -2458,6 +2458,113 @@
           }
         ]
       }
+    },
+    {
+      "id": 10,
+      "title": "Calories",
+      "type": "stat",
+      "gridPos": {
+        "x": 16,
+        "y": 4,
+        "w": 4,
+        "h": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT COALESCE(SUM(calories), 0) AS \"Calories\" FROM activities WHERE $__timeFilter(date) AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}');",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-purple"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-purple",
+                "value": null
+              }
+            ]
+          },
+          "unit": "kcal"
+        }
+      },
+      "description": "Total calories burned across all rides in the selected period."
+    },
+    {
+      "id": 310,
+      "title": "\u0394 Calories",
+      "type": "stat",
+      "gridPos": {
+        "x": 16,
+        "y": 11,
+        "w": 4,
+        "h": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND((COALESCE((SELECT SUM(calories) FROM activities WHERE $__timeFilter(date) AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0) - COALESCE((SELECT SUM(calories) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0))::numeric, 0) AS \"Delta\";",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "kcal"
+        }
+      },
+      "description": "Change in total calories vs the equivalent previous period."
     }
   ]
 }

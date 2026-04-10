@@ -109,6 +109,7 @@ def create_schema(conn):
             ALTER TABLE activities ADD COLUMN IF NOT EXISTS trimp FLOAT;
             ALTER TABLE activities ADD COLUMN IF NOT EXISTS variability_index FLOAT;
             ALTER TABLE activities ADD COLUMN IF NOT EXISTS aerobic_decoupling FLOAT;
+            ALTER TABLE activities ADD COLUMN IF NOT EXISTS ride_weight FLOAT;
 
             CREATE INDEX IF NOT EXISTS idx_activities_date ON activities(date);
             CREATE INDEX IF NOT EXISTS idx_activity_streams_activity_id ON activity_streams(activity_id);
