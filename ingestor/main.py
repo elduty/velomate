@@ -251,11 +251,11 @@ def run():
                     cur.execute("UPDATE activities SET ride_ftp = NULL, tss = NULL, intensity_factor = NULL")
                     cur.execute("DELETE FROM athlete_stats")
 
-            # Weight only affects ride_weight — no TSS/IF/TRIMP/athlete_stats impact
+            # Weight change: only persist the new value. Don't reset existing
+            # ride_weight — historical rides keep the weight they were stamped with.
+            # New rides (ride_weight IS NULL) pick up the new weight via Step 2.1.
             if weight_changed:
-                with conn.cursor() as cur:
-                    cur.execute("UPDATE activities SET ride_weight = NULL")
-                print("[main] ride_weight reset — will be re-backfilled with new weight")
+                print(f"[main] Weight changed ({old_weight} → {weight_str}kg) — new rides will use the new value, historical rides preserved")
 
             # Persist current values (0 = auto-estimate, dashboard queries use value > 0)
             set_sync_state(conn, "configured_ftp", ftp_str)
