@@ -133,7 +133,7 @@
       "gridPos": {
         "x": 0,
         "y": 1,
-        "w": 4,
+        "w": 5,
         "h": 3
       },
       "datasource": {
@@ -181,9 +181,9 @@
       "title": "Distance",
       "type": "stat",
       "gridPos": {
-        "x": 4,
+        "x": 5,
         "y": 1,
-        "w": 4,
+        "w": 5,
         "h": 3
       },
       "datasource": {
@@ -232,9 +232,9 @@
       "title": "Elevation",
       "type": "stat",
       "gridPos": {
-        "x": 8,
+        "x": 10,
         "y": 1,
-        "w": 4,
+        "w": 5,
         "h": 3
       },
       "datasource": {
@@ -283,9 +283,9 @@
       "title": "Duration",
       "type": "stat",
       "gridPos": {
-        "x": 12,
+        "x": 15,
         "y": 1,
-        "w": 4,
+        "w": 5,
         "h": 3
       },
       "datasource": {
@@ -334,7 +334,7 @@
       "title": "TSS",
       "type": "stat",
       "gridPos": {
-        "x": 16,
+        "x": 20,
         "y": 1,
         "w": 4,
         "h": 3
@@ -387,7 +387,7 @@
       "gridPos": {
         "x": 0,
         "y": 4,
-        "w": 4,
+        "w": 5,
         "h": 3
       },
       "datasource": {
@@ -436,9 +436,9 @@
       "title": "Avg HR",
       "type": "stat",
       "gridPos": {
-        "x": 4,
+        "x": 5,
         "y": 4,
-        "w": 4,
+        "w": 5,
         "h": 3
       },
       "datasource": {
@@ -487,9 +487,9 @@
       "title": "Avg Speed",
       "type": "stat",
       "gridPos": {
-        "x": 8,
+        "x": 10,
         "y": 4,
-        "w": 4,
+        "w": 5,
         "h": 3
       },
       "datasource": {
@@ -538,9 +538,9 @@
       "title": "Avg Decoupling (steady)",
       "type": "stat",
       "gridPos": {
-        "x": 12,
+        "x": 15,
         "y": 4,
-        "w": 4,
+        "w": 5,
         "h": 3
       },
       "datasource": {
@@ -613,7 +613,7 @@
       "gridPos": {
         "x": 0,
         "y": 8,
-        "w": 4,
+        "w": 5,
         "h": 3
       },
       "datasource": {
@@ -664,9 +664,9 @@
       "title": "\u0394 Distance",
       "type": "stat",
       "gridPos": {
-        "x": 4,
+        "x": 5,
         "y": 8,
-        "w": 4,
+        "w": 5,
         "h": 3
       },
       "datasource": {
@@ -718,9 +718,9 @@
       "title": "\u0394 Elevation",
       "type": "stat",
       "gridPos": {
-        "x": 8,
+        "x": 10,
         "y": 8,
-        "w": 4,
+        "w": 5,
         "h": 3
       },
       "datasource": {
@@ -772,9 +772,9 @@
       "title": "\u0394 Duration",
       "type": "stat",
       "gridPos": {
-        "x": 12,
+        "x": 15,
         "y": 8,
-        "w": 4,
+        "w": 5,
         "h": 3
       },
       "datasource": {
@@ -826,7 +826,7 @@
       "title": "\u0394 TSS",
       "type": "stat",
       "gridPos": {
-        "x": 16,
+        "x": 20,
         "y": 8,
         "w": 4,
         "h": 3
@@ -881,7 +881,7 @@
       "gridPos": {
         "x": 0,
         "y": 11,
-        "w": 4,
+        "w": 5,
         "h": 3
       },
       "datasource": {
@@ -934,9 +934,9 @@
       "title": "\u0394 Avg HR",
       "type": "stat",
       "gridPos": {
-        "x": 4,
+        "x": 5,
         "y": 11,
-        "w": 4,
+        "w": 5,
         "h": 3
       },
       "datasource": {
@@ -989,9 +989,9 @@
       "title": "\u0394 Avg Speed",
       "type": "stat",
       "gridPos": {
-        "x": 8,
+        "x": 10,
         "y": 11,
-        "w": 4,
+        "w": 5,
         "h": 3
       },
       "datasource": {
@@ -1044,9 +1044,9 @@
       "title": "\u0394 Avg Decoupling",
       "type": "stat",
       "gridPos": {
-        "x": 12,
+        "x": 15,
         "y": 11,
-        "w": 4,
+        "w": 5,
         "h": 3
       },
       "datasource": {
@@ -2464,7 +2464,7 @@
       "title": "Calories",
       "type": "stat",
       "gridPos": {
-        "x": 16,
+        "x": 20,
         "y": 4,
         "w": 4,
         "h": 3
@@ -2516,7 +2516,7 @@
       "title": "\u0394 Calories",
       "type": "stat",
       "gridPos": {
-        "x": 16,
+        "x": 20,
         "y": 11,
         "w": 4,
         "h": 3
