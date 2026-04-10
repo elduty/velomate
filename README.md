@@ -22,9 +22,12 @@ Inspired by [TeslaMate](https://github.com/teslamate-org/teslamate). Works with 
 - Stores full per-second telemetry (HR, power, cadence, speed, altitude, GPS)
 - Calculates CTL/ATL/TSB fitness metrics locally (no Strava Premium needed)
 - TRIMP (Training Impulse) computed from HR stream data with HRR capped at 1.0 (no Strava Premium needed)
-- Normalized Power (NP), Intensity Factor (IF), Variability Index (VI), Efficiency Factor (EF), and Work (kJ) pre-calculated per activity from stream data
+- Normalized Power (NP), Intensity Factor (IF), Variability Index (VI), Efficiency Factor (EF), Work (kJ), aerobic decoupling, and W/kg pre-calculated per activity from stream data
+- VI-aware TSS: uses avg_power instead of NP when VI > 1.30 (urban stop-and-go rides) to prevent overestimation
+- Auto interval detection: Coggan-style classification (sprint / anaerobic / vo2 / threshold / sweetspot / tempo) from power streams
 - All derived metrics computed by the ingestor and stored — Grafana reads stored values (single source of truth)
 - FTP auto-estimated from rolling 90-day best 20-minute power, or configured manually via `VELOMATE_FTP`
+- Per-ride weight stored from `VELOMATE_WEIGHT` — enables W/kg tracking with historical preservation
 - Daily fitness recalculation at 00:05 (rest days show CTL/ATL decay)
 - Smart deduplication when multiple devices record the same ride
 
@@ -41,41 +44,41 @@ Inspired by [TeslaMate](https://github.com/teslamate-org/teslamate). Works with 
 
 ### Grafana Dashboards
 
-Three dashboards with 98 panels across 12 visualization types.
+Three dashboards with 128 panels across 12 visualization types.
 
-**Overview** (34 panels) — your training hub
-- 12 stat cards with period comparison + sport type filter
-- 8 delta comparison cards (vs previous period)
-- Fitness section: CTL/ATL/TSB with fill-between shading, FTP, TSB gauge, weekly streak, 6-week fitness delta
-- 10 daily charts split by ride type (Outdoor/Zwift/E-Bike/Indoor)
-- Ride type donut, ride frequency bar chart
-- Outdoor records table (period best vs all-time best)
+**Overview** (43 panels) — your training hub
+- 10 period summary stats (Rides, Distance, Elevation, Duration, TSS, Avg Power, Avg HR, Avg Speed, Avg Decoupling, Calories) with sport type filter
+- 10 delta comparison cards (vs previous period, including Δ Calories)
+- Fitness section: CTL/ATL/TSB with fill-between shading, Configured + Estimated FTP side-by-side, TSB gauge, weekly streak, days since ride, 6-week fitness delta, ride type donut
+- 6 trend charts (distance & elevation, duration & TSS, avg power & HR, avg speed & cadence, calories & rides, rolling weekly volume)
+- Ride frequency bar chart
 - Activities table with drill-down to Activity Details
-- Lifetime ride heatmap
-- Manual annotations for marking events (races, FTP tests, injuries)
+- Default time range: 7 days
 
 ![Activity Details](screenshots/activity.png)
 
-**Activity Details** (32 panels) — per-ride deep dive
-- 12 summary stat cards + 7 advanced metrics (NP, IF, VI, EF, Work, TRIMP, aerobic decoupling)
+**Activity Details** (41 panels) — per-ride deep dive
+- 12 summary stat cards + 8 advanced metrics (NP, IF, VI, EF, Work, TRIMP, aerobic decoupling, W/kg)
 - GPS route map with speed/HR/power color overlay
 - HR and power zones by kilometer (stacked bar charts)
 - HR and power zone distribution (Coggan model, zone-colored)
+- Power distribution histogram (25W buckets, 7-zone colored)
 - Power vs HR scatter plot (cardiac drift detection)
 - Power zone bands on HR & Power telemetry
 - Speed & elevation / HR & power / cadence & grade telemetry (distance-based x-axis)
 - Per-km splits table with best/worst markers
 - Power duration curve
+- Detected intervals table (Coggan-style: sprint / anaerobic / vo2 / threshold / sweetspot / tempo)
 
 ![All Time Progression](screenshots/progression.png)
 
-**All Time Progression** (32 panels) — long-term trends
+**All Time Progression** (44 panels) — long-term trends
 - 6 stat cards: total distance, elevation, rides, hours, current FTP, peak CTL
-- 6 progression scatter plots with 10-ride rolling averages and regression lines (speed, power, NP, EF, HR, distance)
+- 8 progression scatter plots with 10-ride rolling averages (speed, power, NP, EF, HR, distance, aerobic decoupling, NP/kg)
 - FTP progression (monthly estimated from stream data)
 - Best efforts (1min/5min/20min peak power per ride)
 - Weekly power range (candlestick — week-over-week comparison)
-- Training zone polarization (monthly power + HR zone stacked bars)
+- Training zone polarization (monthly power + HR zone stacked bars + monthly interval distribution)
 - CTL/ATL/TSB fitness history with fill-between shading
 - 6 cumulative totals (distance, elevation, duration, rides, TSS, calories)
 - Monthly trends stacked by ride type
