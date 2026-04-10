@@ -64,6 +64,8 @@ Major release: ride analytics depth, dashboard overhaul, new metrics.
 
 ## v1.2.0 — 2026-03-27
 
+Point-to-point route planning.
+
 ### New Features
 
 - **`--destination` flag** — plan point-to-point routes to a named place or coordinates (`--destination Cascais` or `--destination "38.69,-9.42"`)
@@ -72,9 +74,12 @@ Major release: ride analytics depth, dashboard overhaul, new metrics.
 - **There-and-back routing** — `--destination Cascais --loop` routes to the destination and back home
 - **Coordinate bounds validation** — `parse_location` rejects out-of-range lat/lng values before they hit Valhalla
 
-### Changes
+### Breaking Changes
 
 - **Waypoints separator** changed from comma to semicolon (`--waypoints "Cascais;Estoril"`) to avoid ambiguity with coordinate notation
+
+### Changes
+
 - **`--duration`/`--distance` now optional** when `--destination` is set
 - **`--loop` auto-disables** when `--destination` is set (override with explicit `--loop`)
 - **Log warnings** for flag clashes: baseline exceeds target distance, explicit waypoints skip padding
@@ -84,21 +89,61 @@ Major release: ride analytics depth, dashboard overhaul, new metrics.
 - CI venv pip bootstrap on macOS runner (stale `/tmp` venv, broken pip RECORD)
 - Push-to-github script: auto-generated commit messages, graceful first-push, MESSAGE override
 
+### Usage
+
+```bash
+python3 -m velomate.cli plan --destination Cascais
+python3 -m velomate.cli plan --destination Cascais --waypoints "Oeiras;Estoril"
+python3 -m velomate.cli plan --destination Cascais --loop
+python3 -m velomate.cli plan --destination Cascais --distance 50km
+```
+
 ### Stats
 
 - 370 tests (up from 331)
-- 10 files changed, 716 insertions
 
 ## v1.1.0 — 2026-03-25
 
 Metric accuracy overhaul, per-ride FTP, user feedback fixes.
 
-- NP reverted to 30s SMA (Coggan standard, matches GoldenCheetah)
-- Per-ride FTP with 90-day rolling backfill
-- IF, TRIMP, VI computed as single source of truth in ingestor
+### New Features
+
+- **IF, VI, TRIMP** stored per ride (previously only existed as Grafana SQL)
+- **NP** computed in Python using Coggan 30s SMA (matches GoldenCheetah)
+- **Per-ride FTP** — historical rides preserve their TSS/IF accuracy via `ride_ftp` column + 90-day rolling backfill
+- **Z7 Neuromuscular** (>150% FTP) added to all power zone panels
+- **`VELOMATE_RESTING_HR`** — configure resting heart rate for TRIMP
+- **`VELOMATE_RESET_RIDE_FTP=1`** — one-shot flag to reset all per-ride FTP values
+
+### Fixes
+
+- TRIMP: HRR capped at 1.0 (no more exponential blowup when HR exceeds configured max)
+- TSS: uses per-ride FTP, not current global FTP
+- Configured FTP stamps all rides directly (no more stream re-estimation)
+- Decoupling includes coasting samples
+- FTP/HR fallbacks standardised across all Grafana panels
+- Config changes trigger automatic recalculation
 - Default passwords in `.env.example` (zero-edit `docker compose up`)
-- Venv setup documented in README
 - Windows emoji encoding fix in map preview
+
+### Breaking Changes
+
+- **`METRICS_VERSION` 6→7** — first startup recalculates all metrics (automatic, may take a minute)
+- **Configured FTP overrides estimation** — `VELOMATE_FTP` now applies to all rides directly. Previously it was only a fallback when stream-based estimation returned no result
+- **Resting HR changes reset TRIMP** — previously had no server-side effect
+
+### Upgrade
+
+```bash
+git pull && docker compose up -d --build
+# Wait for "Calculated N days of fitness data" in logs
+```
+
+Optional `.env` additions:
+```bash
+VELOMATE_RESTING_HR=60
+VELOMATE_FTP=175
+```
 
 ## v1.0.0 — 2026-03-21
 
