@@ -867,7 +867,7 @@
       "gridPos": {
         "x": 0,
         "y": 28,
-        "w": 24,
+        "w": 12,
         "h": 8
       },
       "datasource": {
@@ -944,9 +944,9 @@
       "title": "NP / kg Trend",
       "type": "timeseries",
       "gridPos": {
-        "x": 0,
-        "y": 36,
-        "w": 24,
+        "x": 12,
+        "y": 28,
+        "w": 12,
         "h": 8
       },
       "datasource": {
@@ -1008,7 +1008,7 @@
       "type": "candlestick",
       "gridPos": {
         "x": 0,
-        "y": 44,
+        "y": 36,
         "w": 24,
         "h": 8
       },
@@ -1041,7 +1041,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 52,
+        "y": 44,
         "w": 24,
         "h": 1
       },
@@ -1053,7 +1053,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 53,
+        "y": 45,
         "w": 12,
         "h": 8
       },
@@ -1092,7 +1092,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 12,
-        "y": 53,
+        "y": 45,
         "w": 12,
         "h": 8
       },
@@ -1184,7 +1184,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 61,
+        "y": 53,
         "w": 24,
         "h": 1
       },
@@ -1196,7 +1196,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 62,
+        "y": 54,
         "w": 12,
         "h": 8
       },
@@ -1340,7 +1340,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 12,
-        "y": 62,
+        "y": 54,
         "w": 12,
         "h": 8
       },
@@ -1454,7 +1454,7 @@
       "type": "barchart",
       "gridPos": {
         "x": 0,
-        "y": 70,
+        "y": 62,
         "w": 24,
         "h": 8
       },
@@ -1580,7 +1580,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 78,
+        "y": 70,
         "w": 24,
         "h": 1
       },
@@ -1592,7 +1592,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 79,
+        "y": 71,
         "w": 24,
         "h": 8
       },
@@ -1691,7 +1691,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 87,
+        "y": 79,
         "w": 24,
         "h": 1
       },
@@ -1703,7 +1703,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 88,
+        "y": 80,
         "w": 12,
         "h": 8
       },
@@ -1740,7 +1740,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 12,
-        "y": 88,
+        "y": 80,
         "w": 12,
         "h": 8
       },
@@ -1777,7 +1777,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 96,
+        "y": 88,
         "w": 12,
         "h": 8
       },
@@ -1814,7 +1814,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 12,
-        "y": 96,
+        "y": 88,
         "w": 12,
         "h": 8
       },
@@ -1850,7 +1850,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 104,
+        "y": 96,
         "w": 12,
         "h": 8
       },
@@ -1886,7 +1886,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 12,
-        "y": 104,
+        "y": 96,
         "w": 12,
         "h": 8
       },
@@ -1923,7 +1923,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 112,
+        "y": 104,
         "w": 24,
         "h": 1
       },
@@ -1935,7 +1935,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 113,
+        "y": 105,
         "w": 12,
         "h": 8
       },
@@ -2048,7 +2048,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 12,
-        "y": 113,
+        "y": 105,
         "w": 12,
         "h": 8
       },
@@ -2161,7 +2161,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 121,
+        "y": 113,
         "w": 12,
         "h": 8
       },
@@ -2273,7 +2273,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 12,
-        "y": 121,
+        "y": 113,
         "w": 12,
         "h": 8
       },
@@ -2387,7 +2387,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 129,
+        "y": 121,
         "w": 24,
         "h": 1
       },
@@ -2399,7 +2399,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 130,
+        "y": 122,
         "w": 12,
         "h": 8
       },
@@ -2472,7 +2472,7 @@
       "type": "table",
       "gridPos": {
         "x": 12,
-        "y": 130,
+        "y": 122,
         "w": 12,
         "h": 8
       },
@@ -2503,7 +2503,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 138,
+        "y": 130,
         "w": 24,
         "h": 1
       },
@@ -2515,7 +2515,7 @@
       "type": "table",
       "gridPos": {
         "x": 0,
-        "y": 139,
+        "y": 131,
         "w": 24,
         "h": 10
       },
@@ -2578,7 +2578,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 149,
+        "y": 141,
         "w": 24,
         "h": 1
       },
@@ -2590,7 +2590,7 @@
       "type": "geomap",
       "gridPos": {
         "x": 0,
-        "y": 150,
+        "y": 142,
         "w": 24,
         "h": 14
       },
