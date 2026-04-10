@@ -1,3 +1,59 @@
+# VeloMate v1.3.0
+
+Ride analytics depth, dashboard overhaul, 128 panels across 3 dashboards.
+
+## What's New
+
+- **Aerobic decoupling** — per-ride cardiac drift measurement (first-half vs second-half EF). Trended on All Time Progression
+- **Auto interval detection** — Coggan-style classification from power streams: sprint, anaerobic, vo2, threshold, sweetspot, tempo. Displayed per ride + monthly distribution
+- **VI-aware TSS** — urban stop-and-go rides (VI > 1.30) now use avg_power instead of NP for TSS/IF, preventing overestimation
+- **W/kg** — NP-based power-to-weight ratio per ride + NP/kg Trend on All Time Progression. Historical rides preserve their weight if you change it later
+- **Calories** — total + delta on Overview, completing the 10-stat period summary grid
+- **Estimated FTP diagnostic** — Overview shows Configured + Estimated FTP side-by-side so a mismatch is visible at a glance
+- **Configurable backfill** — `VELOMATE_BACKFILL_MONTHS` controls how far back to pull from Strava. Increasing it auto-triggers re-backfill
+
+## Dashboard Changes
+
+- **Overview** — single comprehensive dashboard. 10 period stats + 10 deltas in compact 2×5 grid, Fitness section, 6 trend charts, ride patterns, activities table. Default 7-day time range
+- **Activity Details** — 8 advanced metrics (added aerobic decoupling, W/kg), Power Distribution histogram (25W buckets), Detected Intervals table
+- **All Time Progression** — added Aerobic Decoupling Trend, NP/kg Trend, Monthly Interval Distribution. Full-width layout with no gaps
+
+## Fixes
+
+- HR TSS now uses LTHR (~89% of max HR) instead of max HR directly — was underestimating by ~21%
+- Power Distribution Z7 fixed to share Y-axis with Z1-Z6
+- Tooltip colour icons match chart colours across all panels
+- NULL-safe delta cards
+
+## New Env Vars
+
+```bash
+VELOMATE_WEIGHT=75          # your weight in kg — enables W/kg (0 = disabled)
+VELOMATE_BACKFILL_MONTHS=12 # how far back to pull from Strava (0 = full history)
+```
+
+## Upgrade
+
+```bash
+git pull
+docker compose up -d --build
+# First restart recalculates all metrics (METRICS_VERSION 9→10). Takes a few minutes.
+```
+
+Add to `.env` if desired:
+```bash
+VELOMATE_WEIGHT=75
+VELOMATE_BACKFILL_MONTHS=24
+```
+
+New DB columns and tables are created automatically. No manual migration needed. Dashboard JSON is picked up by Grafana provisioning — clear browser cache if panels look stale.
+
+## Breaking Changes
+
+None. All changes are additive.
+
+---
+
 # VeloMate v1.2.0
 
 Plan point-to-point routes with a new `--destination` flag. All location flags now accept both place names and coordinates.
