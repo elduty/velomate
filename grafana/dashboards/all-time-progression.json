@@ -74,10 +74,10 @@
       "title": "Total Distance",
       "type": "stat",
       "gridPos": {
-        "h": 3,
-        "w": 4,
         "x": 0,
-        "y": 0
+        "y": 0,
+        "w": 4,
+        "h": 3
       },
       "datasource": {
         "type": "postgres",
@@ -125,10 +125,10 @@
       "title": "Total Elevation",
       "type": "stat",
       "gridPos": {
-        "h": 3,
-        "w": 4,
         "x": 4,
-        "y": 0
+        "y": 0,
+        "w": 4,
+        "h": 3
       },
       "datasource": {
         "type": "postgres",
@@ -176,10 +176,10 @@
       "title": "Total Rides",
       "type": "stat",
       "gridPos": {
-        "h": 3,
-        "w": 4,
         "x": 8,
-        "y": 0
+        "y": 0,
+        "w": 4,
+        "h": 3
       },
       "datasource": {
         "type": "postgres",
@@ -226,10 +226,10 @@
       "title": "Total Hours",
       "type": "stat",
       "gridPos": {
-        "h": 3,
-        "w": 4,
         "x": 12,
-        "y": 0
+        "y": 0,
+        "w": 4,
+        "h": 3
       },
       "datasource": {
         "type": "postgres",
@@ -277,10 +277,10 @@
       "title": "Current FTP",
       "type": "stat",
       "gridPos": {
-        "h": 3,
-        "w": 4,
         "x": 16,
-        "y": 0
+        "y": 0,
+        "w": 4,
+        "h": 3
       },
       "datasource": {
         "type": "postgres",
@@ -329,10 +329,10 @@
       "title": "Peak CTL",
       "type": "stat",
       "gridPos": {
-        "h": 3,
-        "w": 4,
         "x": 20,
-        "y": 0
+        "y": 0,
+        "w": 4,
+        "h": 3
       },
       "datasource": {
         "type": "postgres",
@@ -381,10 +381,10 @@
       "title": "Performance Progression",
       "collapsed": false,
       "gridPos": {
-        "h": 1,
-        "w": 24,
         "x": 0,
-        "y": 3
+        "y": 3,
+        "w": 24,
+        "h": 1
       },
       "panels": []
     },
@@ -393,10 +393,10 @@
       "title": "Avg Speed",
       "type": "timeseries",
       "gridPos": {
-        "h": 8,
-        "w": 12,
         "x": 0,
-        "y": 4
+        "y": 4,
+        "w": 12,
+        "h": 8
       },
       "datasource": {
         "type": "postgres",
@@ -472,10 +472,10 @@
       "title": "Avg Power",
       "type": "timeseries",
       "gridPos": {
-        "h": 8,
-        "w": 12,
         "x": 12,
-        "y": 4
+        "y": 4,
+        "w": 12,
+        "h": 8
       },
       "datasource": {
         "type": "postgres",
@@ -551,10 +551,10 @@
       "title": "Avg HR",
       "type": "timeseries",
       "gridPos": {
-        "h": 8,
-        "w": 12,
         "x": 0,
-        "y": 12
+        "y": 12,
+        "w": 12,
+        "h": 8
       },
       "datasource": {
         "type": "postgres",
@@ -629,10 +629,10 @@
       "title": "Avg Distance",
       "type": "timeseries",
       "gridPos": {
-        "h": 8,
-        "w": 12,
         "x": 12,
-        "y": 12
+        "y": 12,
+        "w": 12,
+        "h": 8
       },
       "datasource": {
         "type": "postgres",
@@ -708,10 +708,10 @@
       "title": "Normalized Power",
       "type": "timeseries",
       "gridPos": {
-        "h": 8,
-        "w": 12,
         "x": 0,
-        "y": 20
+        "y": 20,
+        "w": 12,
+        "h": 8
       },
       "datasource": {
         "type": "postgres",
@@ -787,10 +787,10 @@
       "title": "Efficiency Factor",
       "type": "timeseries",
       "gridPos": {
-        "h": 8,
-        "w": 12,
         "x": 12,
-        "y": 20
+        "y": 20,
+        "w": 12,
+        "h": 8
       },
       "datasource": {
         "type": "postgres",
@@ -865,10 +865,10 @@
       "title": "Aerobic Decoupling Trend",
       "type": "timeseries",
       "gridPos": {
-        "h": 8,
-        "w": 12,
         "x": 0,
-        "y": 36
+        "y": 28,
+        "w": 24,
+        "h": 8
       },
       "datasource": {
         "type": "postgres",
@@ -940,14 +940,77 @@
       ]
     },
     {
+      "id": 1002,
+      "title": "NP / kg Trend",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 36,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT a.date::date AS time,\n  ROUND((a.np / a.ride_weight)::numeric, 2) AS \"NP/kg\",\n  ROUND(AVG(a.np / a.ride_weight) OVER (ORDER BY a.date ROWS BETWEEN 9 PRECEDING AND CURRENT ROW)::numeric, 2) AS \"10-ride avg\"\nFROM activities a\nWHERE a.np IS NOT NULL AND a.np > 0\n  AND a.ride_weight IS NOT NULL AND a.ride_weight > 0\n  AND $__timeFilter(a.date)\n  AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')\nORDER BY a.date;",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "decimals": 2,
+          "color": {
+            "fixedColor": "#e67e22",
+            "mode": "fixed"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 0,
+            "pointSize": 5
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "10-ride avg"
+            },
+            "properties": [
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "custom.pointSize",
+                "value": 0
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#e67e22",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "description": "Normalized power-to-weight ratio per ride over time.\n\nA rising trend means you're getting faster \u2014 whether from gaining\npower, losing weight, or both.\n\nRequires VELOMATE_WEIGHT to be configured."
+    },
+    {
       "id": 500,
       "title": "Weekly Power Range",
       "type": "candlestick",
       "gridPos": {
-        "h": 8,
-        "w": 24,
         "x": 0,
-        "y": 28
+        "y": 44,
+        "w": 24,
+        "h": 8
       },
       "datasource": {
         "type": "postgres",
@@ -977,10 +1040,10 @@
       "title": "FTP & Best Efforts",
       "collapsed": false,
       "gridPos": {
-        "h": 1,
-        "w": 24,
         "x": 0,
-        "y": 36
+        "y": 52,
+        "w": 24,
+        "h": 1
       },
       "panels": []
     },
@@ -989,10 +1052,10 @@
       "title": "FTP Progression",
       "type": "timeseries",
       "gridPos": {
-        "h": 8,
-        "w": 12,
         "x": 0,
-        "y": 37
+        "y": 53,
+        "w": 12,
+        "h": 8
       },
       "datasource": {
         "type": "postgres",
@@ -1028,10 +1091,10 @@
       "title": "Best Efforts",
       "type": "timeseries",
       "gridPos": {
-        "h": 8,
-        "w": 12,
         "x": 12,
-        "y": 37
+        "y": 53,
+        "w": 12,
+        "h": 8
       },
       "datasource": {
         "type": "postgres",
@@ -1120,10 +1183,10 @@
       "title": "Training Zones Over Time",
       "collapsed": false,
       "gridPos": {
-        "h": 1,
-        "w": 24,
         "x": 0,
-        "y": 45
+        "y": 61,
+        "w": 24,
+        "h": 1
       },
       "panels": []
     },
@@ -1132,10 +1195,10 @@
       "title": "Monthly Power Zone Distribution",
       "type": "timeseries",
       "gridPos": {
-        "h": 8,
-        "w": 12,
         "x": 0,
-        "y": 46
+        "y": 62,
+        "w": 12,
+        "h": 8
       },
       "datasource": {
         "type": "postgres",
@@ -1276,10 +1339,10 @@
       "title": "Monthly HR Zone Distribution",
       "type": "timeseries",
       "gridPos": {
-        "h": 8,
-        "w": 12,
         "x": 12,
-        "y": 46
+        "y": 62,
+        "w": 12,
+        "h": 8
       },
       "datasource": {
         "type": "postgres",
@@ -1390,10 +1453,10 @@
       "title": "Monthly Interval Distribution",
       "type": "barchart",
       "gridPos": {
-        "h": 8,
-        "w": 24,
         "x": 0,
-        "y": 97
+        "y": 70,
+        "w": 24,
+        "h": 8
       },
       "datasource": {
         "type": "postgres",
@@ -1516,10 +1579,10 @@
       "title": "Fitness History",
       "collapsed": false,
       "gridPos": {
-        "h": 1,
-        "w": 24,
         "x": 0,
-        "y": 54
+        "y": 78,
+        "w": 24,
+        "h": 1
       },
       "panels": []
     },
@@ -1528,10 +1591,10 @@
       "title": "CTL / ATL / TSB",
       "type": "timeseries",
       "gridPos": {
-        "h": 8,
-        "w": 24,
         "x": 0,
-        "y": 55
+        "y": 79,
+        "w": 24,
+        "h": 8
       },
       "datasource": {
         "type": "postgres",
@@ -1627,10 +1690,10 @@
       "title": "Cumulative Totals",
       "collapsed": false,
       "gridPos": {
-        "h": 1,
-        "w": 24,
         "x": 0,
-        "y": 63
+        "y": 87,
+        "w": 24,
+        "h": 1
       },
       "panels": []
     },
@@ -1639,10 +1702,10 @@
       "title": "Cumulative Distance",
       "type": "timeseries",
       "gridPos": {
-        "h": 8,
-        "w": 8,
         "x": 0,
-        "y": 64
+        "y": 88,
+        "w": 12,
+        "h": 8
       },
       "datasource": {
         "type": "postgres",
@@ -1676,10 +1739,10 @@
       "title": "Cumulative Elevation",
       "type": "timeseries",
       "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 8,
-        "y": 64
+        "x": 12,
+        "y": 88,
+        "w": 12,
+        "h": 8
       },
       "datasource": {
         "type": "postgres",
@@ -1713,10 +1776,10 @@
       "title": "Cumulative Duration",
       "type": "timeseries",
       "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 16,
-        "y": 64
+        "x": 0,
+        "y": 96,
+        "w": 12,
+        "h": 8
       },
       "datasource": {
         "type": "postgres",
@@ -1750,10 +1813,10 @@
       "title": "Cumulative Rides",
       "type": "timeseries",
       "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 0,
-        "y": 72
+        "x": 12,
+        "y": 96,
+        "w": 12,
+        "h": 8
       },
       "datasource": {
         "type": "postgres",
@@ -1786,10 +1849,10 @@
       "title": "Cumulative TSS",
       "type": "timeseries",
       "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 8,
-        "y": 72
+        "x": 0,
+        "y": 104,
+        "w": 12,
+        "h": 8
       },
       "datasource": {
         "type": "postgres",
@@ -1822,10 +1885,10 @@
       "title": "Cumulative Calories",
       "type": "timeseries",
       "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 16,
-        "y": 72
+        "x": 12,
+        "y": 104,
+        "w": 12,
+        "h": 8
       },
       "datasource": {
         "type": "postgres",
@@ -1859,10 +1922,10 @@
       "title": "Monthly Trends",
       "collapsed": false,
       "gridPos": {
-        "h": 1,
-        "w": 24,
         "x": 0,
-        "y": 80
+        "y": 112,
+        "w": 24,
+        "h": 1
       },
       "panels": []
     },
@@ -1871,10 +1934,10 @@
       "title": "Monthly Distance",
       "type": "timeseries",
       "gridPos": {
-        "h": 8,
-        "w": 12,
         "x": 0,
-        "y": 81
+        "y": 113,
+        "w": 12,
+        "h": 8
       },
       "datasource": {
         "type": "postgres",
@@ -1984,10 +2047,10 @@
       "title": "Monthly Elevation",
       "type": "timeseries",
       "gridPos": {
-        "h": 8,
-        "w": 12,
         "x": 12,
-        "y": 81
+        "y": 113,
+        "w": 12,
+        "h": 8
       },
       "datasource": {
         "type": "postgres",
@@ -2097,10 +2160,10 @@
       "title": "Monthly Rides",
       "type": "timeseries",
       "gridPos": {
-        "h": 8,
-        "w": 12,
         "x": 0,
-        "y": 89
+        "y": 121,
+        "w": 12,
+        "h": 8
       },
       "datasource": {
         "type": "postgres",
@@ -2209,10 +2272,10 @@
       "title": "Monthly Hours",
       "type": "timeseries",
       "gridPos": {
-        "h": 8,
-        "w": 12,
         "x": 12,
-        "y": 89
+        "y": 121,
+        "w": 12,
+        "h": 8
       },
       "datasource": {
         "type": "postgres",
@@ -2323,10 +2386,10 @@
       "title": "Year-over-Year",
       "collapsed": false,
       "gridPos": {
-        "h": 1,
-        "w": 24,
         "x": 0,
-        "y": 105
+        "y": 129,
+        "w": 24,
+        "h": 1
       },
       "panels": []
     },
@@ -2335,10 +2398,10 @@
       "title": "YoY Monthly Distance",
       "type": "timeseries",
       "gridPos": {
-        "h": 8,
-        "w": 12,
         "x": 0,
-        "y": 106
+        "y": 130,
+        "w": 12,
+        "h": 8
       },
       "datasource": {
         "type": "postgres",
@@ -2408,10 +2471,10 @@
       "title": "Annual Totals",
       "type": "table",
       "gridPos": {
-        "h": 8,
-        "w": 12,
         "x": 12,
-        "y": 106
+        "y": 130,
+        "w": 12,
+        "h": 8
       },
       "datasource": {
         "type": "postgres",
@@ -2439,10 +2502,10 @@
       "title": "Personal Records",
       "collapsed": false,
       "gridPos": {
-        "h": 1,
-        "w": 24,
         "x": 0,
-        "y": 114
+        "y": 138,
+        "w": 24,
+        "h": 1
       },
       "panels": []
     },
@@ -2451,10 +2514,10 @@
       "title": "All-Time Records",
       "type": "table",
       "gridPos": {
-        "h": 10,
-        "w": 24,
         "x": 0,
-        "y": 115
+        "y": 139,
+        "w": 24,
+        "h": 10
       },
       "datasource": {
         "type": "postgres",
@@ -2514,10 +2577,10 @@
       "title": "Ride Map",
       "collapsed": false,
       "gridPos": {
-        "h": 1,
-        "w": 24,
         "x": 0,
-        "y": 125
+        "y": 149,
+        "w": 24,
+        "h": 1
       },
       "panels": []
     },
@@ -2526,10 +2589,10 @@
       "title": "All-Time Rides Map",
       "type": "geomap",
       "gridPos": {
-        "h": 14,
-        "w": 24,
         "x": 0,
-        "y": 126
+        "y": 150,
+        "w": 24,
+        "h": 14
       },
       "datasource": {
         "type": "postgres",
@@ -2577,69 +2640,6 @@
         "overrides": []
       },
       "description": "Every outdoor ride ever recorded.\nGPS points sampled every 10 seconds.\nDenser clusters = frequently ridden routes."
-    },
-    {
-      "id": 1002,
-      "title": "NP / kg Trend",
-      "type": "timeseries",
-      "gridPos": {
-        "x": 12,
-        "y": 36,
-        "w": 12,
-        "h": 8
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "velomate"
-      },
-      "targets": [
-        {
-          "rawSql": "SELECT a.date::date AS time,\n  ROUND((a.np / a.ride_weight)::numeric, 2) AS \"NP/kg\",\n  ROUND(AVG(a.np / a.ride_weight) OVER (ORDER BY a.date ROWS BETWEEN 9 PRECEDING AND CURRENT ROW)::numeric, 2) AS \"10-ride avg\"\nFROM activities a\nWHERE a.np IS NOT NULL AND a.np > 0\n  AND a.ride_weight IS NOT NULL AND a.ride_weight > 0\n  AND $__timeFilter(a.date)\n  AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')\nORDER BY a.date;",
-          "format": "time_series",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "noValue": "No data",
-          "decimals": 2,
-          "color": {
-            "fixedColor": "#e67e22",
-            "mode": "fixed"
-          },
-          "custom": {
-            "drawStyle": "line",
-            "lineWidth": 0,
-            "pointSize": 5
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "10-ride avg"
-            },
-            "properties": [
-              {
-                "id": "custom.lineWidth",
-                "value": 2
-              },
-              {
-                "id": "custom.pointSize",
-                "value": 0
-              },
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#e67e22",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "description": "Normalized power-to-weight ratio per ride over time.\n\nA rising trend means you're getting faster \u2014 whether from gaining\npower, losing weight, or both.\n\nRequires VELOMATE_WEIGHT to be configured."
     }
   ]
 }
