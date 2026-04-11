@@ -174,7 +174,11 @@ def format_weather(day: dict) -> str:
     """Format weather for a single day."""
     parts = [day["weather"]]
     parts.append(f"{day['temp_min']:.0f}-{day['temp_max']:.0f}°C")
-    parts.append(f"wind {day['wind']:.0f} km/h")
+    wind_str = f"wind {day['wind']:.0f} km/h"
+    gusts = day.get("gusts", 0)
+    if gusts and gusts > day["wind"] + 5:
+        wind_str += f" (gusts {gusts:.0f})"
+    parts.append(wind_str)
     if day.get("uv_max", 0) >= 6:
         parts.append(f"UV {day['uv_max']:.0f}")
     if day["precip"] > 0:
@@ -519,8 +523,10 @@ def plan(duration_str: str = None, distance_str: str = None,
 
     if weather_day:
         lines.append(f"  🌤 {format_weather(weather_day)}")
-        if weather_day["wind"] > 30:
-            lines.append(f"  ⚠️ High wind — consider a sheltered route")
+        if weather_day["wind"] > 25:
+            lines.append(f"  ⚠️ High wind ({weather_day['wind']:.0f} km/h) — consider a sheltered route")
+        if weather_day.get("gusts", 0) > 40:
+            lines.append(f"  ⚠️ Strong gusts ({weather_day['gusts']:.0f} km/h) — watch for sudden pushes, especially on crosswinds and descents")
 
         # Wind direction analysis against route
         if best_hours and result.get("coords"):

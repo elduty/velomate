@@ -116,7 +116,7 @@ def main():
     plan_parser.add_argument("--loop", "-l", action="store_true", default=None, help="Round-trip route")
     plan_parser.add_argument("--no-loop", action="store_false", dest="loop", help="One-way route")
     plan_parser.add_argument("--waypoints", "-w", default=None, help="Semicolon-separated locations to route through")
-    plan_parser.add_argument("--date", default="tomorrow", help="When to ride (default: tomorrow)")
+    plan_parser.add_argument("--date", default="today", help="When to ride (default: today)")
     plan_parser.add_argument("--time", "-t", default=None, help="Start time (e.g. 14:00, 2pm, 9am)")
     plan_parser.add_argument("--start", default=None, help="Start location as 'lat,lng' (default: from config)")
     plan_parser.add_argument("--preference", "-p", default="variety", choices=["variety", "comfort"], help="Route preference: variety (new roads) or comfort (familiar roads)")

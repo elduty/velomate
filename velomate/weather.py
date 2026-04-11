@@ -7,8 +7,8 @@ import requests
 WEATHER_URL = (
     "https://api.open-meteo.com/v1/forecast"
     "?latitude={lat}&longitude={lon}"
-    "&daily=precipitation_sum,windspeed_10m_max,temperature_2m_max,temperature_2m_min,weathercode,uv_index_max"
-    "&hourly=temperature_2m,windspeed_10m,winddirection_10m,precipitation,uv_index"
+    "&daily=precipitation_sum,windspeed_10m_max,windgusts_10m_max,temperature_2m_max,temperature_2m_min,weathercode,uv_index_max"
+    "&hourly=temperature_2m,windspeed_10m,windgusts_10m,winddirection_10m,precipitation,uv_index"
     "&timezone=auto&forecast_days=7"
 )
 
@@ -156,6 +156,7 @@ def fetch_forecast(lat: float, lon: float) -> List[Dict]:
                 "time": time_str,
                 "temp": hourly_data.get("temperature_2m", [0])[i] if i < len(hourly_data.get("temperature_2m", [])) else 0,
                 "wind": hourly_data.get("windspeed_10m", [0])[i] if i < len(hourly_data.get("windspeed_10m", [])) else 0,
+                "gusts": hourly_data.get("windgusts_10m", [0])[i] if i < len(hourly_data.get("windgusts_10m", [])) else 0,
                 "wind_dir": hourly_data.get("winddirection_10m", [0])[i] if i < len(hourly_data.get("winddirection_10m", [])) else 0,
                 "precip": hourly_data.get("precipitation", [0])[i] if i < len(hourly_data.get("precipitation", [])) else 0,
                 "uv": hourly_data.get("uv_index", [0])[i] if i < len(hourly_data.get("uv_index", [])) else 0,
@@ -167,6 +168,7 @@ def fetch_forecast(lat: float, lon: float) -> List[Dict]:
         code = data["weathercode"][i]
         precip = data["precipitation_sum"][i]
         wind = data["windspeed_10m_max"][i]
+        gusts = data.get("windgusts_10m_max", [0] * 7)[i] if i < len(data.get("windgusts_10m_max", [])) else 0
         temp_max = data["temperature_2m_max"][i]
         temp_min = data["temperature_2m_min"][i]
         uv_max = data.get("uv_index_max", [0] * 7)[i] if i < len(data.get("uv_index_max", [])) else 0
@@ -178,6 +180,7 @@ def fetch_forecast(lat: float, lon: float) -> List[Dict]:
             "temp_min": temp_min,
             "precip": precip,
             "wind": wind,
+            "gusts": gusts,
             "uv_max": uv_max,
             "code": code,
             "weather": WMO_CODES.get(code, "Unknown"),
