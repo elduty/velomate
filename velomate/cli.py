@@ -99,6 +99,12 @@ def cmd_plan(args):
     print(result)
 
 
+def cmd_auth(args):
+    """Authorize VeloMate with Strava via OAuth."""
+    from velomate.auth import authorize
+    authorize()
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="velomate",
@@ -123,10 +129,15 @@ def main():
     plan_parser.add_argument("--safety", default=0.5, type=float, help="Safety level 0.0-1.0: 0=fastest, 0.5=balanced, 1.0=safest (default: 0.5)")
     plan_parser.add_argument("--output", "-o", default=None, metavar="DIR", help="Save preview HTML to this directory instead of opening in browser")
 
+    # Auth subcommand
+    subparsers.add_parser("auth", help="Authorize VeloMate with your Strava account")
+
     args = parser.parse_args()
 
     if args.command == "plan":
         cmd_plan(args)
+    elif args.command == "auth":
+        cmd_auth(args)
     elif args.command is None:
         cmd_recommend(args)
     else:
