@@ -1,5 +1,60 @@
 # Changelog
 
+## v1.4.0 — 2026-04-13
+
+Performance modeling, climb detection, and quality-of-life improvements.
+
+### New Features
+
+- **Critical Power / W' modeling** — Monod-Scherrer 2-parameter fit from mean maximal power at 5 standard durations (1-20 min). Quality gate (R² >= 0.9, >= 4 durations) with graceful fallback to rolling 20-min x 0.95. Replaces the old FTP estimate as the algorithmic diagnostic. CP/W' Progression chart on All Time Progression
+- **W'bal time series** — per-second anaerobic battery gauge on Activity Details. Skiba differential model with GoldenCheetah tau. Shows when you drained, how close to empty, where you recovered. Min W'bal and Time below 25% stat cards
+- **Durability Profile** — 1st half vs 2nd half power comparison on Activity Details. Ratio-based bars showing how much power you retained at each duration. Durability Index stat card (threshold-coloured green/yellow/red)
+- **Training Monotony & Strain** — Foster overreaching warning on Overview. Monotony = mean/stdev of daily TSS over 7 days, Strain = weekly TSS x Monotony. Includes rest days via generate_series
+- **Climb detection** — RDP (Ramer-Douglas-Peucker) algorithm for elevation profile simplification + Strava segment enrichment. Named Strava segments where available, RDP detection fills gaps. Strava scoring for categorisation (length x gradient). Detected Climbs table on Activity Details
+- **Strava OAuth** — `velomate auth` CLI command. Manual paste flow, works from any machine without port forwarding
+
+### Fixes
+
+- numpy added to container requirements (was missing, broke CP estimation)
+- Power-Duration Curve panel type fixed (xychart → barchart)
+- W'bal panel type fixed (timeseries → trend, matching existing telemetry)
+- Overview Monotony/Strain layout (alongside CTL chart)
+- All Time Progression layout cleanup (no gaps, full-width utilisation)
+- METRICS_VERSION reset now preserves Strava segment data
+- Climb detection: multiple iterations to handle rolling terrain (dynamic thresholds, boundary trimming, RDP rewrite)
+
+### Migration from v1.3.0
+
+1. **Pull and rebuild:**
+   ```bash
+   git pull && docker compose build && docker compose up -d
+   ```
+
+2. **New env var (optional):**
+   ```bash
+   VELOMATE_WEIGHT=75   # enables W/kg (if not set in v1.3.0)
+   ```
+
+3. **Automatic on first restart:**
+   - CP/W' estimate computed from existing power stream data
+   - W'bal computed for all rides with power data
+   - Climbs detected from elevation profiles + Strava segments backfilled
+   - New tables (`cp_estimates`, `ride_climbs`) and columns (`w_bal`) created automatically
+   - No METRICS_VERSION bump — existing TSS/NP/IF unchanged
+
+4. **Strava OAuth (new users):**
+   ```bash
+   python3 -m velomate.cli auth
+   ```
+   Replaces the manual curl flow for getting a refresh token.
+
+5. **Breaking changes:** None.
+
+### Stats
+
+- 483 tests (up from 443)
+- 48 commits since v1.3.0
+
 ## v1.3.0 — 2026-04-10
 
 Major release: ride analytics depth, dashboard overhaul, new metrics.
