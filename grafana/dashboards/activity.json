@@ -2357,20 +2357,24 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT d.label AS \"Duration\", d.best_power AS \"This Ride (W)\" FROM (\nSELECT 1 AS ord, '5s' AS label, ROUND(MAX(avg_p)::numeric, 0) AS best_power FROM (SELECT AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 4 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 2, '10s', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 9 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 3, '30s', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 29 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 4, '1min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 59 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 5, '2min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 119 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 6, '5min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 299 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 7, '10min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 599 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 8, '20min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 1199 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 9, '60min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 3599 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL) s WHERE avg_p IS NOT NULL\n) d WHERE d.best_power IS NOT NULL ORDER BY d.ord;",
+          "rawSql": "WITH stream AS (\n  SELECT time_offset, COALESCE(power, 0) AS power,\n    MAX(time_offset) OVER () AS max_offset\n  FROM activity_streams\n  WHERE activity_id = ${activity_id}\n),\nfull_ride AS (\n  SELECT ROW_NUMBER() OVER (ORDER BY time_offset) AS rn,\n    AVG(power) OVER w5 AS p5, AVG(power) OVER w10 AS p10, AVG(power) OVER w30 AS p30,\n    AVG(power) OVER w60 AS p60, AVG(power) OVER w120 AS p120, AVG(power) OVER w300 AS p300,\n    AVG(power) OVER w600 AS p600, AVG(power) OVER w1200 AS p1200, AVG(power) OVER w3600 AS p3600\n  FROM stream\n  WINDOW w5    AS (ORDER BY time_offset ROWS BETWEEN 4    PRECEDING AND CURRENT ROW),\n         w10   AS (ORDER BY time_offset ROWS BETWEEN 9    PRECEDING AND CURRENT ROW),\n         w30   AS (ORDER BY time_offset ROWS BETWEEN 29   PRECEDING AND CURRENT ROW),\n         w60   AS (ORDER BY time_offset ROWS BETWEEN 59   PRECEDING AND CURRENT ROW),\n         w120  AS (ORDER BY time_offset ROWS BETWEEN 119  PRECEDING AND CURRENT ROW),\n         w300  AS (ORDER BY time_offset ROWS BETWEEN 299  PRECEDING AND CURRENT ROW),\n         w600  AS (ORDER BY time_offset ROWS BETWEEN 599  PRECEDING AND CURRENT ROW),\n         w1200 AS (ORDER BY time_offset ROWS BETWEEN 1199 PRECEDING AND CURRENT ROW),\n         w3600 AS (ORDER BY time_offset ROWS BETWEEN 3599 PRECEDING AND CURRENT ROW)\n),\nfirst_half AS (\n  SELECT ROW_NUMBER() OVER (ORDER BY time_offset) AS rn,\n    AVG(power) OVER w60 AS p60, AVG(power) OVER w120 AS p120, AVG(power) OVER w300 AS p300,\n    AVG(power) OVER w600 AS p600, AVG(power) OVER w1200 AS p1200\n  FROM stream WHERE time_offset <= max_offset / 2\n  WINDOW w60   AS (ORDER BY time_offset ROWS BETWEEN 59   PRECEDING AND CURRENT ROW),\n         w120  AS (ORDER BY time_offset ROWS BETWEEN 119  PRECEDING AND CURRENT ROW),\n         w300  AS (ORDER BY time_offset ROWS BETWEEN 299  PRECEDING AND CURRENT ROW),\n         w600  AS (ORDER BY time_offset ROWS BETWEEN 599  PRECEDING AND CURRENT ROW),\n         w1200 AS (ORDER BY time_offset ROWS BETWEEN 1199 PRECEDING AND CURRENT ROW)\n),\nsecond_half AS (\n  SELECT ROW_NUMBER() OVER (ORDER BY time_offset) AS rn,\n    AVG(power) OVER w60 AS p60, AVG(power) OVER w120 AS p120, AVG(power) OVER w300 AS p300,\n    AVG(power) OVER w600 AS p600, AVG(power) OVER w1200 AS p1200\n  FROM stream WHERE time_offset > max_offset / 2\n  WINDOW w60   AS (ORDER BY time_offset ROWS BETWEEN 59   PRECEDING AND CURRENT ROW),\n         w120  AS (ORDER BY time_offset ROWS BETWEEN 119  PRECEDING AND CURRENT ROW),\n         w300  AS (ORDER BY time_offset ROWS BETWEEN 299  PRECEDING AND CURRENT ROW),\n         w600  AS (ORDER BY time_offset ROWS BETWEEN 599  PRECEDING AND CURRENT ROW),\n         w1200 AS (ORDER BY time_offset ROWS BETWEEN 1199 PRECEDING AND CURRENT ROW)\n)\nSELECT '5s' AS \"Duration\", ROUND(MAX(p5)::numeric) AS \"Full Ride (W)\", NULL AS \"1st Half (W)\", NULL AS \"2nd Half (W)\" FROM full_ride WHERE rn >= 5\nUNION ALL SELECT '10s', ROUND(MAX(p10)::numeric), NULL, NULL FROM full_ride WHERE rn >= 10\nUNION ALL SELECT '30s', ROUND(MAX(p30)::numeric), NULL, NULL FROM full_ride WHERE rn >= 30\nUNION ALL SELECT '1min', ROUND(MAX(p60)::numeric),\n  ROUND((SELECT MAX(p60) FROM first_half WHERE rn >= 60)::numeric),\n  ROUND((SELECT MAX(p60) FROM second_half WHERE rn >= 60)::numeric)\n  FROM full_ride WHERE rn >= 60\nUNION ALL SELECT '2min', ROUND(MAX(p120)::numeric),\n  ROUND((SELECT MAX(p120) FROM first_half WHERE rn >= 120)::numeric),\n  ROUND((SELECT MAX(p120) FROM second_half WHERE rn >= 120)::numeric)\n  FROM full_ride WHERE rn >= 120\nUNION ALL SELECT '5min', ROUND(MAX(p300)::numeric),\n  ROUND((SELECT MAX(p300) FROM first_half WHERE rn >= 300)::numeric),\n  ROUND((SELECT MAX(p300) FROM second_half WHERE rn >= 300)::numeric)\n  FROM full_ride WHERE rn >= 300\nUNION ALL SELECT '10min', ROUND(MAX(p600)::numeric),\n  ROUND((SELECT MAX(p600) FROM first_half WHERE rn >= 600)::numeric),\n  ROUND((SELECT MAX(p600) FROM second_half WHERE rn >= 600)::numeric)\n  FROM full_ride WHERE rn >= 600\nUNION ALL SELECT '20min', ROUND(MAX(p1200)::numeric),\n  ROUND((SELECT MAX(p1200) FROM first_half WHERE rn >= 1200)::numeric),\n  ROUND((SELECT MAX(p1200) FROM second_half WHERE rn >= 1200)::numeric)\n  FROM full_ride WHERE rn >= 1200\nUNION ALL SELECT '60min', ROUND(MAX(p3600)::numeric), NULL, NULL FROM full_ride WHERE rn >= 3600;",
           "format": "table",
           "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "noValue": "No power data"
+          "noValue": "No power data",
+          "unit": "watt",
+          "custom": {
+            "fillOpacity": 80
+          }
         },
         "overrides": [
           {
             "matcher": {
               "id": "byName",
-              "options": "This Ride (W)"
+              "options": "Full Ride (W)"
             },
             "properties": [
               {
@@ -2379,54 +2383,9 @@
                   "fixedColor": "#8b5cf6",
                   "mode": "fixed"
                 }
-              },
-              {
-                "id": "unit",
-                "value": "watt"
               }
             ]
-          }
-        ]
-      },
-      "options": {
-        "orientation": "vertical",
-        "xField": "Duration",
-        "showValue": "always",
-        "barWidth": 0.5
-      },
-      "description": "Best sustained average power at each duration.\n\nShows the highest average power you held\n\nfor each time window during this ride.\n\nSteep drop = sprinter profile.\n\nFlat curve = endurance profile."
-    },
-    {
-      "id": 1300,
-      "type": "barchart",
-      "title": "Durability Profile (1st Half vs 2nd Half)",
-      "description": "Compares your best efforts from the first half of the ride\nvs the second half at standard durations.\n\nIf second-half bars are significantly shorter, you're fading.\nClose bars = good pacing / durability.\n\nBased on per-second power stream data for this ride.",
-      "gridPos": {
-        "x": 0,
-        "y": 73,
-        "w": 24,
-        "h": 8
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "velomate"
-      },
-      "targets": [
-        {
-          "rawSql": "WITH stream AS (\n  SELECT time_offset, COALESCE(power, 0) AS power,\n    MAX(time_offset) OVER () AS max_offset\n  FROM activity_streams\n  WHERE activity_id = ${activity_id}\n),\nfirst_half AS (\n  SELECT time_offset,\n    ROW_NUMBER() OVER (ORDER BY time_offset) AS rn,\n    AVG(power) OVER w60 AS p60, AVG(power) OVER w120 AS p120,\n    AVG(power) OVER w300 AS p300, AVG(power) OVER w600 AS p600,\n    AVG(power) OVER w1200 AS p1200\n  FROM stream WHERE time_offset <= max_offset / 2\n  WINDOW w60   AS (ORDER BY time_offset ROWS BETWEEN 59   PRECEDING AND CURRENT ROW),\n         w120  AS (ORDER BY time_offset ROWS BETWEEN 119  PRECEDING AND CURRENT ROW),\n         w300  AS (ORDER BY time_offset ROWS BETWEEN 299  PRECEDING AND CURRENT ROW),\n         w600  AS (ORDER BY time_offset ROWS BETWEEN 599  PRECEDING AND CURRENT ROW),\n         w1200 AS (ORDER BY time_offset ROWS BETWEEN 1199 PRECEDING AND CURRENT ROW)\n),\nsecond_half AS (\n  SELECT time_offset,\n    ROW_NUMBER() OVER (ORDER BY time_offset) AS rn,\n    AVG(power) OVER w60 AS p60, AVG(power) OVER w120 AS p120,\n    AVG(power) OVER w300 AS p300, AVG(power) OVER w600 AS p600,\n    AVG(power) OVER w1200 AS p1200\n  FROM stream WHERE time_offset > max_offset / 2\n  WINDOW w60   AS (ORDER BY time_offset ROWS BETWEEN 59   PRECEDING AND CURRENT ROW),\n         w120  AS (ORDER BY time_offset ROWS BETWEEN 119  PRECEDING AND CURRENT ROW),\n         w300  AS (ORDER BY time_offset ROWS BETWEEN 299  PRECEDING AND CURRENT ROW),\n         w600  AS (ORDER BY time_offset ROWS BETWEEN 599  PRECEDING AND CURRENT ROW),\n         w1200 AS (ORDER BY time_offset ROWS BETWEEN 1199 PRECEDING AND CURRENT ROW)\n)\nSELECT '1 min' AS \"Duration\",\n  ROUND(MAX(f.p60)::numeric) AS \"1st Half (W)\",\n  ROUND(MAX(s.p60)::numeric) AS \"2nd Half (W)\"\nFROM first_half f, second_half s WHERE f.rn >= 60 AND s.rn >= 60\nUNION ALL\nSELECT '2 min',\n  ROUND((SELECT MAX(p120) FROM first_half WHERE rn >= 120)::numeric),\n  ROUND((SELECT MAX(p120) FROM second_half WHERE rn >= 120)::numeric)\nUNION ALL\nSELECT '5 min',\n  ROUND((SELECT MAX(p300) FROM first_half WHERE rn >= 300)::numeric),\n  ROUND((SELECT MAX(p300) FROM second_half WHERE rn >= 300)::numeric)\nUNION ALL\nSELECT '10 min',\n  ROUND((SELECT MAX(p600) FROM first_half WHERE rn >= 600)::numeric),\n  ROUND((SELECT MAX(p600) FROM second_half WHERE rn >= 600)::numeric)\nUNION ALL\nSELECT '20 min',\n  ROUND((SELECT MAX(p1200) FROM first_half WHERE rn >= 1200)::numeric),\n  ROUND((SELECT MAX(p1200) FROM second_half WHERE rn >= 1200)::numeric);",
-          "format": "table",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "watt",
-          "noValue": "No data",
-          "custom": {
-            "fillOpacity": 80
-          }
-        },
-        "overrides": [
+          },
           {
             "matcher": {
               "id": "byName",
@@ -2436,8 +2395,8 @@
               {
                 "id": "color",
                 "value": {
-                  "mode": "fixed",
-                  "fixedColor": "#3498db"
+                  "fixedColor": "#3498db",
+                  "mode": "fixed"
                 }
               }
             ]
@@ -2451,8 +2410,8 @@
               {
                 "id": "color",
                 "value": {
-                  "mode": "fixed",
-                  "fixedColor": "#e67e22"
+                  "fixedColor": "#e67e22",
+                  "mode": "fixed"
                 }
               }
             ]
@@ -2461,11 +2420,12 @@
       },
       "options": {
         "orientation": "vertical",
-        "showValue": "always",
+        "showValue": "auto",
         "stacking": "none",
         "barWidth": 0.6,
         "groupWidth": 0.8
-      }
+      },
+      "description": "Best mean power at each duration for this ride.\n\nPurple = full ride. Blue = 1st half. Orange = 2nd half.\n\n1st/2nd half shown at 1min+ durations where durability matters.\nClose blue/orange bars = good pacing. Orange much shorter = you faded."
     },
     {
       "id": 1301,
@@ -2474,7 +2434,7 @@
       "description": "2nd-half best 5-min power / 1st-half best 5-min power.\n\n1.0 = no fade. 0.9 = 10% power drop in the back half.\n\n\ud83d\udfe2 >= 0.95 \u2014 good durability\n\n\ud83d\udfe1 0.90-0.95 \u2014 moderate fade\n\n\ud83d\udd34 < 0.90 \u2014 significant durability deficit",
       "gridPos": {
         "x": 0,
-        "y": 81,
+        "y": 73,
         "w": 12,
         "h": 3
       },
@@ -2535,7 +2495,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 84
+        "y": 76
       },
       "panels": []
     },
@@ -2547,7 +2507,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 85
+        "y": 77
       },
       "datasource": {
         "type": "postgres",
@@ -2580,7 +2540,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 93
+        "y": 85
       },
       "panels": []
     },
@@ -2592,7 +2552,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 94
+        "y": 86
       },
       "datasource": {
         "type": "postgres",
@@ -2719,7 +2679,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 104
+        "y": 96
       },
       "datasource": {
         "type": "postgres",
@@ -2872,7 +2832,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 114
+        "y": 106
       },
       "datasource": {
         "type": "postgres",
@@ -2989,7 +2949,7 @@
       "type": "trend",
       "gridPos": {
         "x": 0,
-        "y": 124,
+        "y": 116,
         "w": 24,
         "h": 10
       },
@@ -3073,7 +3033,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 134
+        "y": 126
       },
       "panels": []
     },
@@ -3085,7 +3045,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 135
+        "y": 127
       },
       "datasource": {
         "type": "postgres",
