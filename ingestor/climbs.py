@@ -45,7 +45,7 @@ def detect_climbs(
     distances_m: list[float],
     min_gain: float = 30.0,
     min_gradient: float = 3.0,
-    merge_tolerance: float = 10.0,
+    merge_tolerance: float = 30.0,
 ) -> list[dict]:
     """Detect climbs from a smoothed elevation profile.
 

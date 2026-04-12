@@ -61,11 +61,11 @@ class TestDetectClimbs:
         assert climbs[0]["gain_m"] >= 70
 
     def test_large_descent_splits(self):
-        """Two uphills separated by 15m descent should be two separate climbs."""
+        """Two uphills separated by 40m descent should be two separate climbs."""
         alt = (
-            [100.0 + i * 0.1 for i in range(500)]       # climb 50m at 10%
-            + [150.0 - i * 0.1 for i in range(200)]      # descend 20m
-            + [130.0 + i * 0.1 for i in range(500)]       # climb 50m at 10%
+            [100.0 + i * 0.1 for i in range(600)]       # climb 60m at 10%
+            + [160.0 - i * 0.1 for i in range(400)]      # descend 40m (> 30m tolerance)
+            + [120.0 + i * 0.1 for i in range(600)]       # climb 60m at 10%
         )
         dist = [float(i) for i in range(len(alt))]
         climbs = detect_climbs(alt, dist)
