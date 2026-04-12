@@ -11,7 +11,7 @@ Classification (standard cycling categories):
     Cat 1: 1000-1500m gain
     HC:    > 1500m gain
 
-Minimum 30m gain and 3% average gradient to qualify.
+Minimum 30m gain and 1.5% average gradient to qualify.
 """
 
 from __future__ import annotations
@@ -44,7 +44,7 @@ def detect_climbs(
     altitudes: list[float],
     distances_m: list[float],
     min_gain: float = 30.0,
-    min_gradient: float = 3.0,
+    min_gradient: float = 1.5,
     merge_tolerance: float = 30.0,
 ) -> list[dict]:
     """Detect climbs from a smoothed elevation profile.

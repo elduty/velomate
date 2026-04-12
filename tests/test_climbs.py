@@ -72,11 +72,12 @@ class TestDetectClimbs:
         assert len(climbs) == 2
 
     def test_gradual_incline_filtered_by_gradient(self):
-        """1% gradient over a long distance — not a climb."""
+        """1% gradient over a long distance — not a climb even at default 1.5%."""
         n = 10000
         alt = [100.0 + i * 0.01 for i in range(n)]  # 1% grade
         dist = [float(i) for i in range(n)]
-        climbs = detect_climbs(alt, dist, min_gradient=3.0)
+        # Default min_gradient is 1.5%, so 1% should be rejected
+        climbs = detect_climbs(alt, dist)
         assert len(climbs) == 0
 
     def test_category_classification(self):
