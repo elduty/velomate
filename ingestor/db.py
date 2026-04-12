@@ -141,8 +141,11 @@ def create_schema(conn):
                 start_alt       INTEGER,
                 peak_alt        INTEGER,
                 duration_s      INTEGER,
-                category        TEXT
+                category        TEXT,
+                score           INTEGER
             );
+
+            ALTER TABLE ride_climbs ADD COLUMN IF NOT EXISTS score INTEGER;
 
             CREATE INDEX IF NOT EXISTS idx_ride_climbs_activity_id ON ride_climbs(activity_id);
 

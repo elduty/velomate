@@ -551,12 +551,12 @@ def detect_climbs_for_rides(conn) -> int:
                         cur.execute("""
                             INSERT INTO ride_climbs
                                 (activity_id, start_offset, end_offset, gain_m, length_m,
-                                 avg_grade, start_alt, peak_alt, duration_s, category)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                 avg_grade, start_alt, peak_alt, duration_s, category, score)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         """, (
                             act_id, time_offsets[c["start_idx"]], time_offsets[c["end_idx"]], c["gain_m"],
                             c["length_m"], c["avg_grade"], c["start_alt"],
-                            c["peak_alt"], c["duration_s"], c["category"],
+                            c["peak_alt"], c["duration_s"], c["category"], c["score"],
                         ))
             else:
                 # No climbs found — insert sentinel
