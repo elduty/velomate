@@ -10,7 +10,7 @@ Prioritised backlog. Full rationale for all items lives in `docs/features-analys
 
 ### High — Cluster B: Performance Modeling
 - [x] CP/W' foundation (#108) — Monod-Scherrer 2-parameter fit via numpy.polyfit (no scipy). Quality gate R² >= 0.9 AND >= 4/5 durations. Graceful fallback 90d → 180d → rolling 20-min × 0.95. New `ingestor/critical_power.py` pure-function module, `cp_estimates` table, CP/W' Progression + Power-Duration Curve panels on All Time Progression. Replaces rolling 20-min as the source of `sync_state.estimated_ftp` when fit quality is good. No TSS impact (configured FTP still wins).
-- [ ] W'bal time series per ride — Skiba differential on stream + new Activity Details panel (gap #4, depends on CP/W')
+- [x] W'bal time series per ride (#111) — Skiba differential model with GoldenCheetah tau. Per-second w_bal column on activity_streams. Uses latest CP/W' from cp_estimates, defaults W' to 20kJ on fallback. W'bal timeseries + Min W'bal + Time below 25% panels on Activity Details. Per-ride error isolation. COALESCE(power, 0) for coasting.
 - [ ] Fresh vs fatigued PD curves — Grafana SQL segmenting by CTL bucket + Durability Index stat (gap #5)
 
 ### High — Cluster C: Recovery & Wellness
