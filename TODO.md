@@ -9,7 +9,7 @@ Prioritised backlog. Full rationale for all items lives in `docs/features-analys
 ## 📋 Backlog
 
 ### High — Cluster B: Performance Modeling
-- [ ] CP/W' model with Monod-Scherrer + Morton fits — new `ingestor/critical_power.py` + `cp_estimates` table + CP/W' panel on All Time Progression (gap #3)
+- [x] CP/W' foundation (#108) — Monod-Scherrer 2-parameter fit via numpy.polyfit (no scipy). Quality gate R² >= 0.9 AND >= 4/5 durations. Graceful fallback 90d → 180d → rolling 20-min × 0.95. New `ingestor/critical_power.py` pure-function module, `cp_estimates` table, CP/W' Progression + Power-Duration Curve panels on All Time Progression. Replaces rolling 20-min as the source of `sync_state.estimated_ftp` when fit quality is good. No TSS impact (configured FTP still wins).
 - [ ] W'bal time series per ride — Skiba differential on stream + new Activity Details panel (gap #4, depends on CP/W')
 - [ ] Fresh vs fatigued PD curves — Grafana SQL segmenting by CTL bucket + Durability Index stat (gap #5)
 
