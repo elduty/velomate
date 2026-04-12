@@ -1742,7 +1742,7 @@
       "gridPos": {
         "x": 0,
         "y": 24,
-        "w": 24,
+        "w": 18,
         "h": 8
       },
       "datasource": {
@@ -1839,10 +1839,10 @@
       "title": "Monotony",
       "description": "Foster Training Monotony over the last 7 days.\n\nMonotony = mean(daily TSS) / stdev(daily TSS).\n\nMeasures how repetitive your training load is.\nHigh monotony + high strain = overreaching risk.\n\n\ud83d\udfe2 < 1.5 \u2014 varied training\n\n\ud83d\udfe1 1.5\u20132.0 \u2014 moderately repetitive\n\n\ud83d\udd34 > 2.0 \u2014 monotonous, watch for overreaching",
       "gridPos": {
-        "x": 0,
-        "y": 32,
+        "x": 18,
+        "y": 24,
         "w": 6,
-        "h": 3
+        "h": 4
       },
       "datasource": {
         "type": "postgres",
@@ -1898,10 +1898,10 @@
       "title": "Strain",
       "description": "Foster Training Strain over the last 7 days.\n\nStrain = weekly TSS \u00d7 Monotony.\n\nCombines training volume with repetitiveness.\nHigh strain without recovery = overreaching.\n\n\ud83d\udfe2 < 200 \u2014 manageable\n\n\ud83d\udfe1 200\u2013400 \u2014 moderate, ensure recovery\n\n\ud83d\udd34 > 400 \u2014 high strain, recovery needed",
       "gridPos": {
-        "x": 6,
-        "y": 32,
+        "x": 18,
+        "y": 28,
         "w": 6,
-        "h": 3
+        "h": 4
       },
       "datasource": {
         "type": "postgres",
@@ -1958,7 +1958,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 35,
+        "y": 32,
         "w": 24,
         "h": 1
       },
@@ -1970,7 +1970,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 36,
+        "y": 33,
         "w": 24,
         "h": 8
       },
@@ -2070,7 +2070,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 44,
+        "y": 41,
         "w": 24,
         "h": 8
       },
@@ -2166,7 +2166,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 52,
+        "y": 49,
         "w": 24,
         "h": 8
       },
@@ -2258,7 +2258,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 60,
+        "y": 57,
         "w": 24,
         "h": 8
       },
@@ -2350,7 +2350,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 68,
+        "y": 65,
         "w": 24,
         "h": 8
       },
@@ -2442,7 +2442,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 76,
+        "y": 73,
         "w": 24,
         "h": 8
       },
@@ -2538,7 +2538,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 84,
+        "y": 81,
         "w": 24,
         "h": 1
       },
@@ -2550,7 +2550,7 @@
       "type": "barchart",
       "gridPos": {
         "x": 0,
-        "y": 85,
+        "y": 82,
         "w": 24,
         "h": 8
       },
@@ -2593,7 +2593,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 93,
+        "y": 90,
         "w": 24,
         "h": 1
       },
@@ -2605,7 +2605,7 @@
       "type": "table",
       "gridPos": {
         "x": 0,
-        "y": 94,
+        "y": 91,
         "w": 24,
         "h": 10
       },
