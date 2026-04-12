@@ -593,6 +593,58 @@
       "description": "Average aerobic decoupling across rides \u226530 min in the selected period.\nLower = better aerobic fitness.\n\n\ud83d\udfe2 < 5% \u2014 Good aerobic fitness\n\n\ud83d\udfe1 5-10% \u2014 Moderate drift\n\n\ud83d\udd34 > 10% \u2014 Significant drift\n\nIncludes interval rides (noisy per ride, but the period average is still directional)."
     },
     {
+      "id": 10,
+      "title": "Calories",
+      "type": "stat",
+      "gridPos": {
+        "x": 20,
+        "y": 4,
+        "w": 4,
+        "h": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT COALESCE(SUM(calories), 0) AS \"Calories\" FROM activities WHERE $__timeFilter(date) AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}');",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-purple"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-purple",
+                "value": null
+              }
+            ]
+          },
+          "unit": "kcal"
+        }
+      },
+      "description": "Total calories burned across all rides in the selected period."
+    },
+    {
       "id": 300,
       "type": "row",
       "title": "vs Previous Period",
@@ -1093,6 +1145,61 @@
         }
       },
       "description": "Change in average aerobic decoupling vs the previous period of equal length. Negative (green) = decoupling decreased, aerobic base improving.\n\nSmall samples (1-2 rides per period) can produce noisy deltas \u2014 use the All Time Progression trend panel for the smoothed long-term direction."
+    },
+    {
+      "id": 310,
+      "title": "\u0394 Calories",
+      "type": "stat",
+      "gridPos": {
+        "x": 20,
+        "y": 11,
+        "w": 4,
+        "h": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND((COALESCE((SELECT SUM(calories) FROM activities WHERE $__timeFilter(date) AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0) - COALESCE((SELECT SUM(calories) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0))::numeric, 0) AS \"Delta\";",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "kcal"
+        }
+      },
+      "description": "Change in total calories vs the equivalent previous period."
     },
     {
       "id": 200,
@@ -1727,13 +1834,131 @@
       "description": "Fitness Curves\n\n\ud83d\udd35 CTL (Chronic Training Load) \u2014 42-day rolling fitness.\n\n\ud83d\udfe0 ATL (Acute Training Load) \u2014 7-day rolling fatigue.\n\n\ud83d\udfe2 TSB (Form) \u2014 CTL minus ATL.\n\nCTL rising = getting fitter.\n\nATL spiking = recent hard training.\n\nTSB negative = fatigued, positive = fresh."
     },
     {
+      "id": 1400,
+      "type": "stat",
+      "title": "Monotony",
+      "description": "Foster Training Monotony over the last 7 days.\n\nMonotony = mean(daily TSS) / stdev(daily TSS).\n\nMeasures how repetitive your training load is.\nHigh monotony + high strain = overreaching risk.\n\n\ud83d\udfe2 < 1.5 \u2014 varied training\n\n\ud83d\udfe1 1.5\u20132.0 \u2014 moderately repetitive\n\n\ud83d\udd34 > 2.0 \u2014 monotonous, watch for overreaching",
+      "gridPos": {
+        "x": 0,
+        "y": 32,
+        "w": 6,
+        "h": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "WITH days AS (\n  SELECT d::date AS day\n  FROM generate_series(CURRENT_DATE - interval '6 days', CURRENT_DATE, '1 day') d\n),\ndaily AS (\n  SELECT days.day, COALESCE(SUM(a.tss), 0) AS daily_tss\n  FROM days\n  LEFT JOIN activities a ON a.date::date = days.day\n    AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')\n  GROUP BY days.day\n)\nSELECT ROUND((AVG(daily_tss) / NULLIF(STDDEV(daily_tss), 0))::numeric, 2) AS \"Monotony\"\nFROM daily;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#2ecc71",
+                "value": null
+              },
+              {
+                "color": "#f1c40f",
+                "value": 1.5
+              },
+              {
+                "color": "#e74c3c",
+                "value": 2.0
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "id": 1401,
+      "type": "stat",
+      "title": "Strain",
+      "description": "Foster Training Strain over the last 7 days.\n\nStrain = weekly TSS \u00d7 Monotony.\n\nCombines training volume with repetitiveness.\nHigh strain without recovery = overreaching.\n\n\ud83d\udfe2 < 200 \u2014 manageable\n\n\ud83d\udfe1 200\u2013400 \u2014 moderate, ensure recovery\n\n\ud83d\udd34 > 400 \u2014 high strain, recovery needed",
+      "gridPos": {
+        "x": 6,
+        "y": 32,
+        "w": 6,
+        "h": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "WITH days AS (\n  SELECT d::date AS day\n  FROM generate_series(CURRENT_DATE - interval '6 days', CURRENT_DATE, '1 day') d\n),\ndaily AS (\n  SELECT days.day, COALESCE(SUM(a.tss), 0) AS daily_tss\n  FROM days\n  LEFT JOIN activities a ON a.date::date = days.day\n    AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')\n  GROUP BY days.day\n)\nSELECT ROUND((SUM(daily_tss) * AVG(daily_tss) / NULLIF(STDDEV(daily_tss), 0))::numeric, 0) AS \"Strain\"\nFROM daily;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#2ecc71",
+                "value": null
+              },
+              {
+                "color": "#f1c40f",
+                "value": 200
+              },
+              {
+                "color": "#e74c3c",
+                "value": 400
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
       "id": 501,
       "type": "row",
       "title": "Trends",
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 32,
+        "y": 35,
         "w": 24,
         "h": 1
       },
@@ -1745,7 +1970,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 33,
+        "y": 36,
         "w": 24,
         "h": 8
       },
@@ -1845,7 +2070,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 41,
+        "y": 44,
         "w": 24,
         "h": 8
       },
@@ -1941,7 +2166,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 49,
+        "y": 52,
         "w": 24,
         "h": 8
       },
@@ -2033,7 +2258,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 57,
+        "y": 60,
         "w": 24,
         "h": 8
       },
@@ -2125,7 +2350,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 65,
+        "y": 68,
         "w": 24,
         "h": 8
       },
@@ -2217,7 +2442,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 73,
+        "y": 76,
         "w": 24,
         "h": 8
       },
@@ -2313,7 +2538,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 81,
+        "y": 84,
         "w": 24,
         "h": 1
       },
@@ -2325,7 +2550,7 @@
       "type": "barchart",
       "gridPos": {
         "x": 0,
-        "y": 82,
+        "y": 85,
         "w": 24,
         "h": 8
       },
@@ -2368,7 +2593,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 90,
+        "y": 93,
         "w": 24,
         "h": 1
       },
@@ -2380,7 +2605,7 @@
       "type": "table",
       "gridPos": {
         "x": 0,
-        "y": 91,
+        "y": 94,
         "w": 24,
         "h": 10
       },
@@ -2458,113 +2683,6 @@
           }
         ]
       }
-    },
-    {
-      "id": 10,
-      "title": "Calories",
-      "type": "stat",
-      "gridPos": {
-        "x": 20,
-        "y": 4,
-        "w": 4,
-        "h": 3
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "velomate"
-      },
-      "targets": [
-        {
-          "rawSql": "SELECT COALESCE(SUM(calories), 0) AS \"Calories\" FROM activities WHERE $__timeFilter(date) AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}');",
-          "format": "table",
-          "refId": "A"
-        }
-      ],
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "textMode": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        }
-      },
-      "fieldConfig": {
-        "defaults": {
-          "noValue": "No data",
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "dark-purple"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "dark-purple",
-                "value": null
-              }
-            ]
-          },
-          "unit": "kcal"
-        }
-      },
-      "description": "Total calories burned across all rides in the selected period."
-    },
-    {
-      "id": 310,
-      "title": "\u0394 Calories",
-      "type": "stat",
-      "gridPos": {
-        "x": 20,
-        "y": 11,
-        "w": 4,
-        "h": 3
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "velomate"
-      },
-      "targets": [
-        {
-          "rawSql": "SELECT ROUND((COALESCE((SELECT SUM(calories) FROM activities WHERE $__timeFilter(date) AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0) - COALESCE((SELECT SUM(calories) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0))::numeric, 0) AS \"Delta\";",
-          "format": "table",
-          "refId": "A"
-        }
-      ],
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        }
-      },
-      "fieldConfig": {
-        "defaults": {
-          "noValue": "No data",
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          },
-          "unit": "kcal"
-        }
-      },
-      "description": "Change in total calories vs the equivalent previous period."
     }
   ]
 }

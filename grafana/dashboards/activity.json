@@ -836,6 +836,113 @@
       "description": "GPS route with color overlay.\n\nUse the Map Color dropdown to switch between:\n\n\u2022 Speed \u2014 green (fast) to red (slow)\n\n\u2022 Heart Rate \u2014 green (low) to red (high)\n\n\u2022 Power \u2014 green (low) to red (high)"
     },
     {
+      "id": 1500,
+      "type": "table",
+      "title": "Detected Climbs",
+      "description": "Climbs detected from the elevation profile.\n\nClassification based on total elevation gain:\n\n\ud83d\udd35 Cat 4 \u2014 100\u2013250m\n\n\ud83d\udfe2 Cat 3 \u2014 250\u2013500m\n\n\ud83d\udfe1 Cat 2 \u2014 500\u20131000m\n\n\ud83d\udfe0 Cat 1 \u2014 1000\u20131500m\n\n\ud83d\udd34 HC \u2014 > 1500m\n\nMinimum 100m gain to qualify (Cat 4 threshold).\nUses 30-second smoothed altitude to filter noise.",
+      "gridPos": {
+        "x": 0,
+        "y": 17,
+        "w": 24,
+        "h": 6
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "WITH smoothed AS (\n  SELECT time_offset,\n    AVG(altitude_m) OVER (ORDER BY time_offset ROWS BETWEEN 15 PRECEDING AND 15 FOLLOWING) AS alt,\n    COALESCE(speed_kmh, 0) / 3600.0 *\n      (time_offset - LAG(time_offset, 1, time_offset) OVER (ORDER BY time_offset)) AS dist_delta\n  FROM activity_streams\n  WHERE activity_id = ${activity_id} AND altitude_m IS NOT NULL\n),\nsegments AS (\n  SELECT time_offset, alt, dist_delta,\n    alt - LAG(alt) OVER (ORDER BY time_offset) AS alt_delta\n  FROM smoothed\n),\n-- Detect climbing segments (positive altitude gain)\nclimbing AS (\n  SELECT time_offset, alt, dist_delta, alt_delta,\n    SUM(CASE WHEN alt_delta <= 0 THEN 1 ELSE 0 END) OVER (ORDER BY time_offset) AS grp\n  FROM segments\n  WHERE alt_delta IS NOT NULL\n),\nclimbs AS (\n  SELECT grp,\n    ROUND(SUM(CASE WHEN alt_delta > 0 THEN alt_delta ELSE 0 END)::numeric, 0) AS gain_m,\n    ROUND((SUM(dist_delta) * 1000)::numeric, 0) AS length_m,\n    MIN(alt) AS start_alt,\n    MAX(alt) AS peak_alt,\n    MIN(time_offset) AS start_offset,\n    MAX(time_offset) AS end_offset\n  FROM climbing\n  WHERE alt_delta > 0\n  GROUP BY grp\n  HAVING SUM(CASE WHEN alt_delta > 0 THEN alt_delta ELSE 0 END) >= 100\n)\nSELECT\n  CASE\n    WHEN gain_m >= 1500 THEN 'HC'\n    WHEN gain_m >= 1000 THEN 'Cat 1'\n    WHEN gain_m >= 500  THEN 'Cat 2'\n    WHEN gain_m >= 250  THEN 'Cat 3'\n    WHEN gain_m >= 100  THEN 'Cat 4'\n    ELSE 'Uncategorised'\n  END AS \"Category\",\n  gain_m AS \"Gain (m)\",\n  length_m AS \"Length (m)\",\n  CASE WHEN length_m > 0\n    THEN ROUND((gain_m / length_m * 100)::numeric, 1)\n    ELSE 0\n  END AS \"Avg Grade (%)\",\n  ROUND(start_alt::numeric, 0) AS \"Start (m)\",\n  ROUND(peak_alt::numeric, 0) AS \"Peak (m)\",\n  (end_offset - start_offset) || 's' AS \"Duration\"\nFROM climbs\nORDER BY gain_m DESC;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No climbs detected",
+          "custom": {
+            "align": "center"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Category"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 100
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "HC": {
+                        "text": "HC",
+                        "color": "#e74c3c"
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "Cat 1": {
+                        "text": "Cat 1",
+                        "color": "#e67e22"
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "Cat 2": {
+                        "text": "Cat 2",
+                        "color": "#f1c40f"
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "Cat 3": {
+                        "text": "Cat 3",
+                        "color": "#2ecc71"
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "Cat 4": {
+                        "text": "Cat 4",
+                        "color": "#3498db"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
       "id": 901,
       "type": "row",
       "title": "Power Quality",
@@ -844,7 +951,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 17
+        "y": 23
       },
       "panels": []
     },
@@ -856,7 +963,7 @@
         "h": 3,
         "w": 6,
         "x": 0,
-        "y": 18
+        "y": 24
       },
       "datasource": {
         "type": "postgres",
@@ -900,7 +1007,7 @@
         "h": 3,
         "w": 6,
         "x": 6,
-        "y": 18
+        "y": 24
       },
       "datasource": {
         "type": "postgres",
@@ -971,7 +1078,7 @@
         "h": 3,
         "w": 6,
         "x": 12,
-        "y": 18
+        "y": 24
       },
       "datasource": {
         "type": "postgres",
@@ -1030,7 +1137,7 @@
         "h": 3,
         "w": 6,
         "x": 18,
-        "y": 18
+        "y": 24
       },
       "datasource": {
         "type": "postgres",
@@ -1070,7 +1177,7 @@
       "type": "stat",
       "gridPos": {
         "x": 0,
-        "y": 21,
+        "y": 27,
         "w": 6,
         "h": 3
       },
@@ -1113,7 +1220,7 @@
       "type": "stat",
       "gridPos": {
         "x": 6,
-        "y": 21,
+        "y": 27,
         "w": 6,
         "h": 3
       },
@@ -1183,7 +1290,7 @@
       "type": "stat",
       "gridPos": {
         "x": 12,
-        "y": 21,
+        "y": 27,
         "w": 6,
         "h": 3
       },
@@ -1243,7 +1350,7 @@
       "type": "stat",
       "gridPos": {
         "x": 18,
-        "y": 21,
+        "y": 27,
         "w": 6,
         "h": 3
       },
@@ -1299,7 +1406,7 @@
       "description": "Lowest W'bal during the ride \u2014 how close to empty your\nanaerobic battery got.\n\nComputed via Skiba differential model using the latest CP/W'\nestimate. Requires power data.",
       "gridPos": {
         "x": 0,
-        "y": 24,
+        "y": 30,
         "w": 6,
         "h": 3
       },
@@ -1351,7 +1458,7 @@
       "description": "Percentage of ride time where W'bal was below 25% of W'.\nShows how much of the ride was 'in the red.'\n\nNote: uses the latest W' estimate for the 25% threshold \u2014\na known approximation (see spec).",
       "gridPos": {
         "x": 6,
-        "y": 24,
+        "y": 30,
         "w": 6,
         "h": 3
       },
@@ -1401,7 +1508,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 27
+        "y": 33
       },
       "datasource": {
         "type": "postgres",
@@ -1480,7 +1587,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 35
+        "y": 41
       },
       "panels": []
     },
@@ -1492,7 +1599,7 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 36
+        "y": 42
       },
       "datasource": {
         "type": "postgres",
@@ -1612,7 +1719,7 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 42
+        "y": 48
       },
       "datasource": {
         "type": "postgres",
@@ -1762,7 +1869,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 48
+        "y": 54
       },
       "datasource": {
         "type": "postgres",
@@ -1884,7 +1991,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 48
+        "y": 54
       },
       "datasource": {
         "type": "postgres",
@@ -2036,7 +2143,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 56
+        "y": 62
       },
       "datasource": {
         "type": "postgres",
@@ -2167,7 +2274,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 56
+        "y": 62
       },
       "datasource": {
         "type": "postgres",
@@ -2337,7 +2444,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 64
+        "y": 70
       },
       "panels": []
     },
@@ -2349,7 +2456,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 65
+        "y": 71
       },
       "datasource": {
         "type": "postgres",
@@ -2403,7 +2510,7 @@
       "description": "How much power you retained in the second half vs the first half.\n\n100% = no fade. 90% = lost 10% of your power.\n> 100% = negative split (went harder in the back half).\n\nShows at which durations you fade most \u2014 short efforts\n(anaerobic) vs long efforts (aerobic) may differ.",
       "gridPos": {
         "x": 0,
-        "y": 73,
+        "y": 79,
         "w": 18,
         "h": 6
       },
@@ -2463,7 +2570,7 @@
       "description": "2nd-half best 5-min power / 1st-half best 5-min power.\n\n1.0 = no fade. 0.9 = 10% power drop in the back half.\n\n\ud83d\udfe2 >= 0.95 \u2014 good durability\n\n\ud83d\udfe1 0.90-0.95 \u2014 moderate fade\n\n\ud83d\udd34 < 0.90 \u2014 significant durability deficit",
       "gridPos": {
         "x": 18,
-        "y": 73,
+        "y": 79,
         "w": 6,
         "h": 6
       },
@@ -2524,7 +2631,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 79
+        "y": 85
       },
       "panels": []
     },
@@ -2536,7 +2643,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 80
+        "y": 86
       },
       "datasource": {
         "type": "postgres",
@@ -2569,7 +2676,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 88
+        "y": 94
       },
       "panels": []
     },
@@ -2581,7 +2688,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 89
+        "y": 95
       },
       "datasource": {
         "type": "postgres",
@@ -2708,7 +2815,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 99
+        "y": 105
       },
       "datasource": {
         "type": "postgres",
@@ -2861,7 +2968,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 109
+        "y": 115
       },
       "datasource": {
         "type": "postgres",
@@ -2978,7 +3085,7 @@
       "type": "trend",
       "gridPos": {
         "x": 0,
-        "y": 119,
+        "y": 125,
         "w": 24,
         "h": 10
       },
@@ -3062,7 +3169,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 129
+        "y": 135
       },
       "panels": []
     },
@@ -3074,7 +3181,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 130
+        "y": 136
       },
       "datasource": {
         "type": "postgres",
