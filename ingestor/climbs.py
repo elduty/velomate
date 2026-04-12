@@ -141,12 +141,28 @@ def _maybe_add_climb(
     min_gradient: float,
     time_offsets: list[int] | None = None,
 ) -> None:
-    """Add a climb to the list if it meets the minimum gain and gradient."""
-    gain = altitudes[end_idx] - altitudes[start_idx]
+    """Add a climb to the list if it meets the minimum gain and gradient.
+
+    Trims flat/descending sections from the start of the detected
+    segment so the climb begins where sustained uphill actually starts.
+    """
+    # Trim flat/descending start: walk forward until we find where the
+    # altitude consistently rises. Use a 30-sample lookahead — if the
+    # altitude 30 samples ahead is at least 3m higher, that's where
+    # climbing begins.
+    trimmed_start = start_idx
+    lookahead = min(30, (end_idx - start_idx) // 4)
+    if lookahead > 5:
+        for i in range(start_idx, end_idx - lookahead):
+            if altitudes[i + lookahead] - altitudes[i] >= 3.0:
+                trimmed_start = i
+                break
+
+    gain = altitudes[end_idx] - altitudes[trimmed_start]
     if gain < min_gain:
         return
 
-    length_m = distances_m[end_idx] - distances_m[start_idx]
+    length_m = distances_m[end_idx] - distances_m[trimmed_start]
     if length_m <= 0:
         return
 
@@ -155,9 +171,9 @@ def _maybe_add_climb(
         return
 
     if time_offsets is not None:
-        duration_s = time_offsets[end_idx] - time_offsets[start_idx]
+        duration_s = time_offsets[end_idx] - time_offsets[trimmed_start]
     else:
-        duration_s = end_idx - start_idx
+        duration_s = end_idx - trimmed_start
 
     if gain >= 1500:
         category = "HC"
@@ -173,12 +189,12 @@ def _maybe_add_climb(
         category = "Climb"
 
     climbs.append({
-        "start_idx": start_idx,
+        "start_idx": trimmed_start,
         "end_idx": end_idx,
         "gain_m": round(gain),
         "length_m": round(length_m),
         "avg_grade": round(avg_grade, 1),
-        "start_alt": round(altitudes[start_idx]),
+        "start_alt": round(altitudes[trimmed_start]),
         "peak_alt": round(altitudes[end_idx]),
         "duration_s": duration_s,
         "category": category,
