@@ -2404,8 +2404,8 @@
       "gridPos": {
         "x": 0,
         "y": 73,
-        "w": 24,
-        "h": 8
+        "w": 18,
+        "h": 6
       },
       "datasource": {
         "type": "postgres",
@@ -2462,10 +2462,10 @@
       "title": "Durability Index",
       "description": "2nd-half best 5-min power / 1st-half best 5-min power.\n\n1.0 = no fade. 0.9 = 10% power drop in the back half.\n\n\ud83d\udfe2 >= 0.95 \u2014 good durability\n\n\ud83d\udfe1 0.90-0.95 \u2014 moderate fade\n\n\ud83d\udd34 < 0.90 \u2014 significant durability deficit",
       "gridPos": {
-        "x": 0,
-        "y": 81,
-        "w": 12,
-        "h": 3
+        "x": 18,
+        "y": 73,
+        "w": 6,
+        "h": 6
       },
       "datasource": {
         "type": "postgres",
@@ -2524,7 +2524,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 84
+        "y": 79
       },
       "panels": []
     },
@@ -2536,7 +2536,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 85
+        "y": 80
       },
       "datasource": {
         "type": "postgres",
@@ -2569,7 +2569,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 93
+        "y": 88
       },
       "panels": []
     },
@@ -2581,7 +2581,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 94
+        "y": 89
       },
       "datasource": {
         "type": "postgres",
@@ -2708,7 +2708,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 104
+        "y": 99
       },
       "datasource": {
         "type": "postgres",
@@ -2861,7 +2861,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 114
+        "y": 109
       },
       "datasource": {
         "type": "postgres",
@@ -2978,7 +2978,7 @@
       "type": "trend",
       "gridPos": {
         "x": 0,
-        "y": 124,
+        "y": 119,
         "w": 24,
         "h": 10
       },
@@ -3062,7 +3062,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 134
+        "y": 129
       },
       "panels": []
     },
@@ -3074,7 +3074,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 135
+        "y": 130
       },
       "datasource": {
         "type": "postgres",
