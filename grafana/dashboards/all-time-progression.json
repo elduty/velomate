@@ -1093,7 +1093,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH recent AS (\n  SELECT a.id FROM activities a\n  WHERE a.date >= CURRENT_DATE - interval '90 days'\n    AND EXISTS (SELECT 1 FROM activity_streams s WHERE s.activity_id = a.id AND s.power IS NOT NULL)\n),\nrolling AS (\n  SELECT s.activity_id,\n    ROW_NUMBER() OVER (PARTITION BY s.activity_id ORDER BY s.time_offset) AS rn,\n    AVG(s.power) OVER w60   AS p60,\n    AVG(s.power) OVER w120  AS p120,\n    AVG(s.power) OVER w300  AS p300,\n    AVG(s.power) OVER w600  AS p600,\n    AVG(s.power) OVER w1200 AS p1200\n  FROM activity_streams s\n  JOIN recent r ON r.id = s.activity_id\n  WHERE s.power IS NOT NULL\n  WINDOW w60   AS (PARTITION BY s.activity_id ORDER BY s.time_offset ROWS BETWEEN 59   PRECEDING AND CURRENT ROW),\n         w120  AS (PARTITION BY s.activity_id ORDER BY s.time_offset ROWS BETWEEN 119  PRECEDING AND CURRENT ROW),\n         w300  AS (PARTITION BY s.activity_id ORDER BY s.time_offset ROWS BETWEEN 299  PRECEDING AND CURRENT ROW),\n         w600  AS (PARTITION BY s.activity_id ORDER BY s.time_offset ROWS BETWEEN 599  PRECEDING AND CURRENT ROW),\n         w1200 AS (PARTITION BY s.activity_id ORDER BY s.time_offset ROWS BETWEEN 1199 PRECEDING AND CURRENT ROW)\n)\n-- ROWS-based windows count rows not seconds \u2014 assumes 1Hz stream data (Strava default).\n-- Filter rn >= duration so partial windows at ride start are excluded.\nSELECT 60   AS \"duration_s\", MAX(p60)   AS \"power\" FROM rolling WHERE rn >= 60   UNION ALL\nSELECT 120,  MAX(p120)  FROM rolling WHERE rn >= 120  UNION ALL\nSELECT 300,  MAX(p300)  FROM rolling WHERE rn >= 300  UNION ALL\nSELECT 600,  MAX(p600)  FROM rolling WHERE rn >= 600  UNION ALL\nSELECT 1200, MAX(p1200) FROM rolling WHERE rn >= 1200\nORDER BY 1;",
+          "rawSql": "WITH recent AS (\n  SELECT a.id FROM activities a\n  WHERE a.date >= CURRENT_DATE - interval '90 days'\n    AND EXISTS (SELECT 1 FROM activity_streams s WHERE s.activity_id = a.id AND s.power IS NOT NULL)\n),\nrolling AS (\n  SELECT s.activity_id,\n    ROW_NUMBER() OVER (PARTITION BY s.activity_id ORDER BY s.time_offset) AS rn,\n    AVG(s.power) OVER w60   AS p60,\n    AVG(s.power) OVER w120  AS p120,\n    AVG(s.power) OVER w300  AS p300,\n    AVG(s.power) OVER w600  AS p600,\n    AVG(s.power) OVER w1200 AS p1200\n  FROM activity_streams s\n  JOIN recent r ON r.id = s.activity_id\n  WHERE s.power IS NOT NULL\n  WINDOW w60   AS (PARTITION BY s.activity_id ORDER BY s.time_offset ROWS BETWEEN 59   PRECEDING AND CURRENT ROW),\n         w120  AS (PARTITION BY s.activity_id ORDER BY s.time_offset ROWS BETWEEN 119  PRECEDING AND CURRENT ROW),\n         w300  AS (PARTITION BY s.activity_id ORDER BY s.time_offset ROWS BETWEEN 299  PRECEDING AND CURRENT ROW),\n         w600  AS (PARTITION BY s.activity_id ORDER BY s.time_offset ROWS BETWEEN 599  PRECEDING AND CURRENT ROW),\n         w1200 AS (PARTITION BY s.activity_id ORDER BY s.time_offset ROWS BETWEEN 1199 PRECEDING AND CURRENT ROW)\n)\nSELECT '1 min' AS \"Duration\", ROUND(MAX(p60)::numeric)   AS \"Power (W)\" FROM rolling WHERE rn >= 60   UNION ALL\nSELECT '2 min',  ROUND(MAX(p120)::numeric)  FROM rolling WHERE rn >= 120  UNION ALL\nSELECT '5 min',  ROUND(MAX(p300)::numeric)  FROM rolling WHERE rn >= 300  UNION ALL\nSELECT '10 min', ROUND(MAX(p600)::numeric)  FROM rolling WHERE rn >= 600  UNION ALL\nSELECT '20 min', ROUND(MAX(p1200)::numeric) FROM rolling WHERE rn >= 1200;",
           "format": "table",
           "refId": "A"
         }
@@ -1105,37 +1105,19 @@
             "fixedColor": "#3498db"
           },
           "custom": {
-            "fillOpacity": 80,
-            "gradientMode": "none"
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "duration_s"
-            },
-            "properties": [
-              {
-                "id": "custom.axisPlacement",
-                "value": "hidden"
-              }
-            ]
-          }
-        ]
+            "fillOpacity": 80
+          },
+          "noValue": "No data",
+          "decimals": 0,
+          "unit": "watt"
+        }
       },
       "description": "Mean maximal power at standard durations (1, 2, 5, 10, 20 min)\nfrom the last 90 days, plotted against the fitted Monod-Scherrer\ncurve.\n\nData points well above the curve = strong efforts.\nCurve far below points = poor fit (check R\u00b2 in Est. FTP description).\n\nNote: always uses a fixed 90-day window regardless of the dashboard\ntime picker. This shows your current power profile, not a historical\none. The CP Progression panel respects the time picker for trends.",
       "options": {
-        "xField": "duration_s",
         "orientation": "vertical",
-        "barWidth": 0.6,
         "showValue": "always",
-        "legend": {
-          "displayMode": "hidden"
-        },
-        "tooltip": {
-          "mode": "single"
-        }
+        "stacking": "none",
+        "barWidth": 0.6
       }
     },
     {
