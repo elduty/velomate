@@ -14,6 +14,7 @@ from critical_power import (
     compute_mean_maximal_power,
     fit_monod_scherrer,
     assess_fit_quality,
+    compute_wbal,
 )
 
 
@@ -95,3 +96,50 @@ class TestAssessFitQuality:
     def test_none_r_squared_returns_false(self):
         assert assess_fit_quality(None, 5) is False
         assert assess_fit_quality(None, 0) is False
+
+
+class TestComputeWbal:
+    CP = 200.0
+    W_PRIME = 15000.0
+
+    def test_constant_power_below_cp_no_drain(self):
+        powers = [150.0] * 60
+        wbal = compute_wbal(powers, self.CP, self.W_PRIME)
+        assert len(wbal) == 60
+        assert wbal[-1] == pytest.approx(self.W_PRIME, rel=0.01)
+
+    def test_constant_power_above_cp_drains(self):
+        powers = [300.0] * 60
+        wbal = compute_wbal(powers, self.CP, self.W_PRIME)
+        assert len(wbal) == 60
+        assert wbal[-1] == pytest.approx(9000.0, abs=1.0)
+
+    def test_drain_then_recovery(self):
+        powers = [300.0] * 30 + [100.0] * 30
+        wbal = compute_wbal(powers, self.CP, self.W_PRIME)
+        assert len(wbal) == 60
+        mid = wbal[29]
+        assert mid == pytest.approx(12000.0, abs=1.0)
+        assert wbal[-1] > mid
+
+    def test_wbal_never_below_zero(self):
+        powers = [400.0] * 200
+        wbal = compute_wbal(powers, self.CP, self.W_PRIME)
+        assert min(wbal) >= 0.0
+
+    def test_wbal_never_above_w_prime(self):
+        powers = [300.0] * 30 + [50.0] * 300
+        wbal = compute_wbal(powers, self.CP, self.W_PRIME)
+        assert max(wbal) <= self.W_PRIME + 0.01
+
+    def test_empty_stream(self):
+        wbal = compute_wbal([], 200.0, 15000.0)
+        assert wbal == []
+
+    def test_known_values(self):
+        powers = [250.0, 250.0, 250.0, 100.0, 100.0]
+        wbal = compute_wbal(powers, 200.0, 10000.0)
+        assert len(wbal) == 5
+        assert wbal[0] == pytest.approx(10000.0 - 50.0, abs=1.0)
+        assert wbal[2] == pytest.approx(10000.0 - 150.0, abs=1.0)
+        assert wbal[4] > 9850.0

@@ -10,6 +10,8 @@ for the full design rationale and quality gating logic.
 
 from __future__ import annotations
 
+import math
+
 import numpy as np
 
 
@@ -86,3 +88,39 @@ def assess_fit_quality(
     if r_squared is None:
         return False
     return r_squared >= 0.9 and duration_count >= 4
+
+
+def compute_wbal(
+    powers: list[float], cp: float, w_prime_j: float
+) -> list[float]:
+    """Compute per-second W'bal using Skiba differential model.
+
+    Uses the GoldenCheetah tau formulation:
+        tau = 546 * exp(-0.01 * (CP - P)) + 316
+
+    Args:
+        powers: per-second power values (watts).
+        cp: Critical Power (watts).
+        w_prime_j: W' in joules (NOT kJ).
+
+    Returns:
+        list of W'bal values (joules), same length as powers.
+        W'bal starts at w_prime_j and is clamped to [0, w_prime_j].
+    """
+    if not powers:
+        return []
+
+    wbal = []
+    current = w_prime_j
+
+    for p in powers:
+        if p > cp:
+            current = current - (p - cp)
+        else:
+            tau = 546.0 * math.exp(-0.01 * (cp - p)) + 316.0
+            current = w_prime_j - (w_prime_j - current) * math.exp(-1.0 / tau)
+
+        current = max(0.0, min(current, w_prime_j))
+        wbal.append(current)
+
+    return wbal

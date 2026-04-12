@@ -128,6 +128,8 @@ def create_schema(conn):
             CREATE UNIQUE INDEX IF NOT EXISTS idx_activities_komoot_tour_id
                 ON activities(komoot_tour_id) WHERE komoot_tour_id IS NOT NULL;
 
+            ALTER TABLE activity_streams ADD COLUMN IF NOT EXISTS w_bal FLOAT;
+
             CREATE INDEX IF NOT EXISTS idx_streams_power ON activity_streams(activity_id, time_offset) WHERE power IS NOT NULL;
         """)
 

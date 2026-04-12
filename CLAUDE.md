@@ -135,6 +135,7 @@ All cycling metrics follow industry standards. The ingestor is the single source
 - **Decoupling**: `first_EF / second_EF - 1` (positive = drift, per Friel/TrainingPeaks). Includes coasting samples.
 - **W/kg**: NP / ride_weight. Uses NP (not avg_power) for physiological accuracy. Per-ride `ride_weight` from `VELOMATE_WEIGHT`, preserved on weight change
 - **CP / W'**: Critical Power and W' (anaerobic work capacity) modeled via Monod-Scherrer 2-parameter fit (`P = W'/t + CP`) on mean maximal power at 5 standard durations (60s/120s/300s/600s/1200s). Stored daily in `cp_estimates`. Quality gate: R² >= 0.9 AND >= 4 of 5 durations contributing. Graceful fallback to rolling 20-min x 0.95 when the gate fails. Replaces the rolling 20-min calculation as the source of `sync_state.estimated_ftp`
+- **W'bal**: Per-second remaining anaerobic work capacity. Skiba differential model with GoldenCheetah tau (`546 * exp(-0.01 * (CP - P)) + 316`). Uses latest CP/W' from `cp_estimates`; defaults W' to 20 kJ when CP fit falls back. Stored per second on `activity_streams.w_bal`. Displayed on Activity Details as timeseries + Min W'bal + Time below 25% stats
 - **HR Zones**: Max HR percentages (60/70/80/90%), default fallback 185 bpm
 - **Power Zones**: Coggan 7-zone including Z7 Neuromuscular (>150% FTP)
 

@@ -387,6 +387,100 @@ def compute_cp_estimate(
     return result
 
 
+def compute_wbal_for_rides(conn) -> int:
+    """Compute W'bal for rides that don't have it yet.
+
+    Reads CP/W' from the latest cp_estimates row. For rides with power
+    streams where w_bal IS NULL, computes per-second W'bal via Skiba
+    differential and writes it back to activity_streams.
+
+    Returns the number of rides processed. Returns 0 if no CP estimate
+    is available or no rides need processing.
+    """
+    from critical_power import compute_wbal
+
+    # Get latest CP estimate
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT cp_watts, w_prime_kj, fallback_ftp, source
+            FROM cp_estimates ORDER BY date DESC LIMIT 1
+        """)
+        row = cur.fetchone()
+
+    if row is None:
+        print("[fitness] No CP estimates — skipping W'bal")
+        return 0
+
+    cp_watts, w_prime_kj, fallback_ftp, source = row
+
+    # Determine CP and W' to use
+    if source == "cp" and cp_watts is not None:
+        cp = cp_watts
+    elif fallback_ftp is not None:
+        cp = float(fallback_ftp)
+    else:
+        print("[fitness] No usable CP value — skipping W'bal")
+        return 0
+
+    # W' in joules — use fitted value or 20kJ default (Skiba standard)
+    w_prime_j = (w_prime_kj * 1000.0) if w_prime_kj is not None else 20000.0
+
+    # Find rides with power streams that need W'bal
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT DISTINCT s.activity_id
+            FROM activity_streams s
+            WHERE s.power IS NOT NULL
+              AND s.w_bal IS NULL
+            ORDER BY s.activity_id
+        """)
+        ride_ids = [row[0] for row in cur.fetchall()]
+
+    if not ride_ids:
+        return 0
+
+    count = 0
+    for act_id in ride_ids:
+        try:
+            # Read power stream — COALESCE NULL power to 0 so coasting seconds
+            # are modeled as recovery (0W < CP) rather than creating time gaps.
+            # Matches the project convention: "Includes zero-power (coasting)".
+            # Note: assumes consecutive 1-second samples (same assumption as NP
+            # computation). Gaps in time_offset are not detected.
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT time_offset, COALESCE(power, 0) AS power
+                    FROM activity_streams
+                    WHERE activity_id = %s
+                    ORDER BY time_offset
+                """, (act_id,))
+                rows = cur.fetchall()
+
+            if not rows:
+                continue
+
+            offsets = [r[0] for r in rows]
+            powers = [float(r[1]) for r in rows]
+
+            # Compute W'bal
+            wbal = compute_wbal(powers, cp, w_prime_j)
+
+            # Batch update w_bal for each time_offset
+            updates = [(wbal[i], act_id, offsets[i]) for i in range(len(wbal))]
+            with conn.cursor() as cur:
+                psycopg2.extras.execute_batch(cur, """
+                    UPDATE activity_streams SET w_bal = %s
+                    WHERE activity_id = %s AND time_offset = %s
+                """, updates, page_size=1000)
+        except Exception as e:
+            print(f"[fitness] W'bal failed for activity {act_id} (skipping): {e}")
+            continue
+
+        count += 1
+
+    return count
+
+
 def recalculate_fitness(conn):
     """
     Walk day-by-day from earliest activity, applying EMA:
@@ -782,5 +876,14 @@ def recalculate_fitness(conn):
         compute_cp_estimate(conn, fallback_ftp=auto_ftp)
     except Exception as e:
         print(f"[fitness] CP estimate failed (non-fatal): {e}")
+
+    # Step 7: Compute W'bal for rides missing it
+    print("[fitness] Computing W'bal...")
+    try:
+        wbal_count = compute_wbal_for_rides(conn)
+        if wbal_count > 0:
+            print(f"[fitness] Computed W'bal for {wbal_count} rides")
+    except Exception as e:
+        print(f"[fitness] W'bal computation failed (non-fatal): {e}")
 
     print(f"[fitness] Calculated {count} days of fitness data (CTL={ctl:.1f}, ATL={atl:.1f}, TSB={ctl-atl:.1f})")
