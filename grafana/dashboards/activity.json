@@ -839,7 +839,7 @@
       "id": 1500,
       "type": "table",
       "title": "Detected Climbs",
-      "description": "Climbs on this ride from two sources:\n\n**Strava segments** \u2014 named, community-validated climbs with\naccurate elevation from Strava's barometric basemap.\n\n**Detected** \u2014 unlisted hills found by RDP algorithm from\nthe GPS elevation profile. Fills gaps where no Strava\nsegment exists.\n\nColumns:\n\n- **Name** \u2014 Strava segment name or climb category\n\n- **Gain** \u2014 total elevation gained\n\n- **Length** \u2014 horizontal distance\n\n- **Avg Grade** \u2014 gain / length\n\n- **Duration** \u2014 time spent on the climb\n\n- **Source** \u2014 strava or detected\n\nStrava category scoring: length (m) x gradient (%).\n\n\ud83d\udd35 Cat 4 \u2014 8,000+\n\n\ud83d\udfe2 Cat 3 \u2014 16,000+\n\n\ud83d\udfe1 Cat 2 \u2014 32,000+\n\n\ud83d\udfe0 Cat 1 \u2014 64,000+\n\n\ud83d\udd34 HC \u2014 80,000+",
+      "description": "Climbs detected on this ride.\n\nNamed climbs come from Strava segments. Unlisted hills are\ndetected from the GPS elevation profile using the RDP algorithm.\n\nThe Source column shows where each climb came from.",
       "gridPos": {
         "x": 0,
         "y": 17,
