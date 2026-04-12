@@ -130,6 +130,22 @@ def create_schema(conn):
 
             ALTER TABLE activity_streams ADD COLUMN IF NOT EXISTS w_bal FLOAT;
 
+            CREATE TABLE IF NOT EXISTS ride_climbs (
+                id              SERIAL PRIMARY KEY,
+                activity_id     INTEGER REFERENCES activities(id) ON DELETE CASCADE,
+                start_offset    INTEGER,
+                end_offset      INTEGER,
+                gain_m          INTEGER,
+                length_m        INTEGER,
+                avg_grade       FLOAT,
+                start_alt       INTEGER,
+                peak_alt        INTEGER,
+                duration_s      INTEGER,
+                category        TEXT
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_ride_climbs_activity_id ON ride_climbs(activity_id);
+
             CREATE INDEX IF NOT EXISTS idx_streams_power ON activity_streams(activity_id, time_offset) WHERE power IS NOT NULL;
         """)
 

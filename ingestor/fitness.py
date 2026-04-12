@@ -481,6 +481,98 @@ def compute_wbal_for_rides(conn) -> int:
     return count
 
 
+def detect_climbs_for_rides(conn) -> int:
+    """Detect climbs for rides with altitude data that don't have climb rows yet.
+
+    Uses the same 20-second smoothing as the Cadence & Grade panel.
+    Stores detected climbs in the ride_climbs table.
+
+    Returns the number of rides processed.
+    """
+    from climbs import smooth_altitude, detect_climbs
+
+    # Find rides with altitude data that don't have climb rows
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT DISTINCT s.activity_id
+            FROM activity_streams s
+            WHERE s.altitude_m IS NOT NULL
+              AND NOT EXISTS (
+                  SELECT 1 FROM ride_climbs rc WHERE rc.activity_id = s.activity_id
+              )
+            ORDER BY s.activity_id
+        """)
+        ride_ids = [row[0] for row in cur.fetchall()]
+
+    if not ride_ids:
+        return 0
+
+    count = 0
+    for act_id in ride_ids:
+        try:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT time_offset, altitude_m,
+                        COALESCE(speed_kmh, 0) / 3600.0 *
+                          (time_offset - LAG(time_offset, 1, time_offset) OVER (ORDER BY time_offset)) AS dist_delta
+                    FROM activity_streams
+                    WHERE activity_id = %s AND altitude_m IS NOT NULL
+                    ORDER BY time_offset
+                """, (act_id,))
+                rows = cur.fetchall()
+
+            if not rows:
+                # Insert a sentinel so we don't re-check this ride
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        INSERT INTO ride_climbs (activity_id, gain_m, category)
+                        VALUES (%s, 0, 'none')
+                    """, (act_id,))
+                continue
+
+            time_offsets = []
+            altitudes_raw = []
+            cum_dist = [0.0]
+            for offset, alt, dist_d in rows:
+                time_offsets.append(offset)
+                altitudes_raw.append(alt)
+                cum_dist.append(cum_dist[-1] + (dist_d if dist_d else 0.0))
+            cum_dist_m = [d * 1000.0 for d in cum_dist[1:]]  # km to m
+
+            # Smooth with 20s window (matches Grade panel)
+            altitudes = smooth_altitude(altitudes_raw, window=20)
+
+            climbs = detect_climbs(altitudes, cum_dist_m)
+
+            if climbs:
+                with conn.cursor() as cur:
+                    for c in climbs:
+                        cur.execute("""
+                            INSERT INTO ride_climbs
+                                (activity_id, start_offset, end_offset, gain_m, length_m,
+                                 avg_grade, start_alt, peak_alt, duration_s, category)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        """, (
+                            act_id, time_offsets[c["start_idx"]], time_offsets[c["end_idx"]], c["gain_m"],
+                            c["length_m"], c["avg_grade"], c["start_alt"],
+                            c["peak_alt"], c["duration_s"], c["category"],
+                        ))
+            else:
+                # No climbs found — insert sentinel
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        INSERT INTO ride_climbs (activity_id, gain_m, category)
+                        VALUES (%s, 0, 'none')
+                    """, (act_id,))
+
+            count += 1
+        except Exception as e:
+            print(f"[fitness] Climb detection failed for activity {act_id} (skipping): {e}")
+            continue
+
+    return count
+
+
 def recalculate_fitness(conn):
     """
     Walk day-by-day from earliest activity, applying EMA:
@@ -885,5 +977,14 @@ def recalculate_fitness(conn):
             print(f"[fitness] Computed W'bal for {wbal_count} rides")
     except Exception as e:
         print(f"[fitness] W'bal computation failed (non-fatal): {e}")
+
+    # Step 8: Detect climbs for rides with altitude data that don't have climb rows yet
+    print("[fitness] Detecting climbs...")
+    try:
+        climb_count = detect_climbs_for_rides(conn)
+        if climb_count > 0:
+            print(f"[fitness] Detected climbs for {climb_count} rides")
+    except Exception as e:
+        print(f"[fitness] Climb detection failed (non-fatal): {e}")
 
     print(f"[fitness] Calculated {count} days of fitness data (CTL={ctl:.1f}, ATL={atl:.1f}, TSB={ctl-atl:.1f})")
