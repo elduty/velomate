@@ -1299,7 +1299,7 @@
           }
         }
       },
-      "description": "Algorithmic FTP estimate from rolling 90-day best 20-min \u00d7 0.95. Shown for diagnostic comparison against the configured value. When this differs from Configured FTP by more than ~10%, consider doing an FTP test and updating VELOMATE_FTP."
+      "description": "Algorithmic FTP estimate.\n\nSource: Critical Power model fit when quality is good\n(R\u00b2 >= 0.9 and >= 4 of 5 standard durations contributing).\n\nFalls back to rolling 90-day best 20-min x 0.95 when the\nCP fit quality gate fails.\n\nBoth values are stored in the cp_estimates table for\ncomparison \u2014 see CP / W' Progression on All Time Progression."
     },
     {
       "id": 224,

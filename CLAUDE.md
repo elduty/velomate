@@ -134,6 +134,7 @@ All cycling metrics follow industry standards. The ingestor is the single source
 - **EF**: NP / avg_hr
 - **Decoupling**: `first_EF / second_EF - 1` (positive = drift, per Friel/TrainingPeaks). Includes coasting samples.
 - **W/kg**: NP / ride_weight. Uses NP (not avg_power) for physiological accuracy. Per-ride `ride_weight` from `VELOMATE_WEIGHT`, preserved on weight change
+- **CP / W'**: Critical Power and W' (anaerobic work capacity) modeled via Monod-Scherrer 2-parameter fit (`P = W'/t + CP`) on mean maximal power at 5 standard durations (60s/120s/300s/600s/1200s). Stored daily in `cp_estimates`. Quality gate: R² >= 0.9 AND >= 4 of 5 durations contributing. Graceful fallback to rolling 20-min x 0.95 when the gate fails. Replaces the rolling 20-min calculation as the source of `sync_state.estimated_ftp`
 - **HR Zones**: Max HR percentages (60/70/80/90%), default fallback 185 bpm
 - **Power Zones**: Coggan 7-zone including Z7 Neuromuscular (>150% FTP)
 
@@ -153,6 +154,7 @@ Direct one-to-one comparison of VI, EF, and IF between VeloMate and GoldenCheeta
 - **Resting HR** included in config change detection — changing it triggers TRIMP recalculation
 - **Per-ride FTP**: Historical rides preserve their TSS and IF via `ride_ftp` column + backfill from 90-day rolling best
 - **Per-ride weight**: `ride_weight` column stores configured weight at time of processing. Unlike `ride_ftp`, weight changes do NOT reset historical rides — old rides keep their stamped weight, only new rides get the new value. Weight is intentionally excluded from the METRICS_VERSION reset because it's user-configured, not derived
+- **CP/W' modeling**: Monod-Scherrer linear fit via `numpy.polyfit` (no scipy dependency). Quality gate (R² >= 0.9 AND >= 4/5 durations) with 90d -> 180d -> existing `estimate_ftp()` fallback. CP replaces only the auto-estimate path — `VELOMATE_FTP` (when configured) still wins for TSS calculation. Pure functions in `ingestor/critical_power.py`, DB-touching helpers in `ingestor/fitness.py`. Physiological sanity check rejects fits with CP <= 0 or W' <= 0
 - **Grafana reads stored NP/EF/IF/VI/TRIMP** from activities table; stream-level SQL only for historical charts (FTP Progression, Best Efforts, Power Duration Curve)
 - **FTP in Grafana**: All panels use standardised fallback: configured_ftp → estimated_ftp → 150
 

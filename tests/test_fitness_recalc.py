@@ -140,7 +140,12 @@ def _make_conn(activity_rows, power_activity_rows=None, tss_rows=None,
             # else: UPDATE trimp (no special setup needed)
         elif idx == readback_idx:
             cur.fetchall.return_value = tss_rows or []
-        # else: upsert_athlete_stats calls
+        else:
+            # Cursors after the documented sequence belong to
+            # compute_cp_estimate.  Return empty/None so the CP path
+            # short-circuits on the "no power streams" check.
+            cur.fetchone.return_value = None
+            cur.fetchall.return_value = []
 
         return ctx
 

@@ -238,6 +238,155 @@ def estimate_ftp(conn) -> int:
     return DEFAULT_FTP
 
 
+# CP/W' standard duration buckets (seconds) — sweet spot for the
+# Monod-Scherrer model. Sub-60s is dominated by neuromuscular factors,
+# >20min has insufficient density in most riders' data.
+CP_DURATIONS = [60, 120, 300, 600, 1200]
+
+
+def fit_period(conn, days: int) -> tuple[float | None, float | None, float | None, list[int]]:
+    """Fit Monod-Scherrer for activities in the last `days` days.
+
+    Returns (cp_watts, w_prime_kj, r_squared, durations_present) where
+    durations_present is the list of CP_DURATIONS buckets that had at
+    least one ride contributing a max effort.
+
+    Returns (None, None, None, []) when:
+    - No power-stream rides in the window
+    - fit_monod_scherrer rejects the fit (degenerate or non-physiological)
+    """
+    from critical_power import compute_mean_maximal_power, fit_monod_scherrer
+
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT a.id FROM activities a
+            WHERE a.date >= CURRENT_DATE - %s * interval '1 day'
+              AND EXISTS (
+                  SELECT 1 FROM activity_streams s
+                  WHERE s.activity_id = a.id AND s.power IS NOT NULL
+              )
+        """, (days,))
+        activity_ids = [row[0] for row in cur.fetchall()]
+
+    if not activity_ids:
+        return (None, None, None, [])
+
+    period_max = {}
+    for act_id in activity_ids:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT power FROM activity_streams
+                WHERE activity_id = %s AND power IS NOT NULL
+                ORDER BY time_offset
+            """, (act_id,))
+            powers = [float(row[0]) for row in cur.fetchall()]
+
+        for duration in CP_DURATIONS:
+            mmp = compute_mean_maximal_power(powers, duration)
+            if mmp is None:
+                continue
+            if duration not in period_max or mmp > period_max[duration]:
+                period_max[duration] = mmp
+
+    if len(period_max) < 2:
+        return (None, None, None, list(period_max.keys()))
+
+    efforts = sorted(period_max.items())
+    cp, w_prime_kj, r2 = fit_monod_scherrer(efforts)
+    return (cp, w_prime_kj, r2, sorted(period_max.keys()))
+
+
+def compute_cp_estimate(
+    conn,
+    fallback_ftp: int | None = None,
+) -> tuple[str, float, float | None, float | None, int | None] | None:
+    """Compute today's CP estimate and persist to cp_estimates + sync_state.
+
+    Tries 90-day window first, then 180-day fallback, then falls back to
+    the existing rolling 20-min x 0.95 estimate (estimate_ftp). Always
+    populates cp_estimates.fallback_ftp regardless of which source wins,
+    so the user can compare directly.
+
+    Args:
+        conn: psycopg2 connection.
+        fallback_ftp: precomputed rolling 20-min x 0.95 value to avoid
+            redundant DB queries. If None, computes via estimate_ftp(conn).
+            Pass the auto_ftp variable from recalculate_fitness here so the
+            existing call site is reused.
+
+    Returns the chosen tuple (source, value, w_prime_kj, r_squared, period_days)
+    or None when there is no data at all to act on.
+    """
+    from critical_power import assess_fit_quality
+    import db as _db
+
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT 1 FROM activity_streams WHERE power IS NOT NULL LIMIT 1
+        """)
+        if cur.fetchone() is None:
+            print("[fitness] No power streams — skipping CP estimate")
+            return None
+
+    if fallback_ftp is None:
+        fallback_ftp = estimate_ftp(conn)
+    fallback = fallback_ftp
+
+    cp_90, wp_90, r2_90, durations_90 = fit_period(conn, days=90)
+    if assess_fit_quality(r2_90, len(durations_90)):
+        result = ("cp", cp_90, wp_90, r2_90, 90)
+        chosen_duration_count = len(durations_90)
+    else:
+        cp_180, wp_180, r2_180, durations_180 = fit_period(conn, days=180)
+        if assess_fit_quality(r2_180, len(durations_180)):
+            result = ("cp", cp_180, wp_180, r2_180, 180)
+            chosen_duration_count = len(durations_180)
+        elif fallback is not None:
+            result = ("20min_fallback", float(fallback), None, None, None)
+            chosen_duration_count = None
+        else:
+            print("[fitness] CP fit failed and fallback FTP unavailable")
+            return None
+
+    source, value, w_prime_kj, r_squared, period_days = result
+
+    with conn.cursor() as cur:
+        cur.execute("""
+            INSERT INTO cp_estimates
+                (date, cp_watts, w_prime_kj, r_squared, period_days,
+                 duration_count, source, fallback_ftp, updated_at)
+            VALUES (CURRENT_DATE, %s, %s, %s, %s, %s, %s, %s, NOW())
+            ON CONFLICT (date) DO UPDATE SET
+                cp_watts = EXCLUDED.cp_watts,
+                w_prime_kj = EXCLUDED.w_prime_kj,
+                r_squared = EXCLUDED.r_squared,
+                period_days = EXCLUDED.period_days,
+                duration_count = EXCLUDED.duration_count,
+                source = EXCLUDED.source,
+                fallback_ftp = EXCLUDED.fallback_ftp,
+                updated_at = NOW()
+        """, (
+            value if source == "cp" else None,
+            w_prime_kj,
+            r_squared,
+            period_days,
+            chosen_duration_count,
+            source,
+            fallback,
+        ))
+
+    _db.set_sync_state(conn, "estimated_ftp", str(int(round(value))))
+    _db.set_sync_state(conn, "estimated_ftp_source", source)
+    if w_prime_kj is not None:
+        _db.set_sync_state(conn, "estimated_cp_w_prime_kj", f"{w_prime_kj:.2f}")
+    if r_squared is not None:
+        _db.set_sync_state(conn, "estimated_cp_quality", f"{r_squared:.3f}")
+
+    r2_display = f"{r_squared:.3f}" if r_squared is not None else "n/a"
+    print(f"[fitness] CP estimate: {value:.0f}W (source={source}, R²={r2_display})")
+    return result
+
+
 def recalculate_fitness(conn):
     """
     Walk day-by-day from earliest activity, applying EMA:
@@ -622,5 +771,16 @@ def recalculate_fitness(conn):
         raise
     finally:
         conn.autocommit = True
+
+    # Step 6: Compute CP/W' estimate (graceful fallback to existing rolling
+    # 20-min x 0.95 when fit quality is poor). Pass auto_ftp through so
+    # compute_cp_estimate doesn't redundantly recompute it — the value is
+    # already in scope from the FTP resolution at line 274 of this function
+    # (unconditional assignment: auto_ftp = estimate_ftp(conn)).
+    print("[fitness] Computing CP / W' estimate...")
+    try:
+        compute_cp_estimate(conn, fallback_ftp=auto_ftp)
+    except Exception as e:
+        print(f"[fitness] CP estimate failed (non-fatal): {e}")
 
     print(f"[fitness] Calculated {count} days of fitness data (CTL={ctl:.1f}, ATL={atl:.1f}, TSB={ctl-atl:.1f})")

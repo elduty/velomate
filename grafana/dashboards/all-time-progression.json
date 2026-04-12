@@ -1003,12 +1003,141 @@
       "description": "Normalized power-to-weight ratio per ride over time.\n\nA rising trend means you're getting faster \u2014 whether from gaining\npower, losing weight, or both.\n\nRequires VELOMATE_WEIGHT to be configured."
     },
     {
+      "id": 1003,
+      "title": "CP / W' Progression",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 36,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT date::timestamptz AS time,\n  cp_watts AS \"CP (W)\",\n  w_prime_kj AS \"W' (kJ)\"\nFROM cp_estimates\nWHERE source = 'cp' AND $__timeFilter(date)\nORDER BY date;",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "watt",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#3498db"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "axisPlacement": "auto"
+          },
+          "noValue": "No data"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "W' (kJ)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "kj"
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#e67e22"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "description": "Critical Power and W' (anaerobic work capacity) over time.\n\nCP rising = aerobic ceiling improving.\n\nW' rising = anaerobic capacity improving.\n\nFiltered to source='cp' rows only \u2014 fallback days are skipped.",
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      }
+    },
+    {
+      "id": 1004,
+      "title": "Power-Duration Curve",
+      "type": "xychart",
+      "gridPos": {
+        "x": 12,
+        "y": 36,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "WITH recent AS (\n  SELECT a.id FROM activities a\n  WHERE a.date >= CURRENT_DATE - interval '90 days'\n    AND EXISTS (SELECT 1 FROM activity_streams s WHERE s.activity_id = a.id AND s.power IS NOT NULL)\n),\nrolling AS (\n  SELECT s.activity_id,\n    ROW_NUMBER() OVER (PARTITION BY s.activity_id ORDER BY s.time_offset) AS rn,\n    AVG(s.power) OVER w60   AS p60,\n    AVG(s.power) OVER w120  AS p120,\n    AVG(s.power) OVER w300  AS p300,\n    AVG(s.power) OVER w600  AS p600,\n    AVG(s.power) OVER w1200 AS p1200\n  FROM activity_streams s\n  JOIN recent r ON r.id = s.activity_id\n  WHERE s.power IS NOT NULL\n  WINDOW w60   AS (PARTITION BY s.activity_id ORDER BY s.time_offset ROWS BETWEEN 59   PRECEDING AND CURRENT ROW),\n         w120  AS (PARTITION BY s.activity_id ORDER BY s.time_offset ROWS BETWEEN 119  PRECEDING AND CURRENT ROW),\n         w300  AS (PARTITION BY s.activity_id ORDER BY s.time_offset ROWS BETWEEN 299  PRECEDING AND CURRENT ROW),\n         w600  AS (PARTITION BY s.activity_id ORDER BY s.time_offset ROWS BETWEEN 599  PRECEDING AND CURRENT ROW),\n         w1200 AS (PARTITION BY s.activity_id ORDER BY s.time_offset ROWS BETWEEN 1199 PRECEDING AND CURRENT ROW)\n)\n-- ROWS-based windows count rows not seconds \u2014 assumes 1Hz stream data (Strava default).\n-- Filter rn >= duration so partial windows at ride start are excluded.\nSELECT 60   AS \"duration_s\", MAX(p60)   AS \"power\" FROM rolling WHERE rn >= 60   UNION ALL\nSELECT 120,  MAX(p120)  FROM rolling WHERE rn >= 120  UNION ALL\nSELECT 300,  MAX(p300)  FROM rolling WHERE rn >= 300  UNION ALL\nSELECT 600,  MAX(p600)  FROM rolling WHERE rn >= 600  UNION ALL\nSELECT 1200, MAX(p1200) FROM rolling WHERE rn >= 1200\nORDER BY 1;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "pointSize": 8,
+            "show": "points"
+          },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#3498db"
+          }
+        },
+        "overrides": []
+      },
+      "description": "Mean maximal power at standard durations (1, 2, 5, 10, 20 min)\nfrom the last 90 days, plotted against the fitted Monod-Scherrer\ncurve.\n\nData points well above the curve = strong efforts.\nCurve far below points = poor fit (check R\u00b2 in Est. FTP description).\n\nNote: always uses a fixed 90-day window regardless of the dashboard\ntime picker. This shows your current power profile, not a historical\none. The CP Progression panel respects the time picker for trends.",
+      "options": {
+        "series": [
+          {
+            "x": {
+              "matcher": {
+                "id": "byName",
+                "options": "duration_s"
+              }
+            },
+            "y": {
+              "matcher": {
+                "id": "byName",
+                "options": "power"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
       "id": 500,
       "title": "Weekly Power Range",
       "type": "candlestick",
       "gridPos": {
         "x": 0,
-        "y": 36,
+        "y": 44,
         "w": 24,
         "h": 8
       },
@@ -1041,7 +1170,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 44,
+        "y": 52,
         "w": 24,
         "h": 1
       },
@@ -1053,7 +1182,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 45,
+        "y": 53,
         "w": 12,
         "h": 8
       },
@@ -1092,7 +1221,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 12,
-        "y": 45,
+        "y": 53,
         "w": 12,
         "h": 8
       },
@@ -1184,7 +1313,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 53,
+        "y": 61,
         "w": 24,
         "h": 1
       },
@@ -1196,7 +1325,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 54,
+        "y": 62,
         "w": 12,
         "h": 8
       },
@@ -1340,7 +1469,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 12,
-        "y": 54,
+        "y": 62,
         "w": 12,
         "h": 8
       },
@@ -1454,7 +1583,7 @@
       "type": "barchart",
       "gridPos": {
         "x": 0,
-        "y": 62,
+        "y": 70,
         "w": 24,
         "h": 8
       },
@@ -1580,7 +1709,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 70,
+        "y": 78,
         "w": 24,
         "h": 1
       },
@@ -1592,7 +1721,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 71,
+        "y": 79,
         "w": 24,
         "h": 8
       },
@@ -1691,7 +1820,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 79,
+        "y": 87,
         "w": 24,
         "h": 1
       },
@@ -1703,7 +1832,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 80,
+        "y": 88,
         "w": 12,
         "h": 8
       },
@@ -1740,7 +1869,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 12,
-        "y": 80,
+        "y": 88,
         "w": 12,
         "h": 8
       },
@@ -1777,7 +1906,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 88,
+        "y": 96,
         "w": 12,
         "h": 8
       },
@@ -1814,7 +1943,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 12,
-        "y": 88,
+        "y": 96,
         "w": 12,
         "h": 8
       },
@@ -1850,7 +1979,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 96,
+        "y": 104,
         "w": 12,
         "h": 8
       },
@@ -1886,7 +2015,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 12,
-        "y": 96,
+        "y": 104,
         "w": 12,
         "h": 8
       },
@@ -1923,7 +2052,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 104,
+        "y": 112,
         "w": 24,
         "h": 1
       },
@@ -1935,7 +2064,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 105,
+        "y": 113,
         "w": 12,
         "h": 8
       },
@@ -2048,7 +2177,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 12,
-        "y": 105,
+        "y": 113,
         "w": 12,
         "h": 8
       },
@@ -2161,7 +2290,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 113,
+        "y": 121,
         "w": 12,
         "h": 8
       },
@@ -2273,7 +2402,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 12,
-        "y": 113,
+        "y": 121,
         "w": 12,
         "h": 8
       },
@@ -2387,7 +2516,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 121,
+        "y": 129,
         "w": 24,
         "h": 1
       },
@@ -2399,7 +2528,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 122,
+        "y": 130,
         "w": 12,
         "h": 8
       },
@@ -2472,7 +2601,7 @@
       "type": "table",
       "gridPos": {
         "x": 12,
-        "y": 122,
+        "y": 130,
         "w": 12,
         "h": 8
       },
@@ -2503,7 +2632,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 130,
+        "y": 138,
         "w": 24,
         "h": 1
       },
@@ -2515,7 +2644,7 @@
       "type": "table",
       "gridPos": {
         "x": 0,
-        "y": 131,
+        "y": 139,
         "w": 24,
         "h": 10
       },
@@ -2578,7 +2707,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 141,
+        "y": 149,
         "w": 24,
         "h": 1
       },
@@ -2590,7 +2719,7 @@
       "type": "geomap",
       "gridPos": {
         "x": 0,
-        "y": 142,
+        "y": 150,
         "w": 24,
         "h": 14
       },

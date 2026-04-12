@@ -111,6 +111,18 @@ def create_schema(conn):
             ALTER TABLE activities ADD COLUMN IF NOT EXISTS aerobic_decoupling FLOAT;
             ALTER TABLE activities ADD COLUMN IF NOT EXISTS ride_weight FLOAT;
 
+            CREATE TABLE IF NOT EXISTS cp_estimates (
+                date            DATE PRIMARY KEY,
+                cp_watts        FLOAT,
+                w_prime_kj      FLOAT,
+                r_squared       FLOAT,
+                period_days     INTEGER,
+                duration_count  INTEGER,
+                source          TEXT NOT NULL,
+                fallback_ftp    FLOAT,
+                updated_at      TIMESTAMPTZ DEFAULT NOW()
+            );
+
             CREATE INDEX IF NOT EXISTS idx_activities_date ON activities(date);
             CREATE INDEX IF NOT EXISTS idx_activity_streams_activity_id ON activity_streams(activity_id);
             CREATE UNIQUE INDEX IF NOT EXISTS idx_activities_komoot_tour_id
