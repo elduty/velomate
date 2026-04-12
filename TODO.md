@@ -23,7 +23,7 @@ Prioritised backlog. Full rationale for all items lives in `docs/features-analys
 - [ ] Equipment tracking — bikes + components + mileage + wear alerts (gap #7)
 - [x] Climb categorisation (HC/Cat 1–4) from GPS elevation — Detected Climbs table on Activity Details with category/gain/length/grade/duration. 30s smoothed altitude, 50m minimum gain. Pure Grafana SQL.
 - [x] Training Monotony & Strain (Foster) — Monotony + Strain stat cards on Overview after CTL chart. Monotony = mean/stdev of daily TSS over 7 days. Strain = weekly TSS × Monotony. Threshold-coloured (green/yellow/red). Pure Grafana SQL.
-- [ ] OAuth browser flow for Strava — `velomate auth` CLI command (gap #12)
+- [x] OAuth browser flow for Strava (#117) — `velomate auth` CLI command. Manual paste flow, no port forwarding needed.
 - [ ] Direct FIT file import — bypass Strava for offline rides (gap #13)
 
 ### Low
