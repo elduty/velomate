@@ -1,21 +1,25 @@
 """Climb detection from GPS elevation profiles.
 
-Uses the Ramer-Douglas-Peucker (RDP) algorithm to simplify the
-elevation profile, then identifies uphill segments between the
-simplified inflection points. Strava scoring for categorisation.
+Uses a GoldenCheetah-inspired state machine for detection with dynamic
+downhill thresholds, and Strava's scoring formula for categorisation.
 
-This approach is mathematically grounded (RDP is a proven line
-simplification algorithm) with ONE tuning parameter (epsilon)
-instead of multiple hand-tuned thresholds.
+Detection: walks the smoothed elevation profile tracking local lows
+and peaks. A climb starts when altitude rises consistently. A climb
+ends when altitude drops more than 20% of the accumulated gain
+(GoldenCheetah's approach — adapts naturally to climb size).
+
+Categorisation (Strava formula):
+    score = length_m × gradient_%
+    Cat 4: 8000+, Cat 3: 16000+, Cat 2: 32000+, Cat 1: 64000+, HC: 80000+
+
+Minimum 500m distance and 2% average gradient to qualify.
 
 References:
-- ActivityLog2 climb analysis (RDP-based detection)
+- GoldenCheetah RideItem.cpp (climb detection state machine)
 - Strava climb categories (length × gradient scoring)
 """
 
 from __future__ import annotations
-
-import math
 
 
 def smooth_altitude(altitudes: list[float], window: int = 20) -> list[float]:
@@ -41,107 +45,6 @@ def smooth_altitude(altitudes: list[float], window: int = 20) -> list[float]:
     return result
 
 
-def _rdp_simplify(
-    points: list[tuple[float, float]], epsilon: float
-) -> list[tuple[float, float, int]]:
-    """Ramer-Douglas-Peucker line simplification.
-
-    Args:
-        points: list of (x, y) points defining the curve.
-        epsilon: maximum perpendicular distance for a point to be
-            considered insignificant and removed.
-
-    Returns:
-        Simplified list of (x, y, original_index) tuples preserving
-        the significant inflection points.
-    """
-    if len(points) <= 2:
-        return [(x, y, i) for i, (x, y) in enumerate(points)]
-
-    # Find the point farthest from the line connecting start and end
-    start_x, start_y = points[0]
-    end_x, end_y = points[-1]
-
-    dx = end_x - start_x
-    dy = end_y - start_y
-    line_len = math.sqrt(dx * dx + dy * dy)
-
-    max_dist = 0.0
-    max_idx = 0
-
-    for i in range(1, len(points) - 1):
-        px, py = points[i]
-        if line_len > 0:
-            # Perpendicular distance from point to line
-            dist = abs(dy * px - dx * py + end_x * start_y - end_y * start_x) / line_len
-        else:
-            dist = math.sqrt((px - start_x) ** 2 + (py - start_y) ** 2)
-
-        if dist > max_dist:
-            max_dist = dist
-            max_idx = i
-
-    if max_dist > epsilon:
-        # Recursively simplify each half
-        left = _rdp_simplify(points[:max_idx + 1], epsilon)
-        right = _rdp_simplify(points[max_idx:], epsilon)
-        # Adjust right indices (they're relative to the sub-array)
-        offset = max_idx
-        right_adjusted = [(x, y, idx + offset) for x, y, idx in right]
-        # Merge (avoid duplicating the split point)
-        return left + right_adjusted[1:]
-    else:
-        # All intermediate points are insignificant
-        return [
-            (points[0][0], points[0][1], 0),
-            (points[-1][0], points[-1][1], len(points) - 1),
-        ]
-
-
-def _rdp_with_original_indices(
-    points: list[tuple[float, float]], epsilon: float
-) -> list[tuple[float, float, int]]:
-    """RDP that tracks original indices through recursion."""
-    indexed = [(x, y, i) for i, (x, y) in enumerate(points)]
-    return _rdp_indexed(indexed, epsilon)
-
-
-def _rdp_indexed(
-    points: list[tuple[float, float, int]], epsilon: float
-) -> list[tuple[float, float, int]]:
-    """RDP on indexed points, preserving original indices."""
-    if len(points) <= 2:
-        return list(points)
-
-    start_x, start_y, _ = points[0]
-    end_x, end_y, _ = points[-1]
-
-    dx = end_x - start_x
-    dy = end_y - start_y
-    line_len = math.sqrt(dx * dx + dy * dy)
-
-    max_dist = 0.0
-    max_idx = 0
-
-    for i in range(1, len(points) - 1):
-        px, py, _ = points[i]
-        if line_len > 0:
-            dist = abs(dy * px - dx * py + end_x * start_y - end_y * start_x) / line_len
-        else:
-            dist = math.sqrt((px - start_x) ** 2 + (py - start_y) ** 2)
-
-        if dist > max_dist:
-            max_dist = dist
-            max_idx = i
-
-    if max_dist > epsilon:
-        left = _rdp_indexed(points[:max_idx + 1], epsilon)
-        right = _rdp_indexed(points[max_idx:], epsilon)
-        return left + right[1:]
-    else:
-        return [points[0], points[-1]]
-
-
 def classify_climb(length_m: float, avg_grade: float) -> str:
     """Classify a climb using Strava's scoring formula.
 
@@ -165,26 +68,22 @@ def classify_climb(length_m: float, avg_grade: float) -> str:
 def detect_climbs(
     altitudes: list[float],
     distances_m: list[float],
-    epsilon: float = 10.0,
-    min_distance_m: float = 200.0,
+    min_distance_m: float = 500.0,
     min_gradient: float = 2.0,
     time_offsets: list[int] | None = None,
 ) -> list[dict]:
-    """Detect climbs using RDP simplification of the elevation profile.
+    """Detect climbs from a smoothed elevation profile.
 
-    1. Builds a (distance, altitude) curve from the smoothed data
-    2. Applies RDP to find significant inflection points
-    3. Walks the simplified curve: each uphill segment is a potential climb
-    4. Merges consecutive uphill segments (small dips absorbed by RDP)
-    5. Filters by minimum distance and gradient
-    6. Classifies using Strava scoring
+    Uses a GoldenCheetah-inspired algorithm: tracks local lows and peaks.
+    A climb ends when altitude drops more than 20% of the gain accumulated
+    so far (dynamic threshold — adapts to climb size). This naturally
+    handles rolling terrain: small dips mid-climb are absorbed, large
+    descents split the climb.
 
     Args:
         altitudes: smoothed altitude values (metres), one per sample.
         distances_m: cumulative distance in metres, same length as altitudes.
-        epsilon: RDP sensitivity. Lower = more detail, higher = smoother.
-            10m works well for urban/rolling terrain.
-        min_distance_m: minimum climb length (metres). Default 200m.
+        min_distance_m: minimum climb length (metres). Default 500m (GC standard).
         min_gradient: minimum average gradient (%) to qualify.
         time_offsets: actual time_offset values from the stream for duration.
 
@@ -195,64 +94,126 @@ def detect_climbs(
     if len(altitudes) < 2 or len(distances_m) < 2:
         return []
 
-    # Build the (distance, altitude) curve
-    points = [(distances_m[i], altitudes[i]) for i in range(len(altitudes))]
-
-    # Apply RDP to simplify
-    simplified = _rdp_with_original_indices(points, epsilon)
-
-    # Walk the simplified points: find uphill segments
     climbs = []
-    i = 0
-    while i < len(simplified) - 1:
-        dist_i, alt_i, idx_i = simplified[i]
-        dist_j, alt_j, idx_j = simplified[i + 1]
+    n = len(altitudes)
 
-        if alt_j > alt_i:
-            # Uphill segment — extend through consecutive uphills
-            climb_start = i
-            climb_end = i + 1
-            while climb_end < len(simplified) - 1:
-                _, alt_next, _ = simplified[climb_end + 1]
-                _, alt_curr, _ = simplified[climb_end]
-                if alt_next > alt_curr:
-                    climb_end += 1
-                else:
-                    break
+    # State tracking
+    in_climb = False
+    climb_start_idx = 0
+    low_point = altitudes[0]
+    low_point_idx = 0
+    peak = altitudes[0]
+    peak_idx = 0
 
-            # Compute climb metrics
-            s_dist, s_alt, s_idx = simplified[climb_start]
-            e_dist, e_alt, e_idx = simplified[climb_end]
+    for i in range(1, n):
+        alt = altitudes[i]
 
-            gain = e_alt - s_alt
-            length = e_dist - s_dist
-
-            if length >= min_distance_m and gain > 0:
-                avg_grade = (gain / length) * 100
-                if avg_grade >= min_gradient:
-                    if time_offsets is not None:
-                        duration_s = time_offsets[e_idx] - time_offsets[s_idx]
-                    else:
-                        duration_s = e_idx - s_idx
-
-                    category = classify_climb(length, avg_grade)
-                    score = round(length * avg_grade)
-
-                    climbs.append({
-                        "start_idx": s_idx,
-                        "end_idx": e_idx,
-                        "gain_m": round(gain),
-                        "length_m": round(length),
-                        "avg_grade": round(avg_grade, 1),
-                        "start_alt": round(s_alt),
-                        "peak_alt": round(e_alt),
-                        "duration_s": duration_s,
-                        "category": category,
-                        "score": score,
-                    })
-
-            i = climb_end + 1
+        if not in_climb:
+            # Track the lowest point
+            if alt < low_point:
+                low_point = alt
+                low_point_idx = i
+            # Start climbing when we've risen 5m above the low
+            elif alt - low_point >= 5.0:
+                in_climb = True
+                climb_start_idx = low_point_idx
+                peak = alt
+                peak_idx = i
         else:
-            i += 1
+            # Track the peak
+            if alt >= peak:
+                peak = alt
+                peak_idx = i
+
+            # GoldenCheetah-style dynamic threshold:
+            # End the climb when we've descended more than 20% of the
+            # gain accumulated so far. This adapts naturally:
+            # - 100m climb tolerates 20m dips
+            # - 30m climb tolerates 6m dips
+            # - 15m climb tolerates 3m dips
+            gain_so_far = peak - altitudes[climb_start_idx]
+            descent_threshold = max(gain_so_far * 0.20, 3.0)  # at least 3m
+
+            if peak - alt > descent_threshold:
+                # End the climb at the peak
+                _maybe_add_climb(
+                    climbs, altitudes, distances_m,
+                    climb_start_idx, peak_idx,
+                    min_distance_m, min_gradient, time_offsets,
+                )
+                # Reset
+                in_climb = False
+                low_point = alt
+                low_point_idx = i
+                peak = alt
+                peak_idx = i
+
+    # Handle climb that extends to end of ride
+    if in_climb:
+        _maybe_add_climb(
+            climbs, altitudes, distances_m,
+            climb_start_idx, peak_idx,
+            min_distance_m, min_gradient, time_offsets,
+        )
 
     return climbs
+
+
+def _maybe_add_climb(
+    climbs: list[dict],
+    altitudes: list[float],
+    distances_m: list[float],
+    start_idx: int,
+    end_idx: int,
+    min_distance_m: float,
+    min_gradient: float,
+    time_offsets: list[int] | None = None,
+) -> None:
+    """Add a climb if it meets minimum distance and gradient requirements.
+
+    Trims flat sections from the start by walking forward until the
+    gradient over the next 30 samples exceeds 1%.
+    """
+    # Trim flat start: advance until gradient is positive
+    trimmed_start = start_idx
+    lookahead = min(30, (end_idx - start_idx) // 4)
+    if lookahead > 5:
+        for i in range(start_idx, end_idx - lookahead):
+            alt_ahead = altitudes[i + lookahead] - altitudes[i]
+            dist_ahead = distances_m[i + lookahead] - distances_m[i]
+            if dist_ahead > 0 and (alt_ahead / dist_ahead) * 100 >= 1.0:
+                trimmed_start = i
+                break
+
+    gain = altitudes[end_idx] - altitudes[trimmed_start]
+    if gain < 5.0:  # absolute minimum gain
+        return
+
+    length_m = distances_m[end_idx] - distances_m[trimmed_start]
+    if length_m < min_distance_m:
+        return
+
+    avg_grade = (gain / length_m) * 100
+    if avg_grade < min_gradient:
+        return
+
+    if time_offsets is not None:
+        duration_s = time_offsets[end_idx] - time_offsets[trimmed_start]
+    else:
+        duration_s = end_idx - trimmed_start
+
+    category = classify_climb(length_m, avg_grade)
+    score = round(length_m * avg_grade)
+
+    climbs.append({
+        "start_idx": trimmed_start,
+        "end_idx": end_idx,
+        "gain_m": round(gain),
+        "length_m": round(length_m),
+        "avg_grade": round(avg_grade, 1),
+        "start_alt": round(altitudes[trimmed_start]),
+        "peak_alt": round(altitudes[end_idx]),
+        "duration_s": duration_s,
+        "category": category,
+        "score": score,
+    })
