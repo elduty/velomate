@@ -643,8 +643,10 @@ def recalculate_fitness(conn):
             # ride_weight intentionally excluded — it's user-configured, not derived.
             # Historical rides preserve their stamped weight across version bumps.
             cur.execute("UPDATE activities SET tss = NULL, np = NULL, ef = NULL, work_kj = NULL, ride_ftp = NULL, intensity_factor = NULL, trimp = NULL, variability_index = NULL, aerobic_decoupling = NULL")
+            cur.execute("UPDATE activity_streams SET w_bal = NULL WHERE w_bal IS NOT NULL")
             cur.execute("DELETE FROM athlete_stats")
             cur.execute("DELETE FROM ride_intervals")
+            cur.execute("DELETE FROM ride_climbs")
         _db.set_sync_state(conn, "metrics_version", METRICS_VERSION)
 
     # Step 1: Compute NP, EF, Work for activities with power stream data
