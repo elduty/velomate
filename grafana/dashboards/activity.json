@@ -839,7 +839,7 @@
       "id": 1500,
       "type": "table",
       "title": "Detected Climbs",
-      "description": "Climbs detected from the elevation profile.\n\nClassification based on total elevation gain:\n\n\ud83d\udd35 Cat 4 \u2014 100\u2013250m\n\n\ud83d\udfe2 Cat 3 \u2014 250\u2013500m\n\n\ud83d\udfe1 Cat 2 \u2014 500\u20131000m\n\n\ud83d\udfe0 Cat 1 \u2014 1000\u20131500m\n\n\ud83d\udd34 HC \u2014 > 1500m\n\nSmaller climbs (30\u2013100m) shown as 'Climb' without a category.\n\nUses 60-second smoothed altitude sampled every 30s.\nMinimum 1.5% average gradient to qualify.\nSmall dips (< 5m) are absorbed \u2014 nearby segments merge\ninto one climb instead of fragmenting on GPS noise.",
+      "description": "Climbs detected from the elevation profile.\n\nClassification based on total elevation gain:\n\n\ud83d\udd35 Cat 4 \u2014 100\u2013250m\n\n\ud83d\udfe2 Cat 3 \u2014 250\u2013500m\n\n\ud83d\udfe1 Cat 2 \u2014 500\u20131000m\n\n\ud83d\udfe0 Cat 1 \u2014 1000\u20131500m\n\n\ud83d\udd34 HC \u2014 > 1500m\n\nSmaller climbs (30\u2013100m) shown as 'Climb' without a category.\n\nUses 60-second smoothed altitude sampled every 30s.\nMinimum 15m gain and 1.5% average gradient to qualify.\nSmall dips (< 5m) are absorbed \u2014 nearby segments merge\ninto one climb instead of fragmenting on GPS noise.",
       "gridPos": {
         "x": 0,
         "y": 17,
