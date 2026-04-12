@@ -46,6 +46,7 @@ def detect_climbs(
     min_gain: float = 30.0,
     min_gradient: float = 1.5,
     merge_tolerance: float = 30.0,
+    time_offsets: list[int] | None = None,
 ) -> list[dict]:
     """Detect climbs from a smoothed elevation profile.
 
@@ -56,11 +57,14 @@ def detect_climbs(
     into one climb.
 
     Args:
-        altitudes: smoothed altitude values (metres), one per second.
+        altitudes: smoothed altitude values (metres), one per sample.
         distances_m: cumulative distance in metres, same length as altitudes.
         min_gain: minimum elevation gain (metres) to qualify as a climb.
         min_gradient: minimum average gradient (%) to qualify.
         merge_tolerance: maximum descent (metres) before ending a climb.
+        time_offsets: actual time_offset values from the stream. If provided,
+            duration_s uses real time instead of array index difference.
+            Handles streams with gaps (non-1Hz data).
 
     Returns:
         List of dicts, each with keys:
@@ -107,7 +111,7 @@ def detect_climbs(
                 _maybe_add_climb(
                     climbs, altitudes, distances_m,
                     climb_start_idx, peak_idx,
-                    min_gain, min_gradient,
+                    min_gain, min_gradient, time_offsets,
                 )
                 # Reset — start looking for next climb from current position
                 in_climb = False
@@ -121,7 +125,7 @@ def detect_climbs(
         _maybe_add_climb(
             climbs, altitudes, distances_m,
             climb_start_idx, peak_idx,
-            min_gain, min_gradient,
+            min_gain, min_gradient, time_offsets,
         )
 
     return climbs
@@ -135,6 +139,7 @@ def _maybe_add_climb(
     end_idx: int,
     min_gain: float,
     min_gradient: float,
+    time_offsets: list[int] | None = None,
 ) -> None:
     """Add a climb to the list if it meets the minimum gain and gradient."""
     gain = altitudes[end_idx] - altitudes[start_idx]
@@ -149,7 +154,10 @@ def _maybe_add_climb(
     if avg_grade < min_gradient:
         return
 
-    duration_s = end_idx - start_idx
+    if time_offsets is not None:
+        duration_s = time_offsets[end_idx] - time_offsets[start_idx]
+    else:
+        duration_s = end_idx - start_idx
 
     if gain >= 1500:
         category = "HC"

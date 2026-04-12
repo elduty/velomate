@@ -542,7 +542,8 @@ def detect_climbs_for_rides(conn) -> int:
             # Smooth with 20s window (matches Grade panel)
             altitudes = smooth_altitude(altitudes_raw, window=20)
 
-            climbs = detect_climbs(altitudes, cum_dist_m)
+            climbs = detect_climbs(altitudes, cum_dist_m, time_offsets=time_offsets)
+            print(f"[fitness] Activity {act_id}: {len(altitudes_raw)} alt samples, range {min(altitudes_raw):.0f}-{max(altitudes_raw):.0f}m, {len(climbs)} climbs detected")
 
             if climbs:
                 with conn.cursor() as cur:
