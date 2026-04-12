@@ -2856,7 +2856,7 @@
       "id": 1202,
       "title": "W'bal (Anaerobic Battery)",
       "description": "Per-second remaining anaerobic work capacity.\n\nStarts at W' (full battery). Drains when power exceeds CP.\nRefills exponentially when power is below CP.\n\nSkiba differential model with GoldenCheetah tau.\nComputed from the latest CP/W' estimate.",
-      "type": "timeseries",
+      "type": "trend",
       "gridPos": {
         "x": 0,
         "y": 113,
