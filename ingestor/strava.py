@@ -144,6 +144,90 @@ def fetch_recent_activities(access_token: str, after_epoch: int) -> list:
     return all_activities
 
 
+def parse_segment_climbs(detail: dict) -> list[dict]:
+    """Extract uphill segment efforts from a Strava activity detail response.
+
+    Returns a list of climb dicts compatible with ride_climbs schema,
+    filtered to uphill segments (average_grade > 0).
+    """
+    from climbs import classify_climb
+
+    efforts = detail.get("segment_efforts", [])
+    climbs = []
+    for e in efforts:
+        seg = e.get("segment", {})
+        grade = seg.get("average_grade", 0)
+        if grade <= 0:
+            continue
+
+        dist = seg.get("distance", 0)
+        elev_high = seg.get("elevation_high", 0)
+        elev_low = seg.get("elevation_low", 0)
+        gain = elev_high - elev_low
+        name = seg.get("name", "")
+        elapsed = e.get("elapsed_time", 0)
+
+        if dist <= 0 or gain <= 0:
+            continue
+
+        category = classify_climb(dist, grade)
+        score = round(dist * grade)
+
+        climbs.append({
+            "gain_m": round(gain),
+            "length_m": round(dist),
+            "avg_grade": round(grade, 1),
+            "start_alt": round(elev_low),
+            "peak_alt": round(elev_high),
+            "duration_s": elapsed,
+            "category": category,
+            "score": score,
+            "source": "strava",
+            "segment_name": name,
+            # Strava doesn't give us stream offsets for segments,
+            # so start_offset/end_offset will be NULL
+            "start_offset": None,
+            "end_offset": None,
+        })
+
+    return climbs
+
+
+def _store_strava_climbs(conn, activity_id: int, climbs: list[dict]) -> int:
+    """Store Strava segment climbs in ride_climbs.
+
+    Skips segments that are already stored (idempotent on re-sync).
+    """
+    stored = 0
+    with conn.cursor() as cur:
+        for c in climbs:
+            # Check if this segment is already stored (by name + activity)
+            cur.execute("""
+                SELECT 1 FROM ride_climbs
+                WHERE activity_id = %s AND segment_name = %s AND source = 'strava'
+            """, (activity_id, c["segment_name"]))
+            if cur.fetchone():
+                continue
+
+            cur.execute("""
+                INSERT INTO ride_climbs
+                    (activity_id, start_offset, end_offset, gain_m, length_m,
+                     avg_grade, start_alt, peak_alt, duration_s, category,
+                     score, source, segment_name)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (
+                activity_id, c["start_offset"], c["end_offset"], c["gain_m"],
+                c["length_m"], c["avg_grade"], c["start_alt"], c["peak_alt"],
+                c["duration_s"], c["category"], c["score"], "strava",
+                c["segment_name"],
+            ))
+            stored += 1
+
+    if stored:
+        print(f"  [segments] Stored {stored} Strava climb segments")
+    return stored
+
+
 def fetch_activity_detail(access_token: str, activity_id: int) -> dict:
     """GET /activities/{id} — returns full detail including calories, HR, suffer_score."""
     headers = {"Authorization": f"Bearer {access_token}"}
@@ -319,6 +403,14 @@ def sync_activities(conn, after_epoch: int = None):
         data = _merge_detail(data, detail)
 
         activity_id, streams_preserved = upsert_activity(conn, data)
+
+        # Store Strava segment efforts as climb data
+        try:
+            strava_climbs = parse_segment_climbs(detail)
+            if strava_climbs:
+                _store_strava_climbs(conn, activity_id, strava_climbs)
+        except Exception as e:
+            print(f"  [segments] {e}")
 
         # Fetch streams with rate limiting
         time.sleep(1.5)

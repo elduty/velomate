@@ -142,8 +142,13 @@ def create_schema(conn):
                 peak_alt        INTEGER,
                 duration_s      INTEGER,
                 category        TEXT,
-                score           INTEGER
+                score           INTEGER,
+                source          TEXT DEFAULT 'detected',
+                segment_name    TEXT
             );
+
+            ALTER TABLE ride_climbs ADD COLUMN IF NOT EXISTS source TEXT DEFAULT 'detected';
+            ALTER TABLE ride_climbs ADD COLUMN IF NOT EXISTS segment_name TEXT;
 
             ALTER TABLE ride_climbs ADD COLUMN IF NOT EXISTS score INTEGER;
 

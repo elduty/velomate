@@ -491,14 +491,18 @@ def detect_climbs_for_rides(conn) -> int:
     """
     from climbs import smooth_altitude, detect_climbs
 
-    # Find rides with altitude data that don't have climb rows
+    # Find rides with altitude data that don't have RDP-detected climb rows yet.
+    # Rides may already have Strava segments (source='strava') — that's fine,
+    # we still run detection to find unlisted climbs.
     with conn.cursor() as cur:
         cur.execute("""
             SELECT DISTINCT s.activity_id
             FROM activity_streams s
             WHERE s.altitude_m IS NOT NULL
               AND NOT EXISTS (
-                  SELECT 1 FROM ride_climbs rc WHERE rc.activity_id = s.activity_id
+                  SELECT 1 FROM ride_climbs rc
+                  WHERE rc.activity_id = s.activity_id
+                    AND rc.source IN ('detected', 'none')
               )
             ORDER BY s.activity_id
         """)
@@ -525,8 +529,8 @@ def detect_climbs_for_rides(conn) -> int:
                 # Insert a sentinel so we don't re-check this ride
                 with conn.cursor() as cur:
                     cur.execute("""
-                        INSERT INTO ride_climbs (activity_id, gain_m, category)
-                        VALUES (%s, 0, 'none')
+                        INSERT INTO ride_climbs (activity_id, gain_m, category, source)
+                        VALUES (%s, 0, 'none', 'none')
                     """, (act_id,))
                 continue
 
@@ -546,24 +550,65 @@ def detect_climbs_for_rides(conn) -> int:
             print(f"[fitness] Activity {act_id}: {len(altitudes_raw)} alt samples, range {min(altitudes_raw):.0f}-{max(altitudes_raw):.0f}m, {len(climbs)} climbs detected")
 
             if climbs:
+                # Get existing Strava segments for this ride to avoid duplicates
                 with conn.cursor() as cur:
+                    cur.execute("""
+                        SELECT start_alt, peak_alt FROM ride_climbs
+                        WHERE activity_id = %s AND source = 'strava'
+                    """, (act_id,))
+                    strava_ranges = [(row[0], row[1]) for row in cur.fetchall()]
+
+                with conn.cursor() as cur:
+                    inserted = 0
                     for c in climbs:
+                        # Skip if this detected climb overlaps a Strava segment
+                        # (Strava data is more accurate — let it win)
+                        overlaps_strava = False
+                        for s_low, s_high in strava_ranges:
+                            if s_low is not None and s_high is not None:
+                                # Check if altitude ranges overlap by at least 50%.
+                                # Limitation: can false-positive on rides with multiple
+                                # climbs to similar elevations. Unavoidable without
+                                # stream offsets on Strava segments.
+                                overlap_lo = max(c["start_alt"], s_low)
+                                overlap_hi = min(c["peak_alt"], s_high)
+                                overlap = max(0, overlap_hi - overlap_lo)
+                                detected_range = c["peak_alt"] - c["start_alt"]
+                                if detected_range > 0 and overlap / detected_range >= 0.5:
+                                    overlaps_strava = True
+                                    break
+
+                        if overlaps_strava:
+                            continue
+
                         cur.execute("""
                             INSERT INTO ride_climbs
                                 (activity_id, start_offset, end_offset, gain_m, length_m,
-                                 avg_grade, start_alt, peak_alt, duration_s, category, score)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                 avg_grade, start_alt, peak_alt, duration_s, category,
+                                 score, source)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'detected')
                         """, (
                             act_id, time_offsets[c["start_idx"]], time_offsets[c["end_idx"]], c["gain_m"],
                             c["length_m"], c["avg_grade"], c["start_alt"],
                             c["peak_alt"], c["duration_s"], c["category"], c["score"],
                         ))
+                        inserted += 1
+
+                    if not inserted:
+                        # No detected climbs survived (either none found or all
+                        # overlapped Strava segments). Insert sentinel to mark
+                        # detection as completed — prevents re-processing loop.
+                        cur.execute("""
+                            INSERT INTO ride_climbs (activity_id, gain_m, category, source)
+                            VALUES (%s, 0, 'none', 'none')
+                        """, (act_id,))
             else:
-                # No climbs found — insert sentinel
+                # No climbs detected — insert sentinel to mark detection as
+                # completed, regardless of whether Strava segments exist.
                 with conn.cursor() as cur:
                     cur.execute("""
-                        INSERT INTO ride_climbs (activity_id, gain_m, category)
-                        VALUES (%s, 0, 'none')
+                        INSERT INTO ride_climbs (activity_id, gain_m, category, source)
+                        VALUES (%s, 0, 'none', 'none')
                     """, (act_id,))
 
             count += 1
