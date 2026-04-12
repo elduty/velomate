@@ -228,6 +228,55 @@ def _store_strava_climbs(conn, activity_id: int, climbs: list[dict]) -> int:
     return stored
 
 
+def backfill_strava_segments(conn) -> int:
+    """Re-fetch Strava activity details for rides missing Strava segment data.
+
+    Finds rides that have a strava_id but no source='strava' rows in
+    ride_climbs, fetches their detail from the Strava API, and stores
+    any uphill segment efforts.
+
+    Rate-limited: 1 second between API calls.
+    """
+    import time as _time
+    from db import get_connection
+
+    # Find rides with Strava IDs that don't have Strava segments yet
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT a.id, a.strava_id FROM activities a
+            WHERE a.strava_id IS NOT NULL
+              AND NOT EXISTS (
+                  SELECT 1 FROM ride_climbs rc
+                  WHERE rc.activity_id = a.id AND rc.source = 'strava'
+              )
+            ORDER BY a.id
+        """)
+        rides = cur.fetchall()
+
+    if not rides:
+        return 0
+
+    token = _get_token()
+    count = 0
+    for act_id, strava_id in rides:
+        try:
+            _time.sleep(1.0)  # rate limit
+            detail = fetch_activity_detail(token, strava_id)
+            if not detail:
+                continue
+            strava_climbs = parse_segment_climbs(detail)
+            if strava_climbs:
+                stored = _store_strava_climbs(conn, act_id, strava_climbs)
+                if stored:
+                    count += 1
+                    print(f"[segments] Activity {act_id} (strava {strava_id}): {stored} segments")
+        except Exception as e:
+            print(f"[segments] Failed for activity {act_id}: {e}")
+            continue
+
+    return count
+
+
 def fetch_activity_detail(access_token: str, activity_id: int) -> dict:
     """GET /activities/{id} — returns full detail including calories, HR, suffer_score."""
     headers = {"Authorization": f"Bearer {access_token}"}

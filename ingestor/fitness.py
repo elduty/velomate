@@ -692,7 +692,8 @@ def recalculate_fitness(conn):
             cur.execute("UPDATE activity_streams SET w_bal = NULL WHERE w_bal IS NOT NULL")
             cur.execute("DELETE FROM athlete_stats")
             cur.execute("DELETE FROM ride_intervals")
-            cur.execute("DELETE FROM ride_climbs")
+            # Preserve Strava segments (external data), only reset our detection
+            cur.execute("DELETE FROM ride_climbs WHERE source != 'strava'")
         _db.set_sync_state(conn, "metrics_version", METRICS_VERSION)
 
     # Step 1: Compute NP, EF, Work for activities with power stream data
@@ -1026,7 +1027,17 @@ def recalculate_fitness(conn):
     except Exception as e:
         print(f"[fitness] W'bal computation failed (non-fatal): {e}")
 
-    # Step 8: Detect climbs for rides with altitude data that don't have climb rows yet
+    # Step 8a: Backfill Strava segments for rides that don't have them
+    print("[fitness] Backfilling Strava segments...")
+    try:
+        from strava import backfill_strava_segments
+        seg_count = backfill_strava_segments(conn)
+        if seg_count > 0:
+            print(f"[fitness] Backfilled Strava segments for {seg_count} rides")
+    except Exception as e:
+        print(f"[fitness] Strava segment backfill failed (non-fatal): {e}")
+
+    # Step 8b: Detect climbs for rides with altitude data that don't have climb rows yet
     print("[fitness] Detecting climbs...")
     try:
         climb_count = detect_climbs_for_rides(conn)

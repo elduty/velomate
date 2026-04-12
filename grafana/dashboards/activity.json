@@ -852,7 +852,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT\n  COALESCE(segment_name, category) AS \"Climb\",\n  category AS \"Category\",\n  gain_m AS \"Gain (m)\",\n  length_m AS \"Length (m)\",\n  avg_grade AS \"Avg Grade (%)\",\n  score AS \"Score\",\n  TO_CHAR(duration_s * interval '1 second', 'HH24:MI:SS') AS \"Duration\",\n  source AS \"Source\"\nFROM ride_climbs\nWHERE activity_id = ${activity_id}\n  AND category != 'none'\nORDER BY gain_m DESC;",
+          "rawSql": "SELECT\n  COALESCE(segment_name, category) AS \"Name\",\n  gain_m AS \"Gain (m)\",\n  length_m AS \"Length (m)\",\n  avg_grade AS \"Avg Grade (%)\",\n  start_alt AS \"Start (m)\",\n  peak_alt AS \"Peak (m)\",\n  TO_CHAR(duration_s * interval '1 second', 'HH24:MI:SS') AS \"Duration\",\n  source AS \"Source\"\nFROM ride_climbs\nWHERE activity_id = ${activity_id}\n  AND category != 'none'\nORDER BY gain_m DESC;",
           "format": "table",
           "refId": "A"
         }
@@ -868,68 +868,24 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Category"
+              "options": "Name"
             },
             "properties": [
               {
                 "id": "custom.width",
-                "value": 100
-              },
+                "value": 200
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Source"
+            },
+            "properties": [
               {
-                "id": "mappings",
-                "value": [
-                  {
-                    "type": "value",
-                    "options": {
-                      "HC": {
-                        "text": "HC",
-                        "color": "#e74c3c"
-                      }
-                    }
-                  },
-                  {
-                    "type": "value",
-                    "options": {
-                      "Cat 1": {
-                        "text": "Cat 1",
-                        "color": "#e67e22"
-                      }
-                    }
-                  },
-                  {
-                    "type": "value",
-                    "options": {
-                      "Cat 2": {
-                        "text": "Cat 2",
-                        "color": "#f1c40f"
-                      }
-                    }
-                  },
-                  {
-                    "type": "value",
-                    "options": {
-                      "Cat 3": {
-                        "text": "Cat 3",
-                        "color": "#2ecc71"
-                      }
-                    }
-                  },
-                  {
-                    "type": "value",
-                    "options": {
-                      "Cat 4": {
-                        "text": "Cat 4",
-                        "color": "#3498db"
-                      }
-                    }
-                  }
-                ]
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-background"
-                }
+                "id": "custom.width",
+                "value": 80
               }
             ]
           }
