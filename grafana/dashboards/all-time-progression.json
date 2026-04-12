@@ -1080,7 +1080,7 @@
     {
       "id": 1004,
       "title": "Power-Duration Curve",
-      "type": "xychart",
+      "type": "barchart",
       "gridPos": {
         "x": 12,
         "y": 36,
@@ -1100,35 +1100,42 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "custom": {
-            "pointSize": 8,
-            "show": "points"
-          },
           "color": {
             "mode": "fixed",
             "fixedColor": "#3498db"
+          },
+          "custom": {
+            "fillOpacity": 80,
+            "gradientMode": "none"
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "duration_s"
+            },
+            "properties": [
+              {
+                "id": "custom.axisPlacement",
+                "value": "hidden"
+              }
+            ]
+          }
+        ]
       },
       "description": "Mean maximal power at standard durations (1, 2, 5, 10, 20 min)\nfrom the last 90 days, plotted against the fitted Monod-Scherrer\ncurve.\n\nData points well above the curve = strong efforts.\nCurve far below points = poor fit (check R\u00b2 in Est. FTP description).\n\nNote: always uses a fixed 90-day window regardless of the dashboard\ntime picker. This shows your current power profile, not a historical\none. The CP Progression panel respects the time picker for trends.",
       "options": {
-        "series": [
-          {
-            "x": {
-              "matcher": {
-                "id": "byName",
-                "options": "duration_s"
-              }
-            },
-            "y": {
-              "matcher": {
-                "id": "byName",
-                "options": "power"
-              }
-            }
-          }
-        ]
+        "xField": "duration_s",
+        "orientation": "vertical",
+        "barWidth": 0.6,
+        "showValue": "always",
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
       }
     },
     {
