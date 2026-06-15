@@ -174,7 +174,8 @@
             ]
           }
         }
-      }
+      },
+      "description": "Total rides in the selected period."
     },
     {
       "id": 2,
@@ -225,7 +226,8 @@
             ]
           }
         }
-      }
+      },
+      "description": "Total distance in the selected period."
     },
     {
       "id": 3,
@@ -276,7 +278,8 @@
             ]
           }
         }
-      }
+      },
+      "description": "Total elevation gained in the selected period."
     },
     {
       "id": 4,
@@ -327,7 +330,8 @@
             ]
           }
         }
-      }
+      },
+      "description": "Total riding time in the selected period."
     },
     {
       "id": 6,
@@ -429,7 +433,8 @@
             ]
           }
         }
-      }
+      },
+      "description": "Average power across all rides in the period."
     },
     {
       "id": 9,
@@ -480,7 +485,8 @@
           },
           "unit": "bpm"
         }
-      }
+      },
+      "description": "Average heart rate across all rides in the period."
     },
     {
       "id": 8,
@@ -525,13 +531,14 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "dark-blue",
+                "color": "dark-purple",
                 "value": null
               }
             ]
           }
         }
-      }
+      },
+      "description": "Average speed across all rides in the period."
     },
     {
       "id": 1011,
@@ -555,7 +562,7 @@
         }
       ],
       "options": {
-        "colorMode": "value",
+        "colorMode": "background",
         "graphMode": "none",
         "textMode": "auto",
         "reduceOptions": {
@@ -575,15 +582,15 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "#2ecc71",
                 "value": null
               },
               {
-                "color": "yellow",
+                "color": "#f1c40f",
                 "value": 5
               },
               {
-                "color": "red",
+                "color": "#e74c3c",
                 "value": 10
               }
             ]
@@ -709,7 +716,8 @@
             ]
           }
         }
-      }
+      },
+      "description": "Change in ride count vs the equivalent previous period."
     },
     {
       "id": 302,
@@ -763,7 +771,8 @@
           },
           "unit": "lengthkm"
         }
-      }
+      },
+      "description": "Change in distance vs the equivalent previous period."
     },
     {
       "id": 303,
@@ -817,7 +826,8 @@
           },
           "unit": "lengthm"
         }
-      }
+      },
+      "description": "Change in elevation vs the equivalent previous period."
     },
     {
       "id": 304,
@@ -871,7 +881,8 @@
           },
           "unit": "min"
         }
-      }
+      },
+      "description": "Change in duration vs the equivalent previous period."
     },
     {
       "id": 306,
@@ -924,7 +935,8 @@
             ]
           }
         }
-      }
+      },
+      "description": "Change in total TSS vs the equivalent previous period."
     },
     {
       "id": 307,
@@ -942,7 +954,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH curr AS (\n  SELECT AVG(avg_power) AS avg FROM activities\n  WHERE avg_power > 0\n    AND $__timeFilter(date)\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n),\nprev AS (\n  SELECT AVG(avg_power) AS avg FROM activities\n  WHERE avg_power > 0\n    AND date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz)\n    AND date < $__timeFrom()::timestamptz\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n)\nSELECT ROUND((curr.avg - prev.avg)::numeric, 0) AS \"Delta\"\nFROM curr, prev;",
+          "rawSql": "WITH curr AS (\n  SELECT AVG(avg_power) AS avg FROM activities\n  WHERE avg_power > 0\n    AND $__timeFilter(date)\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n),\nprev AS (\n  SELECT AVG(avg_power) AS avg FROM activities\n  WHERE avg_power > 0\n    AND date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz)\n    AND date < $__timeFrom()::timestamptz\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n)\nSELECT ROUND((COALESCE(curr.avg, 0) - COALESCE(prev.avg, 0))::numeric, 0) AS \"Delta\"\nFROM curr, prev;",
           "format": "table",
           "refId": "A"
         }
@@ -997,7 +1009,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH curr AS (\n  SELECT AVG(avg_hr) AS avg FROM activities\n  WHERE avg_hr > 0\n    AND $__timeFilter(date)\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n),\nprev AS (\n  SELECT AVG(avg_hr) AS avg FROM activities\n  WHERE avg_hr > 0\n    AND date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz)\n    AND date < $__timeFrom()::timestamptz\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n)\nSELECT ROUND((curr.avg - prev.avg)::numeric, 0) AS \"Delta\"\nFROM curr, prev;",
+          "rawSql": "WITH curr AS (\n  SELECT AVG(avg_hr) AS avg FROM activities\n  WHERE avg_hr > 0\n    AND $__timeFilter(date)\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n),\nprev AS (\n  SELECT AVG(avg_hr) AS avg FROM activities\n  WHERE avg_hr > 0\n    AND date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz)\n    AND date < $__timeFrom()::timestamptz\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n)\nSELECT ROUND((COALESCE(curr.avg, 0) - COALESCE(prev.avg, 0))::numeric, 0) AS \"Delta\"\nFROM curr, prev;",
           "format": "table",
           "refId": "A"
         }
@@ -1052,7 +1064,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH curr AS (\n  SELECT AVG(avg_speed_kmh) AS avg FROM activities\n  WHERE avg_speed_kmh > 0 AND distance_m > 5000\n    AND $__timeFilter(date)\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n),\nprev AS (\n  SELECT AVG(avg_speed_kmh) AS avg FROM activities\n  WHERE avg_speed_kmh > 0 AND distance_m > 5000\n    AND date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz)\n    AND date < $__timeFrom()::timestamptz\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n)\nSELECT ROUND((curr.avg - prev.avg)::numeric, 1) AS \"Delta\"\nFROM curr, prev;",
+          "rawSql": "WITH curr AS (\n  SELECT AVG(avg_speed_kmh) AS avg FROM activities\n  WHERE avg_speed_kmh > 0 AND distance_m > 5000\n    AND $__timeFilter(date)\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n),\nprev AS (\n  SELECT AVG(avg_speed_kmh) AS avg FROM activities\n  WHERE avg_speed_kmh > 0 AND distance_m > 5000\n    AND date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz)\n    AND date < $__timeFrom()::timestamptz\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n)\nSELECT ROUND((COALESCE(curr.avg, 0) - COALESCE(prev.avg, 0))::numeric, 1) AS \"Delta\"\nFROM curr, prev;",
           "format": "table",
           "refId": "A"
         }
@@ -1107,7 +1119,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH curr AS (\n  SELECT AVG(aerobic_decoupling) AS avg FROM activities\n  WHERE aerobic_decoupling IS NOT NULL AND duration_s > 1800\n    AND $__timeFilter(date)\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n),\nprev AS (\n  SELECT AVG(aerobic_decoupling) AS avg FROM activities\n  WHERE aerobic_decoupling IS NOT NULL AND duration_s > 1800\n    AND date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz)\n    AND date < $__timeFrom()::timestamptz\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n)\nSELECT ROUND((curr.avg - prev.avg)::numeric, 2) AS \"Delta\"\nFROM curr, prev;",
+          "rawSql": "WITH curr AS (\n  SELECT AVG(aerobic_decoupling) AS avg FROM activities\n  WHERE aerobic_decoupling IS NOT NULL AND duration_s > 1800\n    AND $__timeFilter(date)\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n),\nprev AS (\n  SELECT AVG(aerobic_decoupling) AS avg FROM activities\n  WHERE aerobic_decoupling IS NOT NULL AND duration_s > 1800\n    AND date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz)\n    AND date < $__timeFrom()::timestamptz\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n)\nSELECT ROUND((COALESCE(curr.avg, 0) - COALESCE(prev.avg, 0))::numeric, 2) AS \"Delta\"\nFROM curr, prev;",
           "format": "table",
           "refId": "A"
         }
@@ -1202,17 +1214,259 @@
       "description": "Change in total calories vs the equivalent previous period."
     },
     {
+      "id": 402,
+      "title": "Ride Types",
+      "type": "piechart",
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 24,
+        "h": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  CASE sport_type\n    WHEN 'cycling_outdoor' THEN 'Outdoor'\n    WHEN 'zwift' THEN 'Zwift'\n    WHEN 'ebike' THEN 'E-Bike'\n    WHEN 'cycling_indoor' THEN 'Indoor'\n  END AS \"Type\",\n  COUNT(*) AS \"Rides\"\nFROM activities\nWHERE $__timeFilter(date)\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n  AND sport_type IS NOT NULL\nGROUP BY 1;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "pieType": "donut",
+        "reduceOptions": {
+          "values": true,
+          "calcs": [],
+          "fields": "/^Rides$/"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "right",
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Outdoor"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#33658a",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Zwift"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#fc4c02",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "E-Bike"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#73bf69",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Indoor"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#8b5cf6",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "description": "Ride type distribution in the selected period.\n\n\ud83d\udd35 Outdoor\n\n\ud83d\udfe0 Zwift\n\n\ud83d\udfe2 E-Bike\n\n\ud83d\udfe3 Indoor"
+    },
+    {
       "id": 200,
       "type": "row",
       "title": "Fitness",
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 14,
+        "y": 17,
         "w": 24,
         "h": 1
       },
       "panels": []
+    },
+    {
+      "id": 201,
+      "title": "CTL / ATL / TSB",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT date AS \"time\", ctl AS \"Fitness (CTL)\", atl AS \"Fatigue (ATL)\", tsb AS \"Form (TSB)\" FROM athlete_stats WHERE $__timeFilter(date) ORDER BY date;",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0
+          },
+          "noValue": "No data"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Fitness (CTL)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#6ed0ff",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Fatigue (ATL)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#ff9830",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.fillBelowTo",
+                "value": "Fitness (CTL)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Form (TSB)"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    6,
+                    4
+                  ]
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 15
+              },
+              {
+                "id": "custom.fillBelowTo",
+                "value": "Form (TSB)"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#e74c3c",
+                      "value": null
+                    },
+                    {
+                      "color": "#e67e22",
+                      "value": -30
+                    },
+                    {
+                      "color": "#f1c40f",
+                      "value": -10
+                    },
+                    {
+                      "color": "#2ecc71",
+                      "value": 5
+                    },
+                    {
+                      "color": "#3498db",
+                      "value": 15
+                    },
+                    {
+                      "color": "#9333ea",
+                      "value": 25
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "description": "Fitness Curves\n\n\ud83d\udd35 CTL (Chronic Training Load) \u2014 42-day rolling fitness.\n\n\ud83d\udfe0 ATL (Acute Training Load) \u2014 7-day rolling fatigue.\n\nTSB (Form) \u2014 CTL minus ATL. Colour-filled by training zone:\n\n\ud83d\udd34 < -30 \u2014 overreached\n\n\ud83d\udfe0 -30 to -10 \u2014 fatigued\n\n\ud83d\udfe1 -10 to +5 \u2014 neutral\n\n\ud83d\udfe2 +5 to +15 \u2014 optimal\n\n\ud83d\udd35 +15 to +25 \u2014 fresh\n\n\ud83d\udfe3 > +25 \u2014 detraining risk"
     },
     {
       "id": 222,
@@ -1220,9 +1474,9 @@
       "type": "stat",
       "gridPos": {
         "x": 0,
-        "y": 15,
+        "y": 26,
         "w": 6,
-        "h": 3
+        "h": 4
       },
       "datasource": {
         "type": "postgres",
@@ -1323,143 +1577,15 @@
       "description": "Training Stress Balance (Form)\nCTL minus ATL \u2014 are you fresh or fatigued?\n\n\ud83d\udd34 < -10 \u2014 Overreached, need rest\n\ud83d\udfe0 -10 to 0 \u2014 Tired, normal training fatigue\n\ud83d\udfe2 0 to 15 \u2014 Optimal, good balance\n\ud83d\udd35 > 15 \u2014 Fresh, race-ready (fitness may be declining)"
     },
     {
-      "id": 223,
-      "title": "Configured FTP",
-      "type": "stat",
-      "gridPos": {
-        "x": 6,
-        "y": 15,
-        "w": 3,
-        "h": 3
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "velomate"
-      },
-      "targets": [
-        {
-          "rawSql": "SELECT value::numeric AS \"FTP\"\nFROM sync_state\nWHERE key = 'configured_ftp' AND value::numeric > 0;",
-          "format": "table",
-          "refId": "A"
-        }
-      ],
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        }
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "watt",
-          "color": {
-            "fixedColor": "#8b5cf6",
-            "mode": "fixed"
-          },
-          "noValue": "auto"
-        }
-      },
-      "description": "FTP from VELOMATE_FTP environment variable. When unset, this card shows \"auto\" and the Est. FTP card to the right is what gets used for TSS computation."
-    },
-    {
-      "id": 1020,
-      "title": "Est. FTP",
-      "type": "stat",
-      "gridPos": {
-        "x": 9,
-        "y": 15,
-        "w": 3,
-        "h": 3
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "velomate"
-      },
-      "targets": [
-        {
-          "rawSql": "SELECT value::numeric AS \"FTP\"\nFROM sync_state\nWHERE key = 'estimated_ftp' AND value::numeric > 0;",
-          "format": "table",
-          "refId": "A"
-        }
-      ],
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        }
-      },
-      "fieldConfig": {
-        "defaults": {
-          "noValue": "No data",
-          "unit": "watt",
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "text"
-          }
-        }
-      },
-      "description": "Algorithmic FTP estimate.\n\nSource: Critical Power model fit when quality is good\n(R\u00b2 >= 0.9 and >= 4 of 5 standard durations contributing).\n\nFalls back to rolling 90-day best 20-min x 0.95 when the\nCP fit quality gate fails.\n\nBoth values are stored in the cp_estimates table for\ncomparison \u2014 see CP / W' Progression on All Time Progression."
-    },
-    {
-      "id": 224,
-      "title": "Weekly Streak",
-      "description": "Weekly Riding Streak\n\nConsecutive weeks with at least one ride.\n\nCounts backward from your most recent\n\nriding week \u2014 doesn't break until a full\n\nweek passes without any cycling activity.",
-      "type": "stat",
-      "gridPos": {
-        "x": 12,
-        "y": 15,
-        "w": 6,
-        "h": 3
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "velomate"
-      },
-      "targets": [
-        {
-          "rawSql": "WITH weeks AS (SELECT DISTINCT date_trunc('week', date)::date AS week_start FROM activities WHERE date IS NOT NULL AND sport_type IN ('cycling_outdoor', 'cycling_indoor', 'zwift', 'ebike')), latest AS (SELECT MAX(week_start) AS start_from FROM weeks), numbered AS (SELECT week_start, ROW_NUMBER() OVER (ORDER BY week_start DESC) AS rn, ((SELECT start_from FROM latest) - ((ROW_NUMBER() OVER (ORDER BY week_start DESC) - 1) * 7)::int) AS expected FROM weeks) SELECT COUNT(*) AS \"Weeks\" FROM numbered WHERE week_start = expected;",
-          "format": "table",
-          "refId": "A"
-        }
-      ],
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        }
-      },
-      "fieldConfig": {
-        "defaults": {
-          "noValue": "0",
-          "color": {
-            "fixedColor": "#6ed0ff",
-            "mode": "fixed"
-          }
-        }
-      }
-    },
-    {
       "id": 225,
       "title": "Days Since Ride",
       "description": "Days Since Last Ride\n\n\ud83d\udfe2 0-2 days \u2014 Active\n\n\ud83d\udfe1 3-4 days \u2014 Rest period\n\n\ud83d\udfe0 5-6 days \u2014 Extended break\n\n\ud83d\udd34 7+ days \u2014 Fitness declining",
       "type": "stat",
       "gridPos": {
-        "x": 18,
-        "y": 15,
+        "x": 6,
+        "y": 26,
         "w": 6,
-        "h": 3
+        "h": 4
       },
       "datasource": {
         "type": "postgres",
@@ -1513,334 +1639,13 @@
       }
     },
     {
-      "id": 401,
-      "title": "Form",
-      "type": "gauge",
-      "gridPos": {
-        "x": 0,
-        "y": 18,
-        "w": 8,
-        "h": 6
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "velomate"
-      },
-      "targets": [
-        {
-          "rawSql": "SELECT ROUND(tsb::numeric, 1) AS \"TSB\" FROM athlete_stats ORDER BY date DESC LIMIT 1;",
-          "format": "table",
-          "refId": "A"
-        }
-      ],
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        }
-      },
-      "fieldConfig": {
-        "defaults": {
-          "min": -30,
-          "max": 30,
-          "noValue": "No data",
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "orange",
-                "value": -10
-              },
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "blue",
-                "value": 15
-              }
-            ]
-          }
-        }
-      },
-      "description": "Training Stress Balance (Form)\nCTL minus ATL \u2014 are you fresh or fatigued?\n\n\ud83d\udd34 < -10 \u2014 Overreached, need rest\n\ud83d\udfe0 -10 to 0 \u2014 Tired, normal training fatigue\n\ud83d\udfe2 0 to 15 \u2014 Optimal, good balance\n\ud83d\udd35 > 15 \u2014 Fresh, race-ready (fitness may be declining)"
-    },
-    {
-      "id": 402,
-      "title": "Ride Types",
-      "type": "piechart",
-      "gridPos": {
-        "x": 8,
-        "y": 18,
-        "w": 8,
-        "h": 6
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "velomate"
-      },
-      "targets": [
-        {
-          "rawSql": "SELECT\n  CASE sport_type\n    WHEN 'cycling_outdoor' THEN 'Outdoor'\n    WHEN 'zwift' THEN 'Zwift'\n    WHEN 'ebike' THEN 'E-Bike'\n    WHEN 'cycling_indoor' THEN 'Indoor'\n  END AS \"Type\",\n  COUNT(*) AS \"Rides\"\nFROM activities\nWHERE $__timeFilter(date)\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n  AND sport_type IS NOT NULL\nGROUP BY 1;",
-          "format": "table",
-          "refId": "A"
-        }
-      ],
-      "options": {
-        "pieType": "donut",
-        "reduceOptions": {
-          "values": true,
-          "calcs": [],
-          "fields": "/^Rides$/"
-        },
-        "legend": {
-          "displayMode": "list",
-          "placement": "right",
-          "values": [
-            "value",
-            "percent"
-          ]
-        },
-        "tooltip": {
-          "mode": "single"
-        }
-      },
-      "fieldConfig": {
-        "defaults": {
-          "noValue": "No data"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Outdoor"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#33658a",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Zwift"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#fc4c02",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "E-Bike"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#73bf69",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Indoor"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#8b5cf6",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "id": 403,
-      "title": "6w Fitness \u0394",
-      "type": "stat",
-      "gridPos": {
-        "x": 16,
-        "y": 18,
-        "w": 8,
-        "h": 6
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "velomate"
-      },
-      "targets": [
-        {
-          "rawSql": "SELECT ROUND((a.ctl - b.ctl)::numeric, 1) AS \"6w CTL \u0394\"\nFROM (SELECT ctl FROM athlete_stats ORDER BY date DESC LIMIT 1) a,\n     (SELECT ctl FROM athlete_stats WHERE date <= CURRENT_DATE - 42 ORDER BY date DESC LIMIT 1) b;",
-          "format": "table",
-          "refId": "A"
-        }
-      ],
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        }
-      },
-      "fieldConfig": {
-        "defaults": {
-          "noValue": "No data",
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          }
-        }
-      },
-      "description": "Change in CTL (fitness) over the last 6 weeks.\n\nPositive = fitness improving.\nNegative = fitness declining."
-    },
-    {
-      "id": 201,
-      "title": "CTL / ATL / TSB",
-      "type": "timeseries",
-      "gridPos": {
-        "x": 0,
-        "y": 24,
-        "w": 18,
-        "h": 8
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "velomate"
-      },
-      "targets": [
-        {
-          "rawSql": "SELECT date AS \"time\", ctl AS \"Fitness (CTL)\", atl AS \"Fatigue (ATL)\", tsb AS \"Form (TSB)\" FROM athlete_stats WHERE $__timeFilter(date) ORDER BY date;",
-          "format": "time_series",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "drawStyle": "line",
-            "lineWidth": 2,
-            "fillOpacity": 0
-          },
-          "noValue": "No data"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Fitness (CTL)"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#6ed0ff",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Fatigue (ATL)"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#ff9830",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "custom.fillBelowTo",
-                "value": "Fitness (CTL)"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Form (TSB)"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#73bf69",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "custom.lineStyle",
-                "value": {
-                  "fill": "dash",
-                  "dash": [
-                    6,
-                    4
-                  ]
-                }
-              },
-              {
-                "id": "custom.fillOpacity",
-                "value": 10
-              }
-            ]
-          }
-        ]
-      },
-      "description": "Fitness Curves\n\n\ud83d\udd35 CTL (Chronic Training Load) \u2014 42-day rolling fitness.\n\n\ud83d\udfe0 ATL (Acute Training Load) \u2014 7-day rolling fatigue.\n\n\ud83d\udfe2 TSB (Form) \u2014 CTL minus ATL.\n\nCTL rising = getting fitter.\n\nATL spiking = recent hard training.\n\nTSB negative = fatigued, positive = fresh."
-    },
-    {
       "id": 1400,
       "type": "stat",
       "title": "Monotony",
       "description": "Foster Training Monotony over the last 7 days.\n\nMonotony = mean(daily TSS) / stdev(daily TSS).\n\nMeasures how repetitive your training load is.\nHigh monotony + high strain = overreaching risk.\n\n\ud83d\udfe2 < 1.5 \u2014 varied training\n\n\ud83d\udfe1 1.5\u20132.0 \u2014 moderately repetitive\n\n\ud83d\udd34 > 2.0 \u2014 monotonous, watch for overreaching",
       "gridPos": {
-        "x": 18,
-        "y": 24,
+        "x": 12,
+        "y": 26,
         "w": 6,
         "h": 4
       },
@@ -1899,7 +1704,7 @@
       "description": "Foster Training Strain over the last 7 days.\n\nStrain = weekly TSS \u00d7 Monotony.\n\nCombines training volume with repetitiveness.\nHigh strain without recovery = overreaching.\n\n\ud83d\udfe2 < 200 \u2014 manageable\n\n\ud83d\udfe1 200\u2013400 \u2014 moderate, ensure recovery\n\n\ud83d\udd34 > 400 \u2014 high strain, recovery needed",
       "gridPos": {
         "x": 18,
-        "y": 28,
+        "y": 26,
         "w": 6,
         "h": 4
       },
@@ -1952,13 +1757,387 @@
       }
     },
     {
+      "id": 223,
+      "title": "Configured FTP",
+      "type": "stat",
+      "gridPos": {
+        "x": 0,
+        "y": 30,
+        "w": 3,
+        "h": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT value::numeric AS \"FTP\"\nFROM sync_state\nWHERE key = 'configured_ftp' AND value::numeric > 0;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "watt",
+          "color": {
+            "fixedColor": "#8b5cf6",
+            "mode": "fixed"
+          },
+          "noValue": "auto"
+        }
+      },
+      "description": "FTP from VELOMATE_FTP environment variable. When unset, this card shows \"auto\" and the Est. FTP card to the right is what gets used for TSS computation."
+    },
+    {
+      "id": 1020,
+      "title": "Est. FTP",
+      "type": "stat",
+      "gridPos": {
+        "x": 3,
+        "y": 30,
+        "w": 3,
+        "h": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT value::numeric AS \"FTP\"\nFROM sync_state\nWHERE key = 'estimated_ftp' AND value::numeric > 0;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "unit": "watt",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#8b5cf6"
+          }
+        }
+      },
+      "description": "Algorithmic FTP estimate.\n\nSource: Critical Power model fit when quality is good\n(R\u00b2 >= 0.9 and >= 4 of 5 standard durations contributing).\n\nFalls back to rolling 90-day best 20-min x 0.95 when the\nCP fit quality gate fails.\n\nBoth values are stored in the cp_estimates table for\ncomparison \u2014 see CP / W' Progression on All Time Progression."
+    },
+    {
+      "id": 1701,
+      "type": "stat",
+      "title": "Est. VO2max",
+      "description": "Estimated VO2max from CP and body weight.\n\n\ud83d\udd18 < 50 \u2014 recreational\n\n\ud83d\udd35 50-60 \u2014 club level\n\n\ud83d\udfe2 60-70 \u2014 competitive\n\n\ud83d\udfe1 70-80 \u2014 elite\n\n\ud83d\udfe3 80+ \u2014 professional",
+      "gridPos": {
+        "x": 6,
+        "y": 30,
+        "w": 6,
+        "h": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND((10.8 * (c.cp_watts::numeric / w.ride_weight::numeric) + 7)::numeric, 1) AS \"VO2max\"\nFROM cp_estimates c,\n  (SELECT ride_weight FROM activities WHERE ride_weight IS NOT NULL AND ride_weight > 0 ORDER BY date DESC LIMIT 1) w\nWHERE c.source = 'cp'\nORDER BY c.date DESC LIMIT 1;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "unit": "ml/kg/min",
+          "decimals": 1,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#808080",
+                "value": null
+              },
+              {
+                "color": "#3498db",
+                "value": 50
+              },
+              {
+                "color": "#2ecc71",
+                "value": 60
+              },
+              {
+                "color": "#f1c40f",
+                "value": 70
+              },
+              {
+                "color": "#9333ea",
+                "value": 80
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "id": 1600,
+      "type": "stat",
+      "title": "Athlete Type",
+      "description": "Classification from W'/CP ratio (J/W).\n\n\ud83d\udfe2 < 10 \u2014 Climber\n\n\ud83d\udd35 10\u201315 \u2014 Time Trialist\n\n\ud83d\udfe1 15\u201320 \u2014 Rouleur\n\n\ud83d\udfe0 20\u201325 \u2014 Pursuiter\n\n\ud83d\udd34 > 25 \u2014 Sprinter",
+      "gridPos": {
+        "x": 12,
+        "y": 30,
+        "w": 6,
+        "h": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT CASE\n  WHEN source != 'cp' OR cp_watts IS NULL OR w_prime_kj IS NULL THEN NULL\n  ELSE ROUND((w_prime_kj * 1000 / cp_watts)::numeric, 1)\nEND AS \"W'/CP (J/W)\"\nFROM cp_estimates\nORDER BY date DESC LIMIT 1;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No CP fit",
+          "decimals": 1,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#2ecc71",
+                "value": null
+              },
+              {
+                "color": "#3498db",
+                "value": 10
+              },
+              {
+                "color": "#f1c40f",
+                "value": 15
+              },
+              {
+                "color": "#e67e22",
+                "value": 20
+              },
+              {
+                "color": "#e74c3c",
+                "value": 25
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "range",
+              "options": {
+                "from": 0,
+                "to": 10,
+                "result": {
+                  "text": "Climber",
+                  "index": 0
+                }
+              }
+            },
+            {
+              "type": "range",
+              "options": {
+                "from": 10,
+                "to": 15,
+                "result": {
+                  "text": "Time Trialist",
+                  "index": 1
+                }
+              }
+            },
+            {
+              "type": "range",
+              "options": {
+                "from": 15,
+                "to": 20,
+                "result": {
+                  "text": "Rouleur",
+                  "index": 2
+                }
+              }
+            },
+            {
+              "type": "range",
+              "options": {
+                "from": 20,
+                "to": 25,
+                "result": {
+                  "text": "Pursuiter",
+                  "index": 3
+                }
+              }
+            },
+            {
+              "type": "range",
+              "options": {
+                "from": 25,
+                "to": 999,
+                "result": {
+                  "text": "Sprinter",
+                  "index": 4
+                }
+              }
+            }
+          ]
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "id": 403,
+      "title": "6w Fitness \u0394",
+      "type": "stat",
+      "gridPos": {
+        "x": 18,
+        "y": 30,
+        "w": 3,
+        "h": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND((a.ctl - b.ctl)::numeric, 1) AS \"6w CTL \u0394\"\nFROM (SELECT ctl FROM athlete_stats ORDER BY date DESC LIMIT 1) a,\n     (SELECT ctl FROM athlete_stats WHERE date <= CURRENT_DATE - 42 ORDER BY date DESC LIMIT 1) b;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        }
+      },
+      "description": "Change in CTL (fitness) over the last 6 weeks.\n\nPositive = fitness improving.\nNegative = fitness declining."
+    },
+    {
+      "id": 224,
+      "title": "Weekly Streak",
+      "description": "Weekly Riding Streak\n\nConsecutive weeks with at least one ride.\n\nCounts backward from your most recent\n\nriding week \u2014 doesn't break until a full\n\nweek passes without any cycling activity.",
+      "type": "stat",
+      "gridPos": {
+        "x": 21,
+        "y": 30,
+        "w": 3,
+        "h": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "WITH weeks AS (SELECT DISTINCT date_trunc('week', date)::date AS week_start FROM activities WHERE date IS NOT NULL AND sport_type IN ('cycling_outdoor', 'cycling_indoor', 'zwift', 'ebike')), latest AS (SELECT MAX(week_start) AS start_from FROM weeks), numbered AS (SELECT week_start, ROW_NUMBER() OVER (ORDER BY week_start DESC) AS rn, ((SELECT start_from FROM latest) - ((ROW_NUMBER() OVER (ORDER BY week_start DESC) - 1) * 7)::int) AS expected FROM weeks) SELECT COUNT(*) AS \"Weeks\" FROM numbered WHERE week_start = expected;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "0",
+          "color": {
+            "fixedColor": "#6ed0ff",
+            "mode": "fixed"
+          }
+        }
+      }
+    },
+    {
       "id": 501,
       "type": "row",
       "title": "Trends",
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 32,
+        "y": 34,
         "w": 24,
         "h": 1
       },
@@ -1970,7 +2149,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 33,
+        "y": 35,
         "w": 24,
         "h": 8
       },
@@ -2062,7 +2241,7 @@
           }
         ]
       },
-      "description": "Volume \u2014 how far and how much climbing per period.\nRising together = bigger rides.\nDistance rising but elevation flat = more flat routes."
+      "description": "Volume \u2014 distance and climbing per period.\n\n\ud83d\udd35 Distance (km)\n\n\ud83d\udfe2 Elevation (m)"
     },
     {
       "id": 602,
@@ -2070,7 +2249,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 41,
+        "y": 39,
         "w": 24,
         "h": 8
       },
@@ -2158,7 +2337,7 @@
           }
         ]
       },
-      "description": "Training load \u2014 duration provides context for TSS.\n\nHigh TSS from short rides = intense sessions. High TSS from long rides = endurance work."
+      "description": "Training load \u2014 duration provides context for TSS.\nHigh TSS from short rides = intense sessions.\n\n\ud83d\udd35 Duration (h)\n\n\ud83d\udfe0 TSS"
     },
     {
       "id": 603,
@@ -2166,7 +2345,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 49,
+        "y": 47,
         "w": 24,
         "h": 8
       },
@@ -2250,7 +2429,7 @@
           }
         ]
       },
-      "description": "Efficiency \u2014 same power at lower HR over time = fitness improving.\n\nWhen these lines diverge (power up, HR down), aerobic fitness is building."
+      "description": "Efficiency \u2014 same power at lower HR over time = fitness improving.\n\n\ud83d\udfe3 Power (W)\n\n\ud83d\udd34 HR (bpm)"
     },
     {
       "id": 604,
@@ -2258,7 +2437,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 57,
+        "y": 55,
         "w": 24,
         "h": 8
       },
@@ -2342,7 +2521,7 @@
           }
         ]
       },
-      "description": "Technique \u2014 higher cadence at same speed = more efficient pedaling.\n\nWatch for cadence trends after bike fit changes or drill blocks."
+      "description": "Output \u2014 speed reflects fitness + conditions.\nCadence shows pedalling style changes.\n\n\ud83d\udd35 Speed (km/h)\n\n\ud83d\udfe2 Cadence (rpm)"
     },
     {
       "id": 605,
@@ -2350,7 +2529,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 65,
+        "y": 63,
         "w": 24,
         "h": 8
       },
@@ -2434,7 +2613,7 @@
           }
         ]
       },
-      "description": "Activity summary \u2014 energy output and riding frequency per period."
+      "description": "Energy and frequency \u2014 calories track total work,\nride count tracks consistency.\n\n\ud83d\udd35 Calories (kcal)\n\n\ud83d\udfe0 Rides"
     },
     {
       "id": 610,
@@ -2442,7 +2621,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 73,
+        "y": 71,
         "w": 24,
         "h": 8
       },
@@ -2529,7 +2708,7 @@
           }
         ]
       },
-      "description": "7-day rolling distance and elevation from daily fitness calculations.\n\nSmoother than per-ride charts \u2014 shows your training volume trend.\n\nNote: always shows **all sports** combined. `athlete_stats` is sport-agnostic by design (training load / CTL are whole-athlete metrics), so this panel ignores the Sport Type filter."
+      "description": "7-day rolling totals \u2014 smoother than per-ride charts.\n\n\ud83d\udd35 Weekly Distance (km)\n\n\ud83d\udfe0 Weekly Elevation (m)\n\nNote: always shows all sports combined."
     },
     {
       "id": 450,
@@ -2538,7 +2717,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 81,
+        "y": 79,
         "w": 24,
         "h": 1
       },
@@ -2550,7 +2729,7 @@
       "type": "barchart",
       "gridPos": {
         "x": 0,
-        "y": 82,
+        "y": 80,
         "w": 24,
         "h": 8
       },
@@ -2593,7 +2772,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 90,
+        "y": 88,
         "w": 24,
         "h": 1
       },
@@ -2605,7 +2784,7 @@
       "type": "table",
       "gridPos": {
         "x": 0,
-        "y": 91,
+        "y": 89,
         "w": 24,
         "h": 10
       },
@@ -2682,7 +2861,8 @@
             ]
           }
         ]
-      }
+      },
+      "description": "Recent rides. Click a row to open Activity Details."
     }
   ]
 }

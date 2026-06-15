@@ -124,7 +124,7 @@ class TestClassifyActivity:
 class TestMergeActivityData:
     def test_richer_data_wins(self):
         # existing has HR only (richness 2), new has power (richness 3) — new wins
-        existing = (1, 100, "watch", 50000, 140, None)
+        existing = (1, 100, "watch", 50000, 140, None, None, None)
         new_data = {
             "device": "karoo",
             "avg_hr": None,
@@ -140,14 +140,14 @@ class TestMergeActivityData:
 
     def test_poorer_data_skipped(self):
         # existing has HR + power (richness 5), new has nothing — skip
-        existing = (1, 100, "karoo", 50000, 140, 200)
+        existing = (1, 100, "karoo", 50000, 140, 200, None, None)
         new_data = {"device": "watch"}
         merged = merge_activity_data(existing, new_data)
         assert merged["_skip_insert"] is True
 
     def test_equal_richness_new_wins(self):
         # both have HR only — new wins (tie goes to new)
-        existing = (1, 100, "watch", 50000, 130, None)
+        existing = (1, 100, "watch", 50000, 130, None, None, None)
         new_data = {"device": "garmin", "avg_hr": 135, "distance_m": 50000}
         merged = merge_activity_data(existing, new_data)
         assert merged.get("_skip_insert") is None

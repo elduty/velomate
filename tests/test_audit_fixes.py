@@ -1,5 +1,6 @@
 """Tests for audit fix items O3, O5, O8, O9, O15."""
 
+import os
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch, call
@@ -247,7 +248,13 @@ class TestO8StartupRetry:
                 return "12"  # matches default VELOMATE_BACKFILL_MONTHS → no force_backfill
             return None  # configured_ftp / configured_max_hr / configured_resting_hr etc.
 
+        strava_env = {
+            "STRAVA_CLIENT_ID": "1",
+            "STRAVA_CLIENT_SECRET": "2",
+            "STRAVA_REFRESH_TOKEN": "3",
+        }
         with (
+            patch.dict(os.environ, strava_env),
             patch("main.get_connection", side_effect=flaky_conn),
             patch("main.create_schema"),
             patch("main.get_sync_state", side_effect=mock_sync_state),
@@ -452,7 +459,7 @@ def _make_conn():
 
 # Existing record is richer: power(3) + hr(2) + distance(1) = 6
 # New record is weaker:  hr(2) only = 2
-_RICH_EXISTING = (42, 99999, "karoo", 10000, 150, 250)  # id, strava_id, device, dist, hr, power
+_RICH_EXISTING = (42, 99999, "karoo", 10000, 150, 250, None, None)  # id, strava_id, device, dist, hr, power, rwgps_id, suffer_score
 _WEAK_NEW = {
     "name": "Morning Ride", "date": "2026-03-18T07:00:00Z", "duration_s": 3600,
     "distance_m": 0, "avg_hr": 155, "avg_power": None, "max_hr": None,

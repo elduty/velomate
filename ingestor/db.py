@@ -130,6 +130,10 @@ def create_schema(conn):
 
             ALTER TABLE activity_streams ADD COLUMN IF NOT EXISTS w_bal FLOAT;
 
+            ALTER TABLE activities ADD COLUMN IF NOT EXISTS rwgps_id BIGINT;
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_activities_rwgps_id
+                ON activities(rwgps_id) WHERE rwgps_id IS NOT NULL;
+
             CREATE TABLE IF NOT EXISTS ride_climbs (
                 id              SERIAL PRIMARY KEY,
                 activity_id     INTEGER REFERENCES activities(id) ON DELETE CASCADE,
@@ -190,10 +194,13 @@ def find_duplicate(conn, date_str: str, duration_s: int, distance_m: float = 0,
     Matches if start time is close AND either:
     - Duration within 15% (handles moving_time vs elapsed_time differences)
     - Distance within 10% (handles different GPS sampling / measurement)
+
+    Returns an 8-column tuple:
+        (id, strava_id, device, distance_m, avg_hr, avg_power, rwgps_id, suffer_score)
     """
     with conn.cursor() as cur:
         cur.execute("""
-            SELECT id, strava_id, device, distance_m, avg_hr, avg_power
+            SELECT id, strava_id, device, distance_m, avg_hr, avg_power, rwgps_id, suffer_score
             FROM activities
             WHERE ABS(EXTRACT(EPOCH FROM (date - %s::timestamptz))) < %s
               AND (
@@ -202,6 +209,23 @@ def find_duplicate(conn, date_str: str, duration_s: int, distance_m: float = 0,
               )
         """, (date_str, tolerance_seconds, duration_s, distance_m, distance_m))
         return cur.fetchone()
+
+
+def _is_same_source_activity(duplicate: tuple, data: dict) -> bool:
+    """True when the duplicate row IS this activity (same source ID).
+
+    Same-source identity means upsert should go straight to the ON CONFLICT
+    path instead of dedup-merging — without this, every re-synced RWGPS trip
+    ('updated' action) would re-enter the dedup merge.
+    duplicate = (id, strava_id, device, distance_m, avg_hr, avg_power,
+                 rwgps_id, suffer_score)
+    """
+    dup_strava_id, dup_rwgps_id = duplicate[1], duplicate[6]
+    if data.get("strava_id") is not None:
+        return dup_strava_id == data["strava_id"]
+    if data.get("rwgps_id") is not None:
+        return dup_rwgps_id == data["rwgps_id"]
+    return False
 
 
 def _data_richness(data: dict) -> int:
@@ -224,10 +248,10 @@ def _data_richness(data: dict) -> int:
 
 def merge_activity_data(existing: tuple, new_data: dict) -> dict:
     """Merge two activity records, preferring the one with richer data.
-    existing = (id, strava_id, device, distance_m, avg_hr, avg_power)
+    existing = (id, strava_id, device, distance_m, avg_hr, avg_power, rwgps_id, suffer_score)
     Uses data richness scoring — whichever record has more useful fields wins.
     """
-    ex_id, ex_strava_id, ex_device, ex_distance, ex_hr, ex_power = existing
+    ex_id, ex_strava_id, ex_device, ex_distance, ex_hr, ex_power, ex_rwgps_id, ex_suffer = existing
     ex_data = {"avg_power": ex_power, "avg_hr": ex_hr, "distance_m": ex_distance}
     ex_richness = _data_richness(ex_data)
     new_richness = _data_richness(new_data)
@@ -242,6 +266,15 @@ def merge_activity_data(existing: tuple, new_data: dict) -> dict:
             merged["avg_power"] = ex_power
         if not merged.get("distance_m") and ex_distance:
             merged["distance_m"] = ex_distance
+        # Carry source IDs from the existing row so the merged record keeps both
+        if not merged.get("strava_id") and ex_strava_id:
+            merged["strava_id"] = ex_strava_id
+        if not merged.get("rwgps_id") and ex_rwgps_id:
+            merged["rwgps_id"] = ex_rwgps_id
+        # Carry suffer_score — only Strava supplies it, and the merge path
+        # delete-and-reinserts the row, so an unfilled gap would lose it
+        if merged.get("suffer_score") is None and ex_suffer is not None:
+            merged["suffer_score"] = ex_suffer
     else:
         # Existing is richer — just fill gaps, don't replace base
         merged = dict(new_data)
@@ -251,39 +284,59 @@ def merge_activity_data(existing: tuple, new_data: dict) -> dict:
 
 
 def _do_insert(conn, data: dict, now) -> int:
-    """Execute the INSERT ... ON CONFLICT for an activity. Returns activity id."""
+    """Execute the INSERT ... ON CONFLICT for an activity. Returns activity id.
+
+    The conflict target is chosen by source: Strava activities upsert on
+    strava_id, RWGPS activities on the partial-unique rwgps_id index. The
+    RWGPS update list omits suffer_score — RWGPS never supplies it, and the
+    standard list would null out a Strava-provided value on a dual-source row.
+    Sensor-derived columns are NULL-protected with COALESCE on both paths so
+    a re-sync from the weaker source of a dual-ID row cannot wipe sensor data
+    merged in from the richer source. distance_m and elevation_m use
+    NULLIF(EXCLUDED.col, 0)+COALESCE: RWGPS parsing coerces an absent
+    distance/elevation to 0 (not NULL), so a plain EXCLUDED overwrite on an
+    'updated' event would zero a richer source's value — NULLIF maps that 0
+    back to NULL so COALESCE keeps the existing value, while a real edit (any
+    non-zero value) still propagates.
+    """
+    params = {"strava_id": None, "rwgps_id": None, **data, "synced_at": now}
+    if params["strava_id"] is not None:
+        conflict_target = "(strava_id)"
+        suffer_set = ",\n                suffer_score = EXCLUDED.suffer_score"
+    else:
+        conflict_target = "(rwgps_id) WHERE rwgps_id IS NOT NULL"
+        suffer_set = ""
     with conn.cursor() as cur:
-        cur.execute("""
+        cur.execute(f"""
             INSERT INTO activities (
-                strava_id, name, date, distance_m, duration_s, elevation_m,
+                strava_id, rwgps_id, name, date, distance_m, duration_s, elevation_m,
                 avg_hr, max_hr, avg_power, max_power, avg_cadence,
                 avg_speed_kmh, calories, suffer_score, device,
                 is_indoor, sport_type, synced_at
             ) VALUES (
-                %(strava_id)s, %(name)s, %(date)s, %(distance_m)s, %(duration_s)s, %(elevation_m)s,
+                %(strava_id)s, %(rwgps_id)s, %(name)s, %(date)s, %(distance_m)s, %(duration_s)s, %(elevation_m)s,
                 %(avg_hr)s, %(max_hr)s, %(avg_power)s, %(max_power)s, %(avg_cadence)s,
                 %(avg_speed_kmh)s, %(calories)s, %(suffer_score)s, %(device)s,
                 %(is_indoor)s, %(sport_type)s, %(synced_at)s
             )
-            ON CONFLICT (strava_id) DO UPDATE SET
+            ON CONFLICT {conflict_target} DO UPDATE SET
                 name = EXCLUDED.name,
-                distance_m = EXCLUDED.distance_m,
+                distance_m = COALESCE(NULLIF(EXCLUDED.distance_m, 0), activities.distance_m),
                 duration_s = EXCLUDED.duration_s,
-                elevation_m = EXCLUDED.elevation_m,
-                avg_hr = EXCLUDED.avg_hr,
-                max_hr = EXCLUDED.max_hr,
-                avg_power = EXCLUDED.avg_power,
-                max_power = EXCLUDED.max_power,
-                avg_cadence = EXCLUDED.avg_cadence,
+                elevation_m = COALESCE(NULLIF(EXCLUDED.elevation_m, 0), activities.elevation_m),
+                avg_hr = COALESCE(EXCLUDED.avg_hr, activities.avg_hr),
+                max_hr = COALESCE(EXCLUDED.max_hr, activities.max_hr),
+                avg_power = COALESCE(EXCLUDED.avg_power, activities.avg_power),
+                max_power = COALESCE(EXCLUDED.max_power, activities.max_power),
+                avg_cadence = COALESCE(EXCLUDED.avg_cadence, activities.avg_cadence),
                 avg_speed_kmh = EXCLUDED.avg_speed_kmh,
-                calories = EXCLUDED.calories,
-                suffer_score = EXCLUDED.suffer_score,
+                calories = COALESCE(EXCLUDED.calories, activities.calories),
                 device = EXCLUDED.device,
                 is_indoor = EXCLUDED.is_indoor,
                 sport_type = EXCLUDED.sport_type,
-                synced_at = EXCLUDED.synced_at
+                synced_at = EXCLUDED.synced_at{suffer_set}
             RETURNING id
-        """, {**data, "synced_at": now})
+        """, params)
         return cur.fetchone()[0]
 
 
@@ -297,7 +350,7 @@ def upsert_activity(conn, data: dict) -> tuple[int, bool]:
     # Duplicate detection: check if another activity started within 5 min with similar duration
     if data.get("date") and data.get("duration_s"):
         duplicate = find_duplicate(conn, data["date"], data["duration_s"], data.get("distance_m", 0))
-        if duplicate and duplicate[1] != data.get("strava_id"):
+        if duplicate and not _is_same_source_activity(duplicate, data):
             ex_id = duplicate[0]
             merged = merge_activity_data(duplicate, data)
             if merged.get("_skip_insert"):
@@ -316,6 +369,8 @@ def upsert_activity(conn, data: dict) -> tuple[int, bool]:
                             max_hr       = COALESCE(max_hr, %(max_hr)s),
                             max_power    = COALESCE(max_power, %(max_power)s),
                             avg_cadence  = COALESCE(avg_cadence, %(avg_cadence)s),
+                            strava_id    = COALESCE(strava_id, %(strava_id)s),
+                            rwgps_id     = COALESCE(rwgps_id, %(rwgps_id)s),
                             synced_at    = %(synced_at)s
                         WHERE id = %(ex_id)s
                     """, {
@@ -327,6 +382,8 @@ def upsert_activity(conn, data: dict) -> tuple[int, bool]:
                         "max_hr":       data.get("max_hr"),
                         "max_power":    data.get("max_power"),
                         "avg_cadence":  data.get("avg_cadence"),
+                        "strava_id":    data.get("strava_id"),
+                        "rwgps_id":     data.get("rwgps_id"),
                         "synced_at":    now,
                         "ex_id":        ex_id,
                     })
@@ -393,6 +450,26 @@ def upsert_streams(conn, activity_id: int, streams: list):
         raise
     finally:
         conn.autocommit = True
+
+
+def handle_rwgps_deletion(conn, rwgps_id: int) -> str:
+    """Process a 'deleted' sync item from RWGPS.
+
+    Returns "deleted" (RWGPS-only activity removed — CASCADE wipes streams,
+    intervals, climbs), "unlinked" (dual-source activity kept, rwgps_id
+    cleared because the ride still exists on Strava), or "not_found".
+    """
+    with conn.cursor() as cur:
+        cur.execute("SELECT id, strava_id FROM activities WHERE rwgps_id = %s", (rwgps_id,))
+        row = cur.fetchone()
+        if not row:
+            return "not_found"
+        act_id, strava_id = row
+        if strava_id is not None:
+            cur.execute("UPDATE activities SET rwgps_id = NULL WHERE id = %s", (act_id,))
+            return "unlinked"
+        cur.execute("DELETE FROM activities WHERE id = %s", (act_id,))
+        return "deleted"
 
 
 def upsert_athlete_stats(conn, date, stats: dict):

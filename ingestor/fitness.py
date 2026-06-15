@@ -193,17 +193,23 @@ def estimate_threshold_hr(conn) -> int:
     return DEFAULT_THRESHOLD_HR
 
 
-def estimate_ftp(conn) -> int:
+def estimate_ftp(conn, as_of_date: str | None = None) -> int:
     """Estimate FTP from best 20-minute rolling average power in last 90 days.
     FTP ≈ best 20-min power × 0.95 (standard protocol).
     Falls back to 95th percentile of avg_power if no stream data available.
+
+    Args:
+        as_of_date: if set, compute as of this date (YYYY-MM-DD) using only
+            rides up to that date. If None, uses CURRENT_DATE.
     """
-    # Try rolling 20-min best from stream data (last 90 days)
+    # COALESCE(%s, CURRENT_DATE) — passes as_of_date when set, CURRENT_DATE when None.
+    # psycopg2 sends Python None as SQL NULL, so COALESCE picks the default.
     with conn.cursor() as cur:
         cur.execute("""
             WITH recent_activities AS (
                 SELECT id FROM activities
-                WHERE date >= CURRENT_DATE - interval '90 days'
+                WHERE date >= COALESCE(%s::date, CURRENT_DATE) - interval '90 days'
+                  AND date <= COALESCE(%s::date, CURRENT_DATE)
                   AND avg_power IS NOT NULL AND avg_power > 0
                 ),
             rolling AS (
@@ -220,7 +226,7 @@ def estimate_ftp(conn) -> int:
             )
             SELECT ROUND(MAX(avg_20min) * 0.95) FROM rolling
             WHERE avg_20min IS NOT NULL
-        """)
+        """, (as_of_date, as_of_date))
         row = cur.fetchone()
         if row and row[0] and row[0] > 0:
             return int(row[0])
@@ -231,7 +237,8 @@ def estimate_ftp(conn) -> int:
             SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY avg_power)
             FROM activities
             WHERE avg_power IS NOT NULL AND avg_power > 0
-        """)
+              AND date <= COALESCE(%s::date, CURRENT_DATE)
+        """, (as_of_date,))
         row = cur.fetchone()
         if row and row[0]:
             return int(row[0])
@@ -244,7 +251,7 @@ def estimate_ftp(conn) -> int:
 CP_DURATIONS = [60, 120, 300, 600, 1200]
 
 
-def fit_period(conn, days: int) -> tuple[float | None, float | None, float | None, list[int]]:
+def fit_period(conn, days: int, as_of_date: str | None = None) -> tuple[float | None, float | None, float | None, list[int]]:
     """Fit Monod-Scherrer for activities in the last `days` days.
 
     Returns (cp_watts, w_prime_kj, r_squared, durations_present) where
@@ -258,14 +265,25 @@ def fit_period(conn, days: int) -> tuple[float | None, float | None, float | Non
     from critical_power import compute_mean_maximal_power, fit_monod_scherrer
 
     with conn.cursor() as cur:
-        cur.execute("""
-            SELECT a.id FROM activities a
-            WHERE a.date >= CURRENT_DATE - %s * interval '1 day'
-              AND EXISTS (
-                  SELECT 1 FROM activity_streams s
-                  WHERE s.activity_id = a.id AND s.power IS NOT NULL
-              )
-        """, (days,))
+        if as_of_date:
+            cur.execute("""
+                SELECT a.id FROM activities a
+                WHERE a.date >= %s::date - %s * interval '1 day'
+                  AND a.date <= %s::date
+                  AND EXISTS (
+                      SELECT 1 FROM activity_streams s
+                      WHERE s.activity_id = a.id AND s.power IS NOT NULL
+                  )
+            """, (as_of_date, days, as_of_date))
+        else:
+            cur.execute("""
+                SELECT a.id FROM activities a
+                WHERE a.date >= CURRENT_DATE - %s * interval '1 day'
+                  AND EXISTS (
+                      SELECT 1 FROM activity_streams s
+                      WHERE s.activity_id = a.id AND s.power IS NOT NULL
+                  )
+            """, (days,))
         activity_ids = [row[0] for row in cur.fetchall()]
 
     if not activity_ids:
@@ -299,6 +317,7 @@ def fit_period(conn, days: int) -> tuple[float | None, float | None, float | Non
 def compute_cp_estimate(
     conn,
     fallback_ftp: int | None = None,
+    as_of_date: str | None = None,
 ) -> tuple[str, float, float | None, float | None, int | None] | None:
     """Compute today's CP estimate and persist to cp_estimates + sync_state.
 
@@ -328,16 +347,19 @@ def compute_cp_estimate(
             print("[fitness] No power streams — skipping CP estimate")
             return None
 
+    # Always compute the fallback FTP (even for historical dates) so the
+    # fallback_ftp column is populated for the FTP Progression chart.
+    # estimate_ftp now supports as_of_date for date-appropriate values.
     if fallback_ftp is None:
-        fallback_ftp = estimate_ftp(conn)
+        fallback_ftp = estimate_ftp(conn, as_of_date=as_of_date)
     fallback = fallback_ftp
 
-    cp_90, wp_90, r2_90, durations_90 = fit_period(conn, days=90)
+    cp_90, wp_90, r2_90, durations_90 = fit_period(conn, days=90, as_of_date=as_of_date)
     if assess_fit_quality(r2_90, len(durations_90)):
         result = ("cp", cp_90, wp_90, r2_90, 90)
         chosen_duration_count = len(durations_90)
     else:
-        cp_180, wp_180, r2_180, durations_180 = fit_period(conn, days=180)
+        cp_180, wp_180, r2_180, durations_180 = fit_period(conn, days=180, as_of_date=as_of_date)
         if assess_fit_quality(r2_180, len(durations_180)):
             result = ("cp", cp_180, wp_180, r2_180, 180)
             chosen_duration_count = len(durations_180)
@@ -351,40 +373,99 @@ def compute_cp_estimate(
     source, value, w_prime_kj, r_squared, period_days = result
 
     with conn.cursor() as cur:
-        cur.execute("""
-            INSERT INTO cp_estimates
-                (date, cp_watts, w_prime_kj, r_squared, period_days,
-                 duration_count, source, fallback_ftp, updated_at)
-            VALUES (CURRENT_DATE, %s, %s, %s, %s, %s, %s, %s, NOW())
-            ON CONFLICT (date) DO UPDATE SET
-                cp_watts = EXCLUDED.cp_watts,
-                w_prime_kj = EXCLUDED.w_prime_kj,
-                r_squared = EXCLUDED.r_squared,
-                period_days = EXCLUDED.period_days,
-                duration_count = EXCLUDED.duration_count,
-                source = EXCLUDED.source,
-                fallback_ftp = EXCLUDED.fallback_ftp,
-                updated_at = NOW()
-        """, (
-            value if source == "cp" else None,
-            w_prime_kj,
-            r_squared,
-            period_days,
-            chosen_duration_count,
-            source,
-            fallback,
-        ))
+        if as_of_date:
+            cur.execute("""
+                INSERT INTO cp_estimates
+                    (date, cp_watts, w_prime_kj, r_squared, period_days,
+                     duration_count, source, fallback_ftp, updated_at)
+                VALUES (%s::date, %s, %s, %s, %s, %s, %s, %s, NOW())
+                ON CONFLICT (date) DO UPDATE SET
+                    cp_watts = EXCLUDED.cp_watts, w_prime_kj = EXCLUDED.w_prime_kj,
+                    r_squared = EXCLUDED.r_squared, period_days = EXCLUDED.period_days,
+                    duration_count = EXCLUDED.duration_count, source = EXCLUDED.source,
+                    fallback_ftp = EXCLUDED.fallback_ftp, updated_at = NOW()
+            """, (as_of_date, value if source == "cp" else None, w_prime_kj,
+                  r_squared, period_days, chosen_duration_count, source, fallback))
+        else:
+            cur.execute("""
+                INSERT INTO cp_estimates
+                    (date, cp_watts, w_prime_kj, r_squared, period_days,
+                     duration_count, source, fallback_ftp, updated_at)
+                VALUES (CURRENT_DATE, %s, %s, %s, %s, %s, %s, %s, NOW())
+                ON CONFLICT (date) DO UPDATE SET
+                    cp_watts = EXCLUDED.cp_watts, w_prime_kj = EXCLUDED.w_prime_kj,
+                    r_squared = EXCLUDED.r_squared, period_days = EXCLUDED.period_days,
+                    duration_count = EXCLUDED.duration_count, source = EXCLUDED.source,
+                    fallback_ftp = EXCLUDED.fallback_ftp, updated_at = NOW()
+            """, (value if source == "cp" else None, w_prime_kj, r_squared,
+                  period_days, chosen_duration_count, source, fallback))
 
-    _db.set_sync_state(conn, "estimated_ftp", str(int(round(value))))
-    _db.set_sync_state(conn, "estimated_ftp_source", source)
-    if w_prime_kj is not None:
-        _db.set_sync_state(conn, "estimated_cp_w_prime_kj", f"{w_prime_kj:.2f}")
-    if r_squared is not None:
-        _db.set_sync_state(conn, "estimated_cp_quality", f"{r_squared:.3f}")
+    # Only update sync_state for today's estimate (not historical backfill)
+    if not as_of_date:
+        _db.set_sync_state(conn, "estimated_ftp", str(int(round(value))))
+        _db.set_sync_state(conn, "estimated_ftp_source", source)
+        if w_prime_kj is not None:
+            _db.set_sync_state(conn, "estimated_cp_w_prime_kj", f"{w_prime_kj:.2f}")
+        if r_squared is not None:
+            _db.set_sync_state(conn, "estimated_cp_quality", f"{r_squared:.3f}")
 
     r2_display = f"{r_squared:.3f}" if r_squared is not None else "n/a"
     print(f"[fitness] CP estimate: {value:.0f}W (source={source}, R²={r2_display})")
     return result
+
+
+def backfill_cp_estimates(conn) -> int:
+    """Backfill CP estimates for historical dates that don't have one.
+
+    Computes CP for every ride date that has power data but no
+    cp_estimates row. Fills the CP/W' Progression chart with
+    historical data points.
+
+    Returns the number of dates processed.
+    """
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT DISTINCT a.date::date AS d
+            FROM activities a
+            WHERE a.date IS NOT NULL
+              AND EXISTS (
+                  SELECT 1 FROM activity_streams s
+                  WHERE s.activity_id = a.id AND s.power IS NOT NULL
+              )
+              AND NOT EXISTS (
+                  SELECT 1 FROM cp_estimates c WHERE c.date = a.date::date
+              )
+            ORDER BY d
+        """)
+        dates = [row[0].isoformat() for row in cur.fetchall()]
+
+    if not dates:
+        return 0
+
+    # Each iteration is independent — errors for one date don't affect others.
+    # Safe because conn.autocommit=True (db.py:14), so no aborted-transaction
+    # issue across iterations.
+    count = 0
+    for d in dates:
+        try:
+            result = compute_cp_estimate(conn, as_of_date=d)
+            if result:
+                count += 1
+            else:
+                # No fit produced (quality gate failed, no fallback for
+                # historical dates). Insert sentinel so this date isn't
+                # retried every cycle.
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        INSERT INTO cp_estimates (date, source, updated_at)
+                        VALUES (%s::date, 'no_fit', NOW())
+                        ON CONFLICT (date) DO NOTHING
+                    """, (d,))
+        except Exception as e:
+            print(f"[fitness] CP backfill failed for {d}: {e}")
+            continue
+
+    return count
 
 
 def compute_wbal_for_rides(conn) -> int:
@@ -1017,6 +1098,14 @@ def recalculate_fitness(conn):
         compute_cp_estimate(conn, fallback_ftp=auto_ftp)
     except Exception as e:
         print(f"[fitness] CP estimate failed (non-fatal): {e}")
+
+    # Step 6b: Backfill CP estimates for historical ride dates
+    try:
+        cp_backfill = backfill_cp_estimates(conn)
+        if cp_backfill > 0:
+            print(f"[fitness] Backfilled CP estimates for {cp_backfill} historical dates")
+    except Exception as e:
+        print(f"[fitness] CP backfill failed (non-fatal): {e}")
 
     # Step 7: Compute W'bal for rides missing it
     print("[fitness] Computing W'bal...")

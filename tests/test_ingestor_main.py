@@ -1,5 +1,6 @@
 """Smoke tests for ingestor/main.py — import coverage + key function guards."""
 
+import os
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch, call
@@ -101,7 +102,7 @@ class TestRunBackfill:
             patch("main.backfill", return_value=5),
             patch("main.recalculate_fitness"),
         ):
-            count = ingestor_main.run_backfill()
+            count = ingestor_main.run_backfill(sources=["strava"])
         assert count == 5
         mock_conn.close.assert_called_once()
 
@@ -112,7 +113,7 @@ class TestRunBackfill:
             patch("main.create_schema", side_effect=Exception("schema error")),
         ):
             with pytest.raises(Exception, match="schema error"):
-                ingestor_main.run_backfill()
+                ingestor_main.run_backfill(sources=["strava"])
         mock_conn.close.assert_called_once()
 
     def test_propagates_backfill_exception(self):
@@ -123,7 +124,7 @@ class TestRunBackfill:
             patch("main.backfill", side_effect=RuntimeError("backfill failed")),
         ):
             with pytest.raises(RuntimeError, match="backfill failed"):
-                ingestor_main.run_backfill()
+                ingestor_main.run_backfill(sources=["strava"])
 
     def test_uses_default_12_months(self, monkeypatch):
         """No VELOMATE_BACKFILL_MONTHS env var -> backfill called with months=12."""
@@ -136,7 +137,7 @@ class TestRunBackfill:
             patch("main.backfill", mock_backfill),
             patch("main.recalculate_fitness"),
         ):
-            ingestor_main.run_backfill()
+            ingestor_main.run_backfill(sources=["strava"])
         mock_backfill.assert_called_once_with(mock_conn, months=12)
 
     def test_reads_months_from_env(self, monkeypatch):
@@ -150,7 +151,7 @@ class TestRunBackfill:
             patch("main.backfill", mock_backfill),
             patch("main.recalculate_fitness"),
         ):
-            ingestor_main.run_backfill()
+            ingestor_main.run_backfill(sources=["strava"])
         mock_backfill.assert_called_once_with(mock_conn, months=24)
 
     def test_zero_means_full_history(self, monkeypatch):
@@ -164,7 +165,7 @@ class TestRunBackfill:
             patch("main.backfill", mock_backfill),
             patch("main.recalculate_fitness"),
         ):
-            ingestor_main.run_backfill()
+            ingestor_main.run_backfill(sources=["strava"])
         mock_backfill.assert_called_once_with(mock_conn, months=0)
 
     def test_invalid_env_falls_back_to_default(self, monkeypatch):
@@ -178,7 +179,7 @@ class TestRunBackfill:
             patch("main.backfill", mock_backfill),
             patch("main.recalculate_fitness"),
         ):
-            ingestor_main.run_backfill()
+            ingestor_main.run_backfill(sources=["strava"])
         mock_backfill.assert_called_once_with(mock_conn, months=12)
 
     def test_negative_env_falls_back_to_default(self, monkeypatch):
@@ -192,8 +193,45 @@ class TestRunBackfill:
             patch("main.backfill", mock_backfill),
             patch("main.recalculate_fitness"),
         ):
-            ingestor_main.run_backfill()
+            ingestor_main.run_backfill(sources=["strava"])
         mock_backfill.assert_called_once_with(mock_conn, months=12)
+
+
+class TestPollRwgps:
+    def test_incremental_sync_when_cursor_present(self):
+        """With a persisted cursor, poll does an incremental sync_activities."""
+        conn = MagicMock()
+        mock_rwgps = MagicMock()
+        mock_rwgps.sync_activities.return_value = (3, 0)
+        with (
+            patch("main._get_healthy_conn", return_value=conn),
+            patch("main.get_sync_state", return_value="2026-06-01T00:00:00Z"),
+            patch("main.rwgps", mock_rwgps),
+            patch("main.recalculate_fitness"),
+        ):
+            ingestor_main.poll_rwgps()
+        mock_rwgps.sync_activities.assert_called_once_with(conn)
+        mock_rwgps.backfill.assert_not_called()
+
+    def test_bounded_backfill_when_cursor_absent(self):
+        """No cursor means the initial backfill never completed cleanly (e.g. a
+        transient failure withheld it). The poll must re-run the BOUNDED backfill,
+        not fall through to sync_activities() which would default to since=1970
+        with no window and ingest the entire history, ignoring the configured
+        VELOMATE_BACKFILL_MONTHS."""
+        conn = MagicMock()
+        mock_rwgps = MagicMock()
+        mock_rwgps.backfill.return_value = 7
+        with (
+            patch("main._get_healthy_conn", return_value=conn),
+            patch("main.get_sync_state", return_value=None),
+            patch("main.rwgps", mock_rwgps),
+            patch("main._backfill_months", return_value=12),
+            patch("main.recalculate_fitness"),
+        ):
+            ingestor_main.poll_rwgps()
+        mock_rwgps.backfill.assert_called_once_with(conn, months=12)
+        mock_rwgps.sync_activities.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -380,3 +418,37 @@ class TestGetHealthyConnN1:
 
         bad_conn.close.assert_called_once()
         assert result is None
+
+
+# ---------------------------------------------------------------------------
+# _enabled_sources — detect configured activity sources
+# ---------------------------------------------------------------------------
+
+class TestEnabledSources:
+    _STRAVA_ENV = {"STRAVA_CLIENT_ID": "1", "STRAVA_CLIENT_SECRET": "2",
+                   "STRAVA_REFRESH_TOKEN": "3"}
+    _RWGPS_ENV = {"RWGPS_API_KEY": "k", "RWGPS_AUTH_TOKEN": "t"}
+
+    def test_both_sources(self):
+        with patch.dict(os.environ, {**self._STRAVA_ENV, **self._RWGPS_ENV}, clear=True):
+            assert ingestor_main._enabled_sources() == ["strava", "rwgps"]
+
+    def test_strava_only(self):
+        with patch.dict(os.environ, self._STRAVA_ENV, clear=True):
+            assert ingestor_main._enabled_sources() == ["strava"]
+
+    def test_rwgps_only(self):
+        with patch.dict(os.environ, self._RWGPS_ENV, clear=True):
+            assert ingestor_main._enabled_sources() == ["rwgps"]
+
+    def test_none(self):
+        with patch.dict(os.environ, {}, clear=True):
+            assert ingestor_main._enabled_sources() == []
+
+    def test_partial_strava_creds_not_enabled(self):
+        with patch.dict(os.environ, {"STRAVA_CLIENT_ID": "1"}, clear=True):
+            assert ingestor_main._enabled_sources() == []
+
+    def test_partial_rwgps_creds_not_enabled(self):
+        with patch.dict(os.environ, {"RWGPS_API_KEY": "k"}, clear=True):
+            assert ingestor_main._enabled_sources() == []

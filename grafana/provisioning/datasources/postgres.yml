@@ -5,12 +5,12 @@ datasources:
     type: postgres
     access: proxy
     url: velomate-postgres:5432
-    user: velomate
+    user: ${POSTGRES_USER}
     orgId: 1
     secureJsonData:
       password: ${POSTGRES_PASSWORD}
     jsonData:
-      database: velomate
+      database: ${POSTGRES_DB}
       sslmode: disable
       timescaledb: false
       postgresVersion: 1500

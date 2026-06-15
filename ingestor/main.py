@@ -9,6 +9,7 @@ import schedule
 
 from db import get_connection, create_schema, get_sync_state, set_sync_state
 from strava import sync_activities, backfill, reclassify_activities
+import rwgps
 from fitness import recalculate_fitness
 
 
@@ -33,6 +34,17 @@ def _get_healthy_conn():
         except Exception as e2:
             print(f"[main] DB reconnect failed: {e2}")
             return None
+
+
+def _enabled_sources() -> list:
+    """Activity sources with complete credentials configured."""
+    sources = []
+    if (os.environ.get("STRAVA_CLIENT_ID") and os.environ.get("STRAVA_CLIENT_SECRET")
+            and os.environ.get("STRAVA_REFRESH_TOKEN")):
+        sources.append("strava")
+    if os.environ.get("RWGPS_API_KEY") and os.environ.get("RWGPS_AUTH_TOKEN"):
+        sources.append("rwgps")
+    return sources
 
 
 def _daily_fitness_recalc():
@@ -64,6 +76,38 @@ def poll_strava():
         print(f"[poll] Strava: {count} new activities")
     except Exception as e:
         print(f"[poll] Strava error: {e}")
+        traceback.print_exc()
+    finally:
+        if conn:
+            conn.close()
+
+
+def poll_rwgps():
+    """Fetch RWGPS sync feed, store activities/streams, handle deletions."""
+    conn = None
+    try:
+        conn = _get_healthy_conn()
+        if not conn:
+            print("[poll] RWGPS: skipped — no DB connection")
+            return
+        if get_sync_state(conn, "rwgps_last_sync_datetime"):
+            ingested, deleted = rwgps.sync_activities(conn)   # incremental from cursor
+        else:
+            # No cursor yet — the initial backfill never completed cleanly (e.g. a
+            # transient failure withheld the cursor). Re-run the BOUNDED backfill
+            # rather than falling through to sync_activities(), whose no-cursor
+            # default is since=1970 with no departed_after window — that would
+            # silently ingest the user's entire history and ignore the configured
+            # VELOMATE_BACKFILL_MONTHS. The bounded retry stays within the window
+            # and seeds the cursor once it completes a clean pass.
+            print("[poll] RWGPS: no cursor yet — running bounded backfill")
+            ingested = rwgps.backfill(conn, months=_backfill_months())
+            deleted = 0
+        if ingested > 0 or deleted > 0:
+            recalculate_fitness(conn)
+        print(f"[poll] RWGPS: {ingested} new, {deleted} deleted")
+    except Exception as e:
+        print(f"[poll] RWGPS error: {e}")
         traceback.print_exc()
     finally:
         if conn:
@@ -155,15 +199,21 @@ def _backfill_window_shrunk(new_months: int, old_value, has_data: bool) -> bool:
     return new_months < old_months
 
 
-def run_backfill():
-    """One-time backfill — call manually or on first run."""
+def run_backfill(sources: list = None):
+    """Backfill the given sources (default: all enabled)."""
+    sources = sources if sources is not None else _enabled_sources()
     conn = get_connection()
     try:
         create_schema(conn)
-        count = backfill(conn, months=_backfill_months())
+        months = _backfill_months()
+        total = 0
+        if "strava" in sources:
+            total += backfill(conn, months=months)
+        if "rwgps" in sources:
+            total += rwgps.backfill(conn, months=months)
         recalculate_fitness(conn)
-        print(f"[backfill] Complete — {count} Strava activities ingested")
-        return count
+        print(f"[backfill] Complete — {total} activities ingested")
+        return total
     finally:
         conn.close()
 
@@ -179,7 +229,9 @@ def run():
             conn = get_connection()
             create_schema(conn)
             print("[main] Schema ready")
-            has_data = get_sync_state(conn, "strava_last_activity_epoch")
+            strava_has_data = get_sync_state(conn, "strava_last_activity_epoch")
+            rwgps_has_data = get_sync_state(conn, "rwgps_last_sync_datetime")
+            has_data = strava_has_data or rwgps_has_data
             break
         except Exception as e:
             print(f"[main] DB not ready (attempt {attempt}/{max_attempts}): {e}")
@@ -195,6 +247,14 @@ def run():
             time.sleep(retry_delay)
     if conn:
         conn.close()
+
+    enabled = _enabled_sources()
+    if not enabled:
+        print("[main] No activity source configured — set STRAVA_CLIENT_ID/"
+              "STRAVA_CLIENT_SECRET/STRAVA_REFRESH_TOKEN and/or "
+              "RWGPS_API_KEY/RWGPS_AUTH_TOKEN")
+        sys.exit(1)
+    print(f"[main] Enabled sources: {', '.join(enabled)}")
 
     # Persist configured FTP/HR to sync_state so dashboards can read them.
     # If either value changed (added, removed, or updated), reset all derived metrics.
@@ -335,14 +395,23 @@ def run():
     except Exception as e:
         print(f"[main] Could not check backfill window state (skipping detection): {e}")
 
-    # Backfill on first run OR when the configured window grew
-    if not has_data or force_backfill:
-        if force_backfill:
-            print("[main] Running backfill for extended window")
-        else:
-            print("[main] No previous sync — running backfill")
-        run_backfill()
+    # Backfill sources that never synced, OR all enabled sources when the
+    # configured window grew
+    sources_to_backfill = []
+    if force_backfill:
+        sources_to_backfill = list(enabled)
+        print("[main] Running backfill for extended window")
     else:
+        if "strava" in enabled and not strava_has_data:
+            sources_to_backfill.append("strava")
+        if "rwgps" in enabled and not rwgps_has_data:
+            sources_to_backfill.append("rwgps")
+        if sources_to_backfill:
+            print(f"[main] No previous sync for: {', '.join(sources_to_backfill)} — running backfill")
+    if sources_to_backfill:
+        run_backfill(sources_to_backfill)
+
+    if not sources_to_backfill:
         # Recalculate fitness on startup to extend CTL/ATL/TSB decay through today
         conn = get_connection()
         try:
@@ -364,13 +433,19 @@ def run():
         print(f"[main] Could not persist configured_backfill_months (non-fatal): {e}")
 
     interval = int(os.environ.get("POLL_INTERVAL_MINUTES", 10))
-    schedule.every(interval).minutes.do(poll_strava)
+    if "strava" in enabled:
+        schedule.every(interval).minutes.do(poll_strava)
+    if "rwgps" in enabled:
+        schedule.every(interval).minutes.do(poll_rwgps)
     schedule.every().day.at("00:05").do(_daily_fitness_recalc)
 
-    print(f"[main] Polling Strava every {interval}min, fitness recalc daily at 00:05")
+    print(f"[main] Polling {', '.join(enabled)} every {interval}min, fitness recalc daily at 00:05")
 
     # Run once immediately
-    poll_strava()
+    if "strava" in enabled:
+        poll_strava()
+    if "rwgps" in enabled:
+        poll_rwgps()
 
     while True:
         schedule.run_pending()

@@ -23,6 +23,10 @@ strava:
   client_secret: ""
   refresh_token: ""
 
+rwgps:
+  api_key: ""         # From ridewithgps.com -> account settings -> developers
+  auth_token: ""      # Generated on the same API client page
+
 defaults:
   surface: road       # road, gravel, or mtb
   loop: true          # Round-trip routes by default

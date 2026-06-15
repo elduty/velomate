@@ -1,18 +1,18 @@
 services:
   velomate-postgres:
     container_name: velomate-postgres
-    image: postgres:15
+    image: postgres:${POSTGRES_VERSION:-15}
     environment:
-      POSTGRES_DB: velomate
-      POSTGRES_USER: velomate
+      POSTGRES_DB: ${POSTGRES_DB:-velomate}
+      POSTGRES_USER: ${POSTGRES_USER:-velomate}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - velomate-postgres-data:/var/lib/postgresql/data
     ports:
-      - "0.0.0.0:5423:5432"
+      - "0.0.0.0:${POSTGRES_PORT:-5423}:5432"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U velomate -d velomate"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-velomate} -d ${POSTGRES_DB:-velomate}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -22,18 +22,20 @@ services:
     container_name: velomate-ingestor
     build: ./ingestor
     environment:
-      DATABASE_URL: postgresql://velomate:${POSTGRES_PASSWORD}@velomate-postgres:5432/velomate
-      STRAVA_CLIENT_ID: ${STRAVA_CLIENT_ID}
-      STRAVA_CLIENT_SECRET: ${STRAVA_CLIENT_SECRET}
-      STRAVA_REFRESH_TOKEN: ${STRAVA_REFRESH_TOKEN}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-velomate}:${POSTGRES_PASSWORD}@velomate-postgres:5432/${POSTGRES_DB:-velomate}
+      STRAVA_CLIENT_ID: ${STRAVA_CLIENT_ID:-}
+      STRAVA_CLIENT_SECRET: ${STRAVA_CLIENT_SECRET:-}
+      STRAVA_REFRESH_TOKEN: ${STRAVA_REFRESH_TOKEN:-}
+      RWGPS_API_KEY: ${RWGPS_API_KEY:-}
+      RWGPS_AUTH_TOKEN: ${RWGPS_AUTH_TOKEN:-}
       VELOMATE_MAX_HR: ${VELOMATE_MAX_HR:-0}
       VELOMATE_FTP: ${VELOMATE_FTP:-0}
       VELOMATE_RESTING_HR: ${VELOMATE_RESTING_HR:-0}
       VELOMATE_WEIGHT: ${VELOMATE_WEIGHT:-0}
       VELOMATE_RESET_RIDE_FTP: ${VELOMATE_RESET_RIDE_FTP:-0}
       VELOMATE_BACKFILL_MONTHS: ${VELOMATE_BACKFILL_MONTHS:-12}
-      POLL_INTERVAL_MINUTES: 10
-      PYTHONUNBUFFERED: "1"
+      POLL_INTERVAL_MINUTES: ${POLL_INTERVAL_MINUTES:-10}
+      PYTHONUNBUFFERED: "${PYTHONUNBUFFERED:-1}"
     depends_on:
       velomate-postgres:
         condition: service_healthy
@@ -43,19 +45,24 @@ services:
 
   velomate-grafana:
     container_name: velomate-grafana
-    image: grafana/grafana:12.4.0
+    image: grafana/grafana:${GRAFANA_VERSION:-12.4.0}
     ports:
-      - "3021:3000"
+      - "${GRAFANA_PORT:-3021}:3000"
     volumes:
       - velomate-grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
       - ./grafana/dashboards:/etc/grafana/dashboards
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
-      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3021/}
-      GF_SERVER_SERVE_FROM_SUB_PATH: "false"
-      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:${GRAFANA_PORT:-3021}/}
+      GF_SERVER_SERVE_FROM_SUB_PATH: "${GF_SERVER_SERVE_FROM_SUB_PATH:-false}"
+      GF_AUTH_ANONYMOUS_ENABLED: "${GF_AUTH_ANONYMOUS_ENABLED:-false}"
+      # Passed through so the provisioned datasource (grafana/provisioning/
+      # datasources/postgres.yml) can resolve ${POSTGRES_USER}/${POSTGRES_DB}/
+      # ${POSTGRES_PASSWORD} — keeps Grafana in sync when these are overridden.
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER:-velomate}
+      POSTGRES_DB: ${POSTGRES_DB:-velomate}
     depends_on:
       - velomate-postgres
     restart: unless-stopped

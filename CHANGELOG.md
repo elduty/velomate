@@ -1,5 +1,65 @@
 # Changelog
 
+## v1.5.0 — 2026-06-15
+
+Ride with GPS as a co-equal activity source, athlete-type and VO2max analytics, and a fully configurable deployment.
+
+### New Features
+
+- **Ride with GPS activity source** — ingest rides from Ride with GPS as an alternative to, or alongside, Strava. Standalone backfill, polling, per-second streams, and the full metric pipeline run on Ride with GPS alone (no Strava account needed). With both sources configured, the same ride arriving from each service is deduplicated automatically. Driven by the `/sync.json` change feed with a server-issued cursor; deletions are mirrored (Ride-with-GPS-only rides removed, dual-source rides unlinked). Static api-key + auth-token auth — no OAuth.
+- **Athlete Type classification** — sprinter / pursuiter / rouleur / time-triallist / climber, derived from your W'/CP ratio. Stat card on All Time Progression.
+- **VO2max estimate** — computed from Critical Power and weight via the Storer formula, with a VO2max Progression trend on All Time Progression.
+- **Form-zone annotation** — TSB threshold colouring on the CTL/ATL/TSB chart (overreached / fatigued / neutral / optimal / fresh / detraining).
+
+### Dashboard Changes
+
+- All Time Progression restructured (10 sections → 7); FTP Progression now reads the Critical Power estimate history.
+- Overview fitness section reorganised with the CTL chart as the hero panel, plus layout and colour-consistency passes.
+- All 20 All Time Progression panel tooltips added/fixed.
+- Critical Power estimates backfilled for historical ride dates.
+
+### Fixes
+
+- Overview period-summary averages no longer go blank when the previous period has no rides. The four average "vs previous period" delta cards (Avg Power / Speed / HR / Decoupling) returned SQL `NULL` for an empty prior window, and a `NULL` value crashes the Grafana 12.4 stat-panel render — which blanked every sibling panel on the dashboard. The delta queries now `COALESCE` to a number.
+- Ride with GPS trip metrics (power, HR, cadence, duration, calories) are read from the trip-detail response's nested `metrics` object — they were being read top-level, so Ride with GPS rides would store null power/HR and zero duration (affects Ride with GPS rides only).
+- Trainer detection on Ride with GPS rides now reads the correct `is_stationary` field — indoor/trainer rides were being classified as outdoor.
+- Overview colour consistency across the fitness panels.
+- Athlete Type panel rendering (numeric value + value mappings).
+
+### Configuration & Deployment
+
+- Every `docker-compose.yml` value is now overridable from `.env` via `${VAR:-default}` (defaults preserve previous behaviour). New knobs: `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PORT`, `GRAFANA_PORT`, `POLL_INTERVAL_MINUTES`, plus pinnable image tags `POSTGRES_VERSION` (default `15`) / `GRAFANA_VERSION` (default `12.4.0`). The two passwords (`POSTGRES_PASSWORD`, `GRAFANA_PASSWORD`) are intentionally left without defaults — they must be set.
+- Grafana's provisioned datasource now honours `POSTGRES_USER` / `POSTGRES_DB` overrides.
+- `GF_SERVER_ROOT_URL` auto-derives from `GRAFANA_PORT` (set `GRAFANA_ROOT_URL` explicitly only when behind a reverse proxy).
+- `.env.example` reorganised into sections and made complete.
+
+### Migration from v1.4.0
+
+1. **Pull and rebuild:**
+   ```bash
+   git pull && docker compose build && docker compose up -d
+   ```
+
+2. **At least one activity source is now required** (Strava and/or Ride with GPS). Existing Strava-only deployments are unaffected — no action needed. To add Ride with GPS, set in `.env`:
+   ```bash
+   RWGPS_API_KEY=...      # ridewithgps.com → account settings → Developers
+   RWGPS_AUTH_TOKEN=...   # generated on the same page
+   ```
+   Adding Ride with GPS to a running Strava deployment backfills only the new source.
+
+3. **New optional env vars** — all have safe defaults: `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PORT`, `GRAFANA_PORT`, `POLL_INTERVAL_MINUTES`. See `.env.example`.
+
+4. **Automatic on first restart:** the `rwgps_id` column and its index are created automatically; Athlete Type, VO2max, and form-zone annotations compute from existing data.
+
+5. **No METRICS_VERSION bump** — existing TSS / NP / IF / CTL / ATL / TSB are unchanged.
+
+6. **Breaking changes:** None for existing Strava users.
+
+### Stats
+
+- 585 tests (up from 483)
+- 30 commits since v1.4.0
+
 ## v1.4.0 — 2026-04-13
 
 Performance modeling, climb detection, and quality-of-life improvements.

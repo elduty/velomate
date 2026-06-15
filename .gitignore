@@ -13,6 +13,3 @@ config.yaml
 # OS
 **/.DS_Store
 
-# Claude Code (local)
-.claude/settings.local.json
-.superpowers/

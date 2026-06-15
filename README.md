@@ -7,16 +7,16 @@
 [![Grafana 12.4](https://img.shields.io/badge/grafana-12.4-orange)](https://grafana.com/)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20VeloMate-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/elduty)
 
-A self-hosted cycling data platform — automatic ride ingestion from Strava, Grafana dashboards for analytics, and intelligent route planning. **No Strava Premium required** — all metrics (fitness, power zones, training load, TRIMP) are computed locally from raw data.
+A self-hosted cycling data platform — automatic ride ingestion from **Strava and/or Ride with GPS**, Grafana dashboards for analytics, and intelligent route planning. **No Strava Premium required** — all metrics (fitness, power zones, training load, TRIMP) are computed locally from raw data. Don't use Strava? Run it on Ride with GPS alone.
 
-Inspired by [TeslaMate](https://github.com/teslamate-org/teslamate). Works with any device that syncs to Strava.
+Inspired by [TeslaMate](https://github.com/teslamate-org/teslamate). Works with any device that syncs to Strava or Ride with GPS.
 
 ![Overview Dashboard](screenshots/overview.png)
 
 ## Features
 
 ### Data Ingestion
-- Polls Strava every 10 minutes for new cycling rides
+- Polls Strava and/or Ride with GPS every 10 minutes (configurable) for new cycling rides — run either source on its own, or both with automatic cross-source deduplication of the same ride
 - **Cycling only** — Ride, VirtualRide, and EBikeRide are ingested. Runs, swims, walks, strength, and all other Strava activity types are filtered out at sync
 - Classifies rides as: **Outdoor**, **Zwift**, **Indoor** (trainer), or **E-Bike** — dashboards can filter by type
 - Stores full per-second telemetry (HR, power, cadence, speed, altitude, GPS)
@@ -49,7 +49,7 @@ Three dashboards with 128 panels across 12 visualization types.
 **Overview** (43 panels) — your training hub
 - 10 period summary stats (Rides, Distance, Elevation, Duration, TSS, Avg Power, Avg HR, Avg Speed, Avg Decoupling, Calories) with sport type filter
 - 10 delta comparison cards (vs previous period, including Δ Calories)
-- Fitness section: CTL/ATL/TSB with fill-between shading, Configured + Estimated FTP side-by-side, TSB gauge, weekly streak, days since ride, 6-week fitness delta, ride type donut
+- Fitness section: CTL/ATL/TSB with fill-between shading and form-zone TSB colouring (overreached/fatigued/neutral/optimal/fresh/detraining), Configured + Estimated FTP side-by-side, TSB gauge, weekly streak, days since ride, 6-week fitness delta, ride type donut
 - 6 trend charts (distance & elevation, duration & TSS, avg power & HR, avg speed & cadence, calories & rides, rolling weekly volume)
 - Ride frequency bar chart
 - Activities table with drill-down to Activity Details
@@ -75,11 +75,12 @@ Three dashboards with 128 panels across 12 visualization types.
 **All Time Progression** (44 panels) — long-term trends
 - 6 stat cards: total distance, elevation, rides, hours, current FTP, peak CTL
 - 8 progression scatter plots with 10-ride rolling averages (speed, power, NP, EF, HR, distance, aerobic decoupling, NP/kg)
+- Athlete Type classification (sprinter/pursuiter/rouleur/time-triallist/climber from W'/CP ratio) and VO2max estimate (Storer formula from CP + weight), with a VO2max progression trend
 - FTP progression (monthly estimated from stream data)
 - Best efforts (1min/5min/20min peak power per ride)
 - Weekly power range (candlestick — week-over-week comparison)
 - Training zone polarization (monthly power + HR zone stacked bars + monthly interval distribution)
-- CTL/ATL/TSB fitness history with fill-between shading
+- CTL/ATL/TSB fitness history with fill-between shading and form-zone TSB colouring
 - 6 cumulative totals (distance, elevation, duration, rides, TSS, calories)
 - Monthly trends stacked by ride type
 - Year-over-year distance comparison
@@ -161,7 +162,7 @@ The CLI runs locally and connects to the database over the network.
 git clone https://github.com/elduty/velomate.git
 cd velomate
 cp .env.example .env
-# Edit .env with your Strava API credentials and passwords
+# Edit .env with your activity source credentials and passwords
 ```
 
 ### 2. Get a Strava refresh token
@@ -178,20 +179,33 @@ python3 -m velomate.cli auth
 # Add the printed refresh token to your .env file.
 ```
 
+### Ride with GPS (alternative or addition to Strava)
+
+VeloMate can ingest rides from Ride with GPS instead of — or alongside — Strava.
+With both configured, the same ride arriving from both services is deduplicated
+automatically.
+
+1. Go to [ridewithgps.com](https://ridewithgps.com) → account settings → **Developers** tab
+2. Create an API client — this gives you the **API key**
+3. Generate an **auth token** for your account on the same page
+4. Add both to `.env` as `RWGPS_API_KEY` and `RWGPS_AUTH_TOKEN`
+
+At least one source (Strava or RWGPS) must be configured.
+
 ### 3. Start services
 
 ```bash
 docker compose up -d
 ```
 
-On first run, the ingestor backfills the last 12 months of Strava activities. Configure the window via `VELOMATE_BACKFILL_MONTHS` (set to `0` for full history). Increasing this value on a running deployment auto-triggers a re-backfill on the next restart.
+On first run, the ingestor backfills the last 12 months of activities from each configured source. Configure the window via `VELOMATE_BACKFILL_MONTHS` (set to `0` for full history). Increasing this value on a running deployment auto-triggers a re-backfill on the next restart.
 
 ### 4. Set up the CLI
 
 ```bash
 pip install -r requirements.txt
 cp config.example.yaml ~/.config/velomate/config.yaml
-# Edit with your home coordinates, DB host, and Strava credentials
+# Edit with your home coordinates, DB host, and activity source credentials
 ```
 
 Credentials support three methods: direct values, environment variables, or shell commands (`password_cmd`) for secret managers like Keychain, 1Password, or Vault.
@@ -285,6 +299,8 @@ TSB       = CTL − ATL                 (training stress balance / form)
 - **W/kg**: NP / ride_weight. Uses NP (not avg_power) because it better reflects the physiological cost of variable efforts. Per-ride `ride_weight` stored from `VELOMATE_WEIGHT` — historical rides preserve their weight if the setting changes later. Shown on Activity Details and as NP/kg Trend on All Time Progression
 - **CP / W'**: Critical Power and W' modeled via Monod-Scherrer fit on mean maximal power at standard durations. Replaces rolling 20-min x 0.95 as the algorithmic FTP estimate when fit quality is good (R² >= 0.9). Graceful fallback to the old method when data is sparse. CP is the aerobic ceiling, W' is the anaerobic reservoir
 - **W'bal**: Per-second anaerobic battery gauge computed via Skiba differential model. Shows when you drained your reservoir, how close to empty you got, and where it refilled. Displayed on Activity Details alongside the power trace
+- **VO2max**: Estimated from Critical Power and weight via the Storer formula — a CP-derived aerobic ceiling. Stat card + VO2max Progression trend on All Time Progression
+- **Athlete Type**: Rider classification (sprinter / pursuiter / rouleur / time-triallist / climber) derived from your W'/CP ratio — a high W' relative to CP skews toward sprinter, a high CP toward climber/TT. Stat card on All Time Progression
 - **Auto interval detection**: Coggan-style classification (sprint / anaerobic / vo2 / threshold / sweetspot / tempo) from the power stream, stored in the `ride_intervals` table. Classification uses per-ride FTP for historical accuracy
 - **TSB interpretation**: > +10 fresh · -10 to +10 neutral · < -10 fatigued
 
@@ -310,16 +326,24 @@ Configured via `.env` file:
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `POSTGRES_PASSWORD` | Yes | Database password |
-| `STRAVA_CLIENT_ID` | Yes | From strava.com/settings/api |
-| `STRAVA_CLIENT_SECRET` | Yes | From Strava API settings |
-| `STRAVA_REFRESH_TOKEN` | Yes | OAuth refresh token (get via `python3 -m velomate.cli auth`) |
+| `POSTGRES_DB` | No | Database name (default `velomate`) |
+| `POSTGRES_USER` | No | Database user (default `velomate`) |
+| `POSTGRES_PORT` | No | Host port mapped to PostgreSQL 5432 (default `5423`) |
+| `STRAVA_CLIENT_ID` | One source required | From strava.com/settings/api |
+| `STRAVA_CLIENT_SECRET` | One source required | From Strava API settings |
+| `STRAVA_REFRESH_TOKEN` | One source required | OAuth refresh token (get via `python3 -m velomate.cli auth`) |
+| `RWGPS_API_KEY` | One source required | From ridewithgps.com → account settings → developers |
+| `RWGPS_AUTH_TOKEN` | One source required | Generated on the RWGPS API client management page |
 | `GRAFANA_PASSWORD` | Yes | Grafana admin password |
+| `GRAFANA_PORT` | No | Host port for the Grafana UI (default `3021`) |
+| `GRAFANA_ROOT_URL` | No | Public URL if served behind a reverse proxy (default `http://localhost:3021/`) |
+| `POLL_INTERVAL_MINUTES` | No | How often to poll each activity source, in minutes (default `10`) |
 | `VELOMATE_MAX_HR` | No | Your max heart rate (0 = auto-estimate) |
 | `VELOMATE_FTP` | No | Your FTP in watts (0 = auto-estimate) |
 | `VELOMATE_RESTING_HR` | No | Resting heart rate in bpm (default 50) |
 | `VELOMATE_WEIGHT` | No | Your weight in kg (0 = disabled). Enables W/kg on Activity Details and NP/kg Trend on All Time Progression. Stored per ride — historical rides preserve their weight if you change it later |
 | `VELOMATE_RESET_RIDE_FTP` | No | Set to `1` to reset all per-ride FTP values on next restart (one-shot) |
-| `VELOMATE_BACKFILL_MONTHS` | No | How far back to fetch activities. Default `12`. Set to `0` for full Strava history (slow — can take hours and span multiple days due to rate limits). **Increasing this value on a running deployment** triggers an auto-backfill on the next restart to pull the extended window. Decreasing it logs a note but leaves existing older activities in the DB (this controls the backfill horizon, not data retention). |
+| `VELOMATE_BACKFILL_MONTHS` | No | How far back to fetch activities. Default `12`. Set to `0` for full history (slow — can take hours and span multiple days due to rate limits). **Increasing this value on a running deployment** triggers an auto-backfill on the next restart to pull the extended window. Decreasing it logs a note but leaves existing older activities in the DB (this controls the backfill horizon, not data retention). |
 
 ### CLI (local)
 
@@ -334,7 +358,7 @@ Configured via `~/.config/velomate/config.yaml` (see `config.example.yaml`):
 
 - Docker + Docker Compose (for ingestor, PostgreSQL, Grafana)
 - Python 3.10+ (for CLI)
-- A Strava account with API access
+- At least one activity source: a Strava account with API access and/or a Ride with GPS account
 
 ## License
 
