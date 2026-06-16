@@ -42,6 +42,8 @@ Inspired by [TeslaMate](https://github.com/teslamate-org/teslamate). Works with 
 | Elevation | Yes | Virtual | No | Yes |
 | Per-km zone breakdown | Yes | Yes | No (no distance) | Yes |
 
+> **No HR or power sensor?** A ride recorded with GPS only still shows distance, elevation, speed, the route map, and detected climbs. Training-load metrics — TSS, CTL/ATL/TSB, NP, IF, EF, VI, TRIMP, and power/HR zones — need a heart-rate or power sensor and read "N/A" without one.
+
 ### Grafana Dashboards
 
 Three dashboards with 128 panels across 12 visualization types.

@@ -67,3 +67,26 @@ class TestDashboardStructure:
         d = self.load(filename)
         links = d.get("links", [])
         assert len(links) >= 1, f"{filename} should link to at least one other dashboard"
+
+    def test_value_stat_panels_guard_null(self, filename):
+        """A colorMode:value stat panel reading a single activity's column must
+        filter NULLs (IS NOT NULL) so it returns *no rows* — not a row with a
+        NULL value — when the metric is absent (e.g. a GPS-only ride with no
+        HR/power sensors). A NULL value-row in a colorMode:value stat panel
+        crashes the Grafana 12.4 scene renderer, which blanks every sibling
+        panel on the dashboard (the no-sensor "all N/A" bug)."""
+        d = self.load(filename)
+        for p in iter_all_panels(d):
+            if p.get("type") != "stat":
+                continue
+            if (p.get("options") or {}).get("colorMode") != "value":
+                continue
+            sql = " ".join(t.get("rawSql", "") for t in (p.get("targets") or []))
+            if "${activity_id}" not in sql:
+                continue  # per-ride single-activity stat panels only
+            assert "IS NOT NULL" in sql.upper(), (
+                f"{filename} panel {p['id']} '{p.get('title')}': colorMode:value "
+                f"per-ride stat with no NULL guard — a no-sensor ride emits a NULL "
+                f"value-row and crashes the dashboard scene. Add an IS NOT NULL "
+                f"filter so it returns no rows (graceful noValue) instead."
+            )

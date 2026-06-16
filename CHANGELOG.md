@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.5.1 — 2026-06-16
+
+### Fixes
+
+- GPS-only rides (recorded without a heart-rate or power sensor) no longer blank the entire **Activity Details** dashboard. A sensor-less ride leaves NP / IF / EF / Work / TRIMP / decoupling NULL; two stat panels (Work, Aerobic Decoupling) emitted a row with a NULL value, and in Grafana 12.4 a `colorMode: value` panel rendering NULL crashes the scene renderer — cascading to blank *every* sibling panel, including the distance/elevation panels that had valid data. Both queries now return no rows (graceful "N/A") when the metric is absent. A regression test asserts every `colorMode: value` per-ride stat panel guards NULLs, so the class can't recur.
+
 ## v1.5.0 — 2026-06-15
 
 Ride with GPS as a co-equal activity source, athlete-type and VO2max analytics, and a fully configurable deployment.

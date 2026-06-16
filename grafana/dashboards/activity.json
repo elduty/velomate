@@ -1143,7 +1143,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND(COALESCE(work_kj, avg_power * duration_s / 1000.0)::numeric, 1) AS \"Work\" FROM activities WHERE id = ${activity_id};",
+          "rawSql": "SELECT ROUND(COALESCE(work_kj, avg_power * duration_s / 1000.0)::numeric, 1) AS \"Work\" FROM activities WHERE id = ${activity_id} AND COALESCE(work_kj, avg_power) IS NOT NULL;",
           "format": "table",
           "refId": "A"
         }
@@ -1256,7 +1256,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND(aerobic_decoupling::numeric, 1) AS \"Decoupling %\" FROM activities WHERE id = ${activity_id};",
+          "rawSql": "SELECT ROUND(aerobic_decoupling::numeric, 1) AS \"Decoupling %\" FROM activities WHERE id = ${activity_id} AND aerobic_decoupling IS NOT NULL;",
           "format": "table",
           "refId": "A"
         }
