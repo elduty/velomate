@@ -190,8 +190,9 @@ def _parse_activity(activity: dict) -> dict:
     Deliberately maps only raw ride facts. Provider-computed metrics
     (polarization_index, coasting_time, icu_training_load, icu_intensity ...)
     are NOT imported: the ingestor computes those itself so every ride carries
-    them whichever source delivered it. See CLAUDE.md, "Provider-independent
-    stats".
+    them whichever source delivered it: an imported field would be populated
+    for one source and NULL for the others, so the same stat would take a
+    different value depending on who delivered the ride.
 
     max_power has no field on their side (`max_watts` is absent), so it is left
     None here and derived from the watts stream by the caller. suffer_score
