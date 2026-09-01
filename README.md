@@ -7,16 +7,16 @@
 [![Grafana 12.4](https://img.shields.io/badge/grafana-12.4-orange)](https://grafana.com/)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20VeloMate-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/elduty)
 
-A self-hosted cycling data platform — automatic ride ingestion from **Strava and/or Ride with GPS**, Grafana dashboards for analytics, and intelligent route planning. **No Strava Premium required** — all metrics (fitness, power zones, training load, TRIMP) are computed locally from raw data. Don't use Strava? Run it on Ride with GPS alone.
+A self-hosted cycling data platform — automatic ride ingestion from **intervals.icu, Strava and/or Ride with GPS**, Grafana dashboards for analytics, and intelligent route planning. **No paid subscription required** — all metrics (fitness, power zones, training load, TRIMP) are computed locally from raw data. intervals.icu is the recommended source: it is free, and it relays Garmin, Wahoo, Zwift, Polar, Suunto and Coros, so VeloMate does not depend on Strava API access — which now requires a paid subscription.
 
-Inspired by [TeslaMate](https://github.com/teslamate-org/teslamate). Works with any device that syncs to Strava or Ride with GPS.
+Inspired by [TeslaMate](https://github.com/teslamate-org/teslamate). Works with any device that syncs to intervals.icu, Strava or Ride with GPS.
 
 ![Overview Dashboard](screenshots/overview.png)
 
 ## Features
 
 ### Data Ingestion
-- Polls Strava and/or Ride with GPS every 10 minutes (configurable) for new cycling rides — run either source on its own, or both with automatic cross-source deduplication of the same ride
+- Polls intervals.icu (primary), Strava and/or Ride with GPS every 10 minutes (configurable) for new cycling rides — run any source on its own, or several with automatic cross-source deduplication of the same ride
 - **Cycling only** — Ride, VirtualRide, and EBikeRide are ingested. Runs, swims, walks, strength, and all other Strava activity types are filtered out at sync
 - Classifies rides as: **Outdoor**, **Zwift**, **Indoor** (trainer), or **E-Bike** — dashboards can filter by type
 - Stores full per-second telemetry (HR, power, cadence, speed, altitude, GPS)
@@ -139,11 +139,11 @@ The record with the higher total score wins. Missing fields from the losing reco
 ## Architecture
 
 ```
-Any device → Strava → [Ingestor] → PostgreSQL → Grafana dashboards
-                                        ↑
-                            VeloMate CLI (route planning + recommendations)
-                                        ↓
-                              Valhalla → GPX file
+Any device → intervals.icu / Strava / Ride with GPS → [Ingestor] → PostgreSQL → Grafana dashboards
+                                                           ↑
+                                    VeloMate CLI (route planning + recommendations)
+                                                           ↓
+                                                  Valhalla → GPX file
 ```
 
 Three Docker Compose services:
@@ -167,7 +167,72 @@ cp .env.example .env
 # Edit .env with your activity source credentials and passwords
 ```
 
-### 2. Get a Strava refresh token
+### 2. Connect an activity source
+
+Configure at least one. Several can run together — the same ride arriving from
+more than one is deduplicated automatically, with intervals.icu taking
+precedence.
+
+#### intervals.icu (recommended)
+
+Free, with a documented API, and it relays Garmin Connect, Wahoo, Zwift, Polar,
+Suunto and Coros — so VeloMate needs no Strava API access of its own.
+
+1. Sign in at [intervals.icu](https://intervals.icu) → **Settings**
+2. Scroll to **Developer Settings** — your **athlete ID** (`iNNNNNN`) and
+   **API key** are both on that page
+3. Add them to `.env` as `INTERVALS_ICU_ATHLETE_ID` and `INTERVALS_ICU_API_KEY`
+
+**One caveat worth knowing:** activities that reached intervals.icu *via
+Strava* cannot be served back through their API — Strava's terms forbid third
+parties re-serving Strava data — so those are skipped and reported per batch.
+Upload to intervals.icu directly, or sync your head unit to it, for full
+coverage.
+
+##### Zwift rides — connect Zwift to intervals.icu directly
+
+**intervals.icu → Settings → Zwift → Connect.** Zwift and intervals.icu have an
+official integration built on Zwift's Training API: completed rides download
+automatically, **Download Old Data** backfills up to a year, and planned
+workouts sync the other way into your Zwift workout library. Nothing runs on
+your machine and nothing depends on Strava.
+
+The alternatives below are recorded because they look workable and are not.
+
+**Relaying through Garmin or Wahoo does not work.** Both deliberately refuse to
+forward third-party-sourced activities to other platforms, so a Zwift ride that
+lands in Garmin Connect or the Wahoo app never reaches intervals.icu at all.
+
+**Strava holds the ride, but neither way of getting it out is open.** These are
+two alternative routes, each blocked for its own reason — opening either one
+would be enough:
+
+- *Via intervals.icu.* The ride arrives there, but as one of the unavailable
+  stubs described above, which intervals.icu may not re-serve through its API.
+- *Straight from Strava.* VeloMate could read the original FIT directly, but
+  Strava's API now requires a paid subscription. Buying one reopens this route.
+
+(intervals.icu can also bulk-import a full Strava history as original FIT files.
+That is a one-off account export, not a sync route.)
+
+**If the direct connection is ever unavailable**, Zwift writes every completed
+ride to `~/Documents/Zwift/Activities`, and intervals.icu accepts both a manual
+upload and a watched Dropbox folder (**Settings → Dropbox → Connect → Add
+Folder**). Either gets a ride in without any custom tooling.
+
+
+#### Ride with GPS
+
+1. Go to [ridewithgps.com](https://ridewithgps.com) → account settings → **Developers** tab
+2. Create an API client — this gives you the **API key**
+3. Generate an **auth token** for your account on the same page
+4. Add both to `.env` as `RWGPS_API_KEY` and `RWGPS_AUTH_TOKEN`
+
+#### Strava
+
+Strava API access requires a **paid Strava subscription** as of June 2026, so
+prefer intervals.icu unless you specifically need Strava. The code path is
+unchanged and re-enables whenever the credentials are set.
 
 ```bash
 # Set your Strava API credentials (from https://www.strava.com/settings/api)
@@ -181,18 +246,10 @@ python3 -m velomate.cli auth
 # Add the printed refresh token to your .env file.
 ```
 
-### Ride with GPS (alternative or addition to Strava)
+When several sources are configured, the same ride arriving from more than one
+is deduplicated automatically, and intervals.icu takes precedence.
 
-VeloMate can ingest rides from Ride with GPS instead of — or alongside — Strava.
-With both configured, the same ride arriving from both services is deduplicated
-automatically.
-
-1. Go to [ridewithgps.com](https://ridewithgps.com) → account settings → **Developers** tab
-2. Create an API client — this gives you the **API key**
-3. Generate an **auth token** for your account on the same page
-4. Add both to `.env` as `RWGPS_API_KEY` and `RWGPS_AUTH_TOKEN`
-
-At least one source (Strava or RWGPS) must be configured.
+At least one source (intervals.icu, Strava or RWGPS) must be configured.
 
 ### 3. Start services
 
@@ -293,7 +350,7 @@ TSB       = CTL − ATL                 (training stress balance / form)
 - **VI**: Variability Index = NP / avg_power. Higher = more variable effort. Drives the VI-aware TSS routing above
 - **EF**: Efficiency Factor = NP / avg HR. Rising EF indicates improving aerobic fitness
 - **TRIMP**: Banister exponential formula from per-second HR data. Uses max HR for HRR normalization. HRR capped at 1.0 to prevent blowup when HR exceeds configured max
-- **Aerobic decoupling**: `(first_half_EF / second_half_EF − 1) × 100`. Positive = cardiac drift. Computed per ride by the ingestor, stored on `activities.aerobic_decoupling`, trended on All Time Progression
+- **Aerobic decoupling**: `(first_half_EF / second_half_EF − 1) × 100`. Positive = cardiac drift. Coasting samples are excluded, so it measures efficiency while actually pedalling. Requires **20 minutes of pedalling** — heart rate lags effort by minutes, so on a shorter ride the first half is mostly HR still climbing, which reads as drift that never happened; shorter rides store no value rather than a misleading one. Computed per ride by the ingestor, stored on `activities.aerobic_decoupling`, trended on All Time Progression
 - **FTP**: auto-estimated from rolling 90-day best 20-minute power × 0.95, or configured via `VELOMATE_FTP`. The algorithmic estimate is always computed and stored as a diagnostic value alongside the configured one — Overview shows both side-by-side so a mismatch is visible at a glance
 - **Work**: Total energy output in kJ = sum of per-second power from stream data
 - **Max HR**: 95th percentile of ride max HRs, or configured via `VELOMATE_MAX_HR`. Used for Banister TRIMP
@@ -336,6 +393,10 @@ Configured via `.env` file:
 | `STRAVA_REFRESH_TOKEN` | One source required | OAuth refresh token (get via `python3 -m velomate.cli auth`) |
 | `RWGPS_API_KEY` | One source required | From ridewithgps.com → account settings → developers |
 | `RWGPS_AUTH_TOKEN` | One source required | Generated on the RWGPS API client management page |
+| `INTERVALS_ICU_ATHLETE_ID` | One source required | From intervals.icu → Settings → Developer Settings (`iNNNNNN`) |
+| `INTERVALS_ICU_API_KEY` | One source required | On the same Developer Settings page |
+| `INTERVALS_ICU_SYNC_WINDOW_DAYS` | No | Rolling poll window in days (default `14`) |
+| `INTERVALS_ICU_SWEEP_DAYS` | No | Daily reconciliation window for deletions, in days (default `90`) |
 | `GRAFANA_PASSWORD` | Yes | Grafana admin password |
 | `GRAFANA_PORT` | No | Host port for the Grafana UI (default `3021`) |
 | `GRAFANA_ROOT_URL` | No | Public URL if served behind a reverse proxy (default `http://localhost:3021/`) |
@@ -346,6 +407,13 @@ Configured via `.env` file:
 | `VELOMATE_WEIGHT` | No | Your weight in kg (0 = disabled). Enables W/kg on Activity Details and NP/kg Trend on All Time Progression. Stored per ride — historical rides preserve their weight if you change it later |
 | `VELOMATE_RESET_RIDE_FTP` | No | Set to `1` to reset all per-ride FTP values on next restart (one-shot) |
 | `VELOMATE_BACKFILL_MONTHS` | No | How far back to fetch activities. Default `12`. Set to `0` for full history (slow — can take hours and span multiple days due to rate limits). **Increasing this value on a running deployment** triggers an auto-backfill on the next restart to pull the extended window. Decreasing it logs a note but leaves existing older activities in the DB (this controls the backfill horizon, not data retention). |
+| `VELOMATE_UNITS` | No | Display units for dashboards and CLI: `metric` (default) or `imperial` (USA: mi/ft/mph/°F). Storage stays metric; this only changes what's displayed. Dashboard set is selected at deploy time — no runtime switching. |
+
+### Units
+
+The `VELOMATE_UNITS` flag controls whether dashboards and CLI output show metric or imperial units. **Storage is always metric** — the conversion is display-only. Set to `metric` (default) for km, m, km/h, °C, or `imperial` for mi, ft, mph, °F. W/kg always stays metric. This is a deploy-time setting — changing it requires restarting the stack; there's no runtime unit switcher.
+
+Dashboards are not converted at query time: `scripts/gen_imperial_dashboards.py` generates a full imperial variant into `grafana/dashboards/imperial/`, and Compose mounts whichever set the flag names. **Re-run that script after editing any dashboard under `grafana/dashboards/metric/`**, or the imperial set silently drifts from the metric one. Use exactly `metric` or `imperial` — any other value resolves to a nonexistent directory and Grafana provisions no dashboards at all.
 
 ### CLI (local)
 
@@ -360,7 +428,9 @@ Configured via `~/.config/velomate/config.yaml` (see `config.example.yaml`):
 
 - Docker + Docker Compose (for ingestor, PostgreSQL, Grafana)
 - Python 3.10+ (for CLI)
-- At least one activity source: a Strava account with API access and/or a Ride with GPS account
+- At least one activity source. **intervals.icu is recommended** — free, and it relays
+  Garmin, Wahoo, Zwift, Polar, Suunto and Coros. Strava and Ride with GPS also work;
+  note that Strava API access now requires a paid Strava subscription
 
 ## License
 

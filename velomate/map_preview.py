@@ -5,6 +5,8 @@ import os
 import tempfile
 import webbrowser
 
+from velomate.units import normalize_system, format_distance, format_elevation, format_temp, format_speed
+
 
 def _read_gpx(gpx_path: str) -> str:
     """Read GPX file content for embedding in HTML."""
@@ -16,7 +18,8 @@ def _read_gpx(gpx_path: str) -> str:
 
 
 def preview(coords: list, name: str, waypoints: list | None = None,
-            route_info: dict | None = None, output_dir: str | None = None) -> str:
+            route_info: dict | None = None, output_dir: str | None = None,
+            units_system: str = "metric") -> str:
     """Generate an HTML map preview of a route and open in browser.
 
     coords: list of (lat, lng) tuples from the GPX
@@ -31,6 +34,7 @@ def preview(coords: list, name: str, waypoints: list | None = None,
     if not coords:
         return ""
 
+    system = normalize_system(units_system)
     info = route_info or {}
     name = html.escape(name)  # prevent XSS via route/waypoint names
     gpx_content = _read_gpx(info.get("gpx_path", ""))
@@ -68,7 +72,7 @@ def preview(coords: list, name: str, waypoints: list | None = None,
         <div class="card">
             <div class="card-icon">📏</div>
             <div class="card-body">
-                <div class="card-value">{dist:.0f} km</div>
+                <div class="card-value">{format_distance(dist, system)}</div>
                 <div class="card-label">Distance</div>
             </div>
         </div>"""
@@ -89,7 +93,7 @@ def preview(coords: list, name: str, waypoints: list | None = None,
         <div class="card">
             <div class="card-icon">⛰</div>
             <div class="card-body">
-                <div class="card-value">+{climb}m / -{descent}m</div>
+                <div class="card-value">+{format_elevation(climb, system)} / -{format_elevation(descent, system)}</div>
                 <div class="card-label">Climb · max {gradient}%</div>
             </div>
         </div>"""
@@ -139,8 +143,8 @@ def preview(coords: list, name: str, waypoints: list | None = None,
         <div class="card">
             <div class="card-icon">🌤</div>
             <div class="card-body">
-                <div class="card-value">{weather.get('temp_min', 0):.0f}–{weather.get('temp_max', 0):.0f}°C</div>
-                <div class="card-label">{weather.get('weather', '')} · wind {weather.get('wind', 0):.0f} km/h</div>
+                <div class="card-value">{format_temp(weather.get('temp_min', 0), system)}–{format_temp(weather.get('temp_max', 0), system)}</div>
+                <div class="card-label">{weather.get('weather', '')} · wind {format_speed(weather.get('wind', 0), system)}</div>
             </div>
         </div>"""
 
@@ -152,7 +156,7 @@ def preview(coords: list, name: str, waypoints: list | None = None,
             <div class="card-icon">🕐</div>
             <div class="card-body">
                 <div class="card-value">{best_time['hour']}</div>
-                <div class="card-label">{best_time['temp']:.0f}°C · wind {best_time['wind']:.0f} km/h · UV {best_time['uv']:.0f}</div>
+                <div class="card-label">{format_temp(best_time['temp'], system)} · wind {format_speed(best_time['wind'], system)} · UV {best_time['uv']:.0f}</div>
             </div>
         </div>"""
 

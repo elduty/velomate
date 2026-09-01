@@ -99,7 +99,7 @@ def estimate_distance(duration_min: int, surface: str, avg_speed: float | None) 
     return round(duration_min / 60 * speed, 1)
 
 
-def adjust_for_fitness(distance_km: float, tsb: float | None) -> tuple[float, str | None]:
+def adjust_for_fitness(distance_km: float, tsb: float | None, system: str = "metric") -> tuple[float, str | None]:
     """Adjust distance based on TSB. Returns (adjusted_distance, note)."""
     if tsb is None:
         return distance_km, None
@@ -109,11 +109,12 @@ def adjust_for_fitness(distance_km: float, tsb: float | None) -> tuple[float, st
     elif tsb > -10:
         return distance_km, "neutral (TSB {:+.0f})".format(tsb)
     else:
+        from velomate.units import format_distance
         adjusted = round(distance_km * 0.8, 1)
-        return adjusted, "fatigued (TSB {:.0f}) — reduced to {}km".format(tsb, adjusted)
+        return adjusted, "fatigued (TSB {:.0f}) — reduced to {}".format(tsb, format_distance(adjusted, system))
 
 
-def _analyze_wind(coords: list, wind_dir: float, wind_speed: float) -> str | None:
+def _analyze_wind(coords: list, wind_dir: float, wind_speed: float, system: str = "metric") -> str | None:
     """Analyze route exposure to wind. Returns a warning string or None.
 
     wind_dir: degrees (0=N, 90=E, 180=S, 270=W) — direction wind comes FROM.
@@ -166,23 +167,25 @@ def _analyze_wind(coords: list, wind_dir: float, wind_speed: float) -> str | Non
 
     if parts:
         wind_from = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][int((wind_dir + 22.5) % 360 / 45)]
-        return f"Wind from {wind_from} at {wind_speed:.0f} km/h — {', '.join(parts)}"
+        from velomate.units import format_speed
+        return f"Wind from {wind_from} at {format_speed(wind_speed, system)} — {', '.join(parts)}"
     return None
 
 
-def format_weather(day: dict) -> str:
+def format_weather(day: dict, system: str = "metric") -> str:
     """Format weather for a single day."""
+    from velomate.units import format_temp, format_speed, format_precip
     parts = [day["weather"]]
-    parts.append(f"{day['temp_min']:.0f}-{day['temp_max']:.0f}°C")
-    wind_str = f"wind {day['wind']:.0f} km/h"
+    parts.append(f"{format_temp(day['temp_min'], system)}-{format_temp(day['temp_max'], system)}")
+    wind_str = f"wind {format_speed(day['wind'], system)}"
     gusts = day.get("gusts", 0)
     if gusts and gusts > day["wind"] + 5:
-        wind_str += f" (gusts {gusts:.0f})"
+        wind_str += f" (gusts {format_speed(gusts, system)})"
     parts.append(wind_str)
     if day.get("uv_max", 0) >= 6:
         parts.append(f"UV {day['uv_max']:.0f}")
     if day["precip"] > 0:
-        parts.append(f"rain {day['precip']:.1f}mm")
+        parts.append(f"rain {format_precip(day['precip'], system)}")
     return ", ".join(parts)
 
 
@@ -233,6 +236,11 @@ def plan(duration_str: str = None, distance_str: str = None,
          destination: dict = None) -> str:
     """Generate a cycling route. Accepts either duration or distance."""
     safety = max(0.0, min(1.0, safety))
+
+    # Resolve display units once for all output (CLI + map preview)
+    from velomate.config import load as load_config
+    from velomate.units import normalize_system, format_distance, format_elevation, format_speed, format_temp
+    system = normalize_system(load_config().get("display", {}).get("units", "metric"))
 
     # Resolve loop default: False when destination set, True otherwise
     if loop is None:
@@ -289,7 +297,7 @@ def plan(duration_str: str = None, distance_str: str = None,
         if loop:
             distance_km = distance_km * 2
             duration_min = duration_min * 2
-    distance_km, fitness_note = adjust_for_fitness(distance_km, fitness.get("tsb"))
+    distance_km, fitness_note = adjust_for_fitness(distance_km, fitness.get("tsb"), system)
 
     # Weather check
     weather_day = None
@@ -483,7 +491,7 @@ def plan(duration_str: str = None, distance_str: str = None,
             "sun": sun_info,
             "trails": trails,
             "gpx_path": gpx_path,
-        }, output_dir=output_dir)
+        }, output_dir=output_dir, units_system=system)
         if not output_dir:
             print(f"  Route preview opened in browser", file=sys.stderr)
     except Exception as e:
@@ -493,7 +501,7 @@ def plan(duration_str: str = None, distance_str: str = None,
     # Build output
     lines = []
     lines.append(f"🗺 *{route_name}*")
-    lines.append(f"  📏 {actual_km:.0f} km")
+    lines.append(f"  📏 {format_distance(actual_km, system)}")
 
     if ride_date or ride_time:
         when_parts = []
@@ -510,7 +518,7 @@ def plan(duration_str: str = None, distance_str: str = None,
         lines.append(f"  ⚠️ {surface_check['warning']}")
 
     if elevation_info.get("total_climb"):
-        lines.append(f"  ⛰ Climb: +{elevation_info['total_climb']}m / -{elevation_info['total_descent']}m (max gradient {elevation_info['max_gradient']}%)")
+        lines.append(f"  ⛰ Climb: +{format_elevation(elevation_info['total_climb'], system)} / -{format_elevation(elevation_info['total_descent'], system)} (max gradient {elevation_info['max_gradient']}%)")
 
     if scenic_info.get("features"):
         lines.append(f"  🌿 Scenic: {', '.join(scenic_info['features'])} ({scenic_info['scenic_score']}/100)")
@@ -522,15 +530,15 @@ def plan(duration_str: str = None, distance_str: str = None,
         lines.append(f"  🚲 Trails: {', '.join(trails)}")
 
     if weather_day:
-        lines.append(f"  🌤 {format_weather(weather_day)}")
+        lines.append(f"  🌤 {format_weather(weather_day, system)}")
         if weather_day["wind"] > 25:
-            lines.append(f"  ⚠️ High wind ({weather_day['wind']:.0f} km/h) — consider a sheltered route")
+            lines.append(f"  ⚠️ High wind ({format_speed(weather_day['wind'], system)}) — consider a sheltered route")
         if weather_day.get("gusts", 0) > 40:
-            lines.append(f"  ⚠️ Strong gusts ({weather_day['gusts']:.0f} km/h) — watch for sudden pushes, especially on crosswinds and descents")
+            lines.append(f"  ⚠️ Strong gusts ({format_speed(weather_day['gusts'], system)}) — watch for sudden pushes, especially on crosswinds and descents")
 
         # Wind direction analysis against route
         if best_hours and result.get("coords"):
-            wind_warning = _analyze_wind(result["coords"], best_hours[0]["wind_dir"], best_hours[0]["wind"])
+            wind_warning = _analyze_wind(result["coords"], best_hours[0]["wind_dir"], best_hours[0]["wind"], system)
             if wind_warning:
                 lines.append(f"  💨 {wind_warning}")
 
@@ -549,7 +557,7 @@ def plan(duration_str: str = None, distance_str: str = None,
         if best_hours:
             top = best_hours[0]
             hour = top["time"][11:16]
-            lines.append(f"  🕐 Best time: {hour} ({top['temp']:.0f}°C, wind {top['wind']:.0f} km/h, UV {top['uv']:.0f})")
+            lines.append(f"  🕐 Best time: {hour} ({format_temp(top['temp'], system)}, wind {format_speed(top['wind'], system)}, UV {top['uv']:.0f})")
 
 
     # Air quality

@@ -29,7 +29,11 @@ groups:
             model:
               type: reduce
               expression: A
-              reducer: min
+              # max (not min) of the last 2 days' TSB: the threshold below fires
+              # only when the *larger* value is < -25, i.e. BOTH days are below
+              # -25 — matching "below -25 for 2+ days". With min, a single bad
+              # day (one value < -25) would trip the alert.
+              reducer: max
           - refId: C
             relativeTimeRange:
               from: 0

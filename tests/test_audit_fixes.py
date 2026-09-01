@@ -459,7 +459,7 @@ def _make_conn():
 
 # Existing record is richer: power(3) + hr(2) + distance(1) = 6
 # New record is weaker:  hr(2) only = 2
-_RICH_EXISTING = (42, 99999, "karoo", 10000, 150, 250, None, None)  # id, strava_id, device, dist, hr, power, rwgps_id, suffer_score
+_RICH_EXISTING = (42, 99999, "karoo", 10000, 150, 250, None, None, None, None)  # id, strava_id, device, dist, hr, power, rwgps_id, suffer_score
 _WEAK_NEW = {
     "name": "Morning Ride", "date": "2026-03-18T07:00:00Z", "duration_s": 3600,
     "distance_m": 0, "avg_hr": 155, "avg_power": None, "max_hr": None,

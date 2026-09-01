@@ -21,7 +21,7 @@ HIGH_VI_THRESHOLD = 1.30
 
 # Bump this when NP/EF/Work calculation logic changes.
 # On startup, if the stored version differs, all values are recalculated.
-METRICS_VERSION = "10"  # v10: VI-aware TSS uses avg_power when VI > 1.30
+METRICS_VERSION = "14"  # v14: decoupling needs a 20-minute minimum ride
 
 
 def calculate_tss(duration_s: int, avg_hr: int, threshold_hr: int) -> float:
@@ -126,6 +126,21 @@ def select_power_for_tss(np, avg_power):
     return None
 
 
+# Decoupling compares the first and second half of a ride, so it needs a ride
+# long enough for the comparison to mean anything. Heart rate lags effort by
+# minutes, so on a short ride the first half is dominated by HR still climbing
+# toward its steady value — which reads as enormous "drift" that never happened.
+# A 4-minute Zwift effort scored 46.6%, where anything above ~10% is already a
+# strong signal on a real endurance ride.
+#
+# 20 minutes (1200 samples at 1 Hz, so 20 minutes of pedalling) leaves each half
+# a 10-minute average, which is the shortest window worth trusting. Friel's own
+# test is an hour or more, but VeloMate reports this per ride rather than only
+# for dedicated aerobic tests, and 30-45 minute rides here produce sane values
+# (6.7% to 17.4%) that are worth keeping.
+MIN_DECOUPLING_SAMPLES = 1200
+
+
 def compute_decoupling(power_samples: list, hr_samples: list) -> float | None:
     """Aerobic decoupling (Friel) from matched power + HR 1-second streams.
     Splits the ride into two halves by time index, computes EF (avg_power/avg_hr)
@@ -135,15 +150,29 @@ def compute_decoupling(power_samples: list, hr_samples: list) -> float | None:
     Positive values = cardiac drift (HR rising relative to power in the second half),
     which is a leading indicator of aerobic fatigue or insufficient base fitness.
 
-    Returns None when streams are missing, mismatched, too short for a
-    meaningful split, or when either half lacks valid HR data. None values
-    inside the streams are filtered per-half.
+    Coasting (zero-power) samples are EXCLUDED, so this measures the rider's
+    efficiency while actually pedalling. Including them makes the metric a
+    function of how much the rider freewheeled rather than of cardiac drift:
+    coasting is not evenly distributed between halves (traffic, route shape,
+    descents), so the zeros drag one half's average power down more than the
+    other and manufacture drift that never happened. On VI 1.4-1.65 urban
+    rides that produced readings up to 97% — physiologically meaningless,
+    since real decoupling above ~10% is already a strong signal — and
+    sometimes inverted the sign against intervals.icu. See
+    docs/intervals-icu-comparison-findings.md §3.
+
+    The split is still by TIME (sample index), so the halves remain the first
+    and second half of the ride; only the samples used to average each half
+    are filtered.
+
+    Returns None when streams are missing, mismatched, shorter than
+    MIN_DECOUPLING_SAMPLES, or when either half has no pedalling with valid HR.
     """
     if not power_samples or not hr_samples:
         return None
     if len(power_samples) != len(hr_samples):
         return None
-    if len(power_samples) < 4:  # need at least 2 samples per half
+    if len(power_samples) < MIN_DECOUPLING_SAMPLES:
         return None
 
     mid = len(power_samples) // 2
@@ -152,7 +181,7 @@ def compute_decoupling(power_samples: list, hr_samples: list) -> float | None:
 
     def ef(power_half, hr_half):
         pairs = [(p, h) for p, h in zip(power_half, hr_half)
-                 if p is not None and h is not None and h > 0]
+                 if p is not None and p > 0 and h is not None and h > 0]
         if len(pairs) < 2:
             return None
         avg_p = sum(p for p, _ in pairs) / len(pairs)
@@ -167,6 +196,86 @@ def compute_decoupling(power_samples: list, hr_samples: list) -> float | None:
         return None
 
     return round((first_ef / second_ef - 1) * 100, 2)
+
+
+# Three-zone model boundaries as fractions of FTP, for the polarization index.
+# Z1 = below the first threshold (easy), Z2 = between thresholds (tempo/
+# threshold), Z3 = above the second (hard). These are the standard aerobic /
+# anaerobic threshold splits, not the 7-zone Coggan buckets the dashboards use.
+POLARIZATION_Z1_MAX = 0.75
+POLARIZATION_Z2_MAX = 1.05
+
+
+def compute_coasting_time(power_samples: list) -> int:
+    """Seconds spent not pedalling.
+
+    Computed from our own power stream rather than read from a provider, so the
+    value is identical whichever source delivered the ride. A dropped (None)
+    sample is counted as coasting: the rider was not producing power.
+
+    Assumes 1 sample = 1 second, the same assumption NP and TSS already make.
+    """
+    if not power_samples:
+        return 0
+    return sum(1 for p in power_samples if not p)
+
+
+def compute_kj_above_ftp(power_samples: list, ftp) -> float | None:
+    """Work done above threshold, in kJ — the "matches burned" metric.
+
+    Only the excess over FTP counts: a second at 300 W with a 200 W threshold
+    contributes 100 J. Riding below threshold contributes nothing, so this
+    isolates the anaerobic cost of a ride from its overall volume.
+
+    Returns None when no threshold is known, since the metric is meaningless
+    without one.
+    """
+    if not ftp or ftp <= 0 or not power_samples:
+        return None
+    joules = sum(p - ftp for p in power_samples if p is not None and p > ftp)
+    return round(joules / 1000.0, 1)
+
+
+def compute_polarization_index(power_samples: list, ftp) -> float | None:
+    """Treff polarization index over the three-zone model.
+
+    PI = log10( (Z1 / Z2) * Z3 * 100 ), with each zone as a FRACTION of
+    pedalling time. PI >= 2.00 is the accepted marker of genuinely polarised
+    training — lots of easy, little middle, a real hard fraction.
+
+    Calibrated against intervals.icu on five shared rides (ours vs theirs:
+    1.53/1.39, 1.60/1.56, 1.79/1.44, 1.70/1.67, 1.55/1.60). The residual gap is
+    zone boundaries: they split on the athlete's configured zones against a
+    manually-set FTP, we split on ride_ftp. The formula itself agrees.
+
+    Coasting is excluded: freewheeling is not "easy riding", and counting it
+    would inflate Z1 and make every stop-and-go ride look polarised.
+
+    Returns None when any zone is empty — Z2 divides, and an empty Z1 or Z3
+    makes the log argument zero — or when no threshold is known.
+    """
+    if not ftp or ftp <= 0 or not power_samples:
+        return None
+
+    pedalling = [p for p in power_samples if p is not None and p > 0]
+    if not pedalling:
+        return None
+
+    total = len(pedalling)
+    z1 = sum(1 for p in pedalling if p < ftp * POLARIZATION_Z1_MAX)
+    z3 = sum(1 for p in pedalling if p >= ftp * POLARIZATION_Z2_MAX)
+    z2 = total - z1 - z3
+    # All three must be non-zero: z2 divides, and z1/z3 would make the log
+    # argument zero — math.log10(0) raises ValueError and would abort the
+    # whole recalculation run, not just this ride.
+    if z1 == 0 or z2 == 0 or z3 == 0:
+        return None
+
+    # Fractions, not percentages: the *100 in Treff's formula already scales
+    # them. Feeding percentages in as well double-counts it and shifts every
+    # value up by exactly 2.
+    z1_frac, z2_frac, z3_frac = z1 / total, z2 / total, z3 / total
+    return round(math.log10((z1_frac / z2_frac) * z3_frac * 100), 2)
 
 
 def calculate_tss_power(duration_s: int, np: float, ftp: int) -> float:
@@ -215,17 +324,23 @@ def estimate_ftp(conn, as_of_date: str | None = None) -> int:
             rolling AS (
                 SELECT
                     s.activity_id,
-                    AVG(s.power) OVER (
-                        PARTITION BY s.activity_id
-                        ORDER BY s.time_offset
-                        ROWS BETWEEN 1199 PRECEDING AND CURRENT ROW
-                    ) AS avg_20min
+                    AVG(s.power) OVER w AS avg_20min,
+                    COUNT(*) OVER w AS window_size
                 FROM activity_streams s
                 JOIN recent_activities a ON a.id = s.activity_id
                 WHERE s.power IS NOT NULL
+                WINDOW w AS (
+                    PARTITION BY s.activity_id
+                    ORDER BY s.time_offset
+                    ROWS BETWEEN 1199 PRECEDING AND CURRENT ROW
+                )
             )
+            -- window_size >= 1200 rejects partial windows: a hard effort in a
+            -- ride's first 20 min would otherwise average over < 1200 samples
+            -- and be mis-scored as 20-min power, inflating FTP. Matches the guard
+            -- in the ride_ftp backfill query in recalculate_fitness.
             SELECT ROUND(MAX(avg_20min) * 0.95) FROM rolling
-            WHERE avg_20min IS NOT NULL
+            WHERE avg_20min IS NOT NULL AND window_size >= 1200
         """, (as_of_date, as_of_date))
         row = cur.fetchone()
         if row and row[0] and row[0] > 0:
@@ -468,57 +583,112 @@ def backfill_cp_estimates(conn) -> int:
     return count
 
 
+# Above this median inter-sample spacing a stream is not effectively 1 Hz and
+# the sample-equals-second assumption behind NP, MMP/CP and W'bal stops holding.
+MAX_SAMPLING_CADENCE_S = 1.0
+
+
+def sampling_cadence_s(offsets):
+    """Median seconds between consecutive samples, or None if too short.
+
+    NP, mean-maximal power and W'bal all count samples, not elapsed time. That
+    is correct for a 1 Hz moving-time stream: measured on real rides, 99.5-99.8%
+    of consecutive samples are exactly one second apart, and the gaps are a
+    handful of long auto-pause stops which the device rightly excludes — filling
+    them would compute NP over elapsed rather than moving time and, verified
+    against intervals.icu, makes agreement markedly worse.
+
+    It stops holding under smart recording, where samples are genuinely sparse
+    *while moving*: a 30-sample NP window would then span two minutes. The
+    MEDIAN is what distinguishes the two — a few long pauses leave it at 1 s,
+    while sparse sampling raises it.
+    """
+    if not offsets or len(offsets) < 2:
+        return None
+    deltas = sorted(b - a for a, b in zip(offsets, offsets[1:]))
+    mid = len(deltas) // 2
+    if len(deltas) % 2:
+        return float(deltas[mid])
+    return (deltas[mid - 1] + deltas[mid]) / 2.0
+
+
+def select_cp_for_date(cp_rows, ride_date):
+    """Pick the CP/W' that was current on `ride_date`.
+
+    cp_rows: (date, cp_watts, w_prime_kj, source, fallback_ftp) ordered by date.
+    Returns (cp_watts, w_prime_joules), or (None, None) when nothing is usable.
+
+    Takes the most recent estimate at or before the ride, so a ride is modelled
+    against the fitness the rider actually had that day rather than today's. A
+    ride older than every estimate falls back to the earliest one — an
+    early-season CP beats having no W'bal at all for the oldest rides.
+
+    W' defaults to the Skiba standard 20 kJ whenever the fit did not produce
+    one, which is the same default the single-CP version used.
+    """
+    if ride_date is None or not cp_rows:
+        return (None, None)
+
+    usable = [r for r in cp_rows
+              if (r[1] is not None and r[1] > 0) or (r[4] is not None and r[4] > 0)]
+    if not usable:
+        return (None, None)
+
+    at_or_before = [r for r in usable if r[0] <= ride_date]
+    row = at_or_before[-1] if at_or_before else usable[0]
+
+    _d, cp_watts, w_prime_kj, source, fallback_ftp = row
+    if source == "cp" and cp_watts is not None and cp_watts > 0:
+        cp = float(cp_watts)
+    elif fallback_ftp is not None and fallback_ftp > 0:
+        cp = float(fallback_ftp)
+    else:
+        return (None, None)
+
+    w_prime_j = (w_prime_kj * 1000.0) if w_prime_kj is not None else 20000.0
+    return (cp, w_prime_j)
+
+
 def compute_wbal_for_rides(conn) -> int:
     """Compute W'bal for rides that don't have it yet.
 
-    Reads CP/W' from the latest cp_estimates row. For rides with power
-    streams where w_bal IS NULL, computes per-second W'bal via Skiba
-    differential and writes it back to activity_streams.
+    Each ride is modelled against the CP/W' that was current on its OWN date,
+    not the single latest estimate. Using today's CP for a ride from months ago
+    misrepresents the effort — and because the selector gates on w_bal IS NULL,
+    the value was then frozen at whatever CP happened to be latest when it was
+    first computed, never refreshed as fitness moved.
 
-    Returns the number of rides processed. Returns 0 if no CP estimate
-    is available or no rides need processing.
+    Returns the number of rides processed.
     """
     from critical_power import compute_wbal
 
-    # Get latest CP estimate
     with conn.cursor() as cur:
         cur.execute("""
-            SELECT cp_watts, w_prime_kj, fallback_ftp, source
-            FROM cp_estimates ORDER BY date DESC LIMIT 1
+            SELECT date, cp_watts, w_prime_kj, source, fallback_ftp
+            FROM cp_estimates ORDER BY date
         """)
-        row = cur.fetchone()
+        cp_rows = cur.fetchall()
 
-    if row is None:
+    if not cp_rows:
         print("[fitness] No CP estimates — skipping W'bal")
         return 0
 
-    cp_watts, w_prime_kj, fallback_ftp, source = row
-
-    # Determine CP and W' to use
-    if source == "cp" and cp_watts is not None:
-        cp = cp_watts
-    elif fallback_ftp is not None:
-        cp = float(fallback_ftp)
-    else:
-        print("[fitness] No usable CP value — skipping W'bal")
-        return 0
-
-    # W' in joules — use fitted value or 20kJ default (Skiba standard)
-    w_prime_j = (w_prime_kj * 1000.0) if w_prime_kj is not None else 20000.0
-
-    # Find rides with power streams that need W'bal
+    # Ride dates come along so each ride can be matched to its own estimate.
     with conn.cursor() as cur:
         cur.execute("""
-            SELECT DISTINCT s.activity_id
+            SELECT DISTINCT s.activity_id, a.date::date
             FROM activity_streams s
+            JOIN activities a ON a.id = s.activity_id
             WHERE s.power IS NOT NULL
               AND s.w_bal IS NULL
             ORDER BY s.activity_id
         """)
-        ride_ids = [row[0] for row in cur.fetchall()]
+        ride_rows = cur.fetchall()
 
-    if not ride_ids:
+    if not ride_rows:
         return 0
+    ride_ids = [r[0] for r in ride_rows]
+    ride_dates = {r[0]: r[1] for r in ride_rows}
 
     count = 0
     for act_id in ride_ids:
@@ -543,7 +713,10 @@ def compute_wbal_for_rides(conn) -> int:
             offsets = [r[0] for r in rows]
             powers = [float(r[1]) for r in rows]
 
-            # Compute W'bal
+            cp, w_prime_j = select_cp_for_date(cp_rows, ride_dates.get(act_id))
+            if cp is None:
+                continue
+
             wbal = compute_wbal(powers, cp, w_prime_j)
 
             # Batch update w_bal for each time_offset
@@ -700,6 +873,28 @@ def detect_climbs_for_rides(conn) -> int:
     return count
 
 
+def _strava_configured() -> bool:
+    """True when all three Strava credentials are present."""
+    return bool(os.environ.get("STRAVA_CLIENT_ID")
+                and os.environ.get("STRAVA_CLIENT_SECRET")
+                and os.environ.get("STRAVA_REFRESH_TOKEN"))
+
+
+def _backfill_strava_segments_safely(conn) -> None:
+    """Run the Strava segment backfill, swallowing its failures.
+
+    Segment enrichment is a bonus; a Strava outage or a revoked token must not
+    stop the rest of the recalculation.
+    """
+    try:
+        from strava import backfill_strava_segments
+        seg_count = backfill_strava_segments(conn)
+        if seg_count > 0:
+            print(f"[fitness] Backfilled Strava segments for {seg_count} rides")
+    except Exception as e:
+        print(f"[fitness] Strava segment backfill failed (non-fatal): {e}")
+
+
 def recalculate_fitness(conn):
     """
     Walk day-by-day from earliest activity, applying EMA:
@@ -769,7 +964,7 @@ def recalculate_fitness(conn):
         with conn.cursor() as cur:
             # ride_weight intentionally excluded — it's user-configured, not derived.
             # Historical rides preserve their stamped weight across version bumps.
-            cur.execute("UPDATE activities SET tss = NULL, np = NULL, ef = NULL, work_kj = NULL, ride_ftp = NULL, intensity_factor = NULL, trimp = NULL, variability_index = NULL, aerobic_decoupling = NULL")
+            cur.execute("UPDATE activities SET tss = NULL, np = NULL, ef = NULL, work_kj = NULL, ride_ftp = NULL, intensity_factor = NULL, trimp = NULL, variability_index = NULL, aerobic_decoupling = NULL, coasting_time_s = NULL, kj_above_ftp = NULL, polarization_index = NULL")
             cur.execute("UPDATE activity_streams SET w_bal = NULL WHERE w_bal IS NOT NULL")
             cur.execute("DELETE FROM athlete_stats")
             cur.execute("DELETE FROM ride_intervals")
@@ -958,6 +1153,64 @@ def recalculate_fitness(conn):
 
     print(f"[fitness] Detected {interval_row_count} intervals across {interval_activity_count} activities")
 
+    # Step 2.6: Provider-independent ride metrics — coasting, work above FTP,
+    # polarization index. Computed from our own streams rather than read off
+    # whichever source delivered the ride, so a Strava ride and an
+    # intervals.icu ride get identical values.
+    #
+    # MUST run after Step 2. A METRICS_VERSION reset NULLs ride_ftp, and Step 2
+    # is what backfills it — computing here in Step 1 would hand every
+    # ftp-dependent metric a NULL threshold, store NULL, and never recompute
+    # (the selector gates on coasting_time_s, which would already be set).
+    print("[fitness] Computing coasting / work above FTP / polarization...")
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT a.id, a.ride_ftp
+            FROM activities a
+            WHERE a.coasting_time_s IS NULL AND a.date IS NOT NULL
+              AND EXISTS (
+                  SELECT 1 FROM activity_streams s
+                  WHERE s.activity_id = a.id AND s.power IS NOT NULL
+                  GROUP BY s.activity_id HAVING COUNT(*) > 30
+              )
+        """)
+        ride_metric_activities = cur.fetchall()
+
+    ride_metric_count = 0
+    for act_id, act_ride_ftp in ride_metric_activities:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT time_offset, power FROM activity_streams
+                WHERE activity_id = %s AND power IS NOT NULL
+                ORDER BY time_offset
+            """, (act_id,))
+            stream_rows = cur.fetchall()
+            offsets = [r[0] for r in stream_rows]
+            power_samples = [r[1] for r in stream_rows]
+
+        act_ftp = act_ride_ftp if act_ride_ftp and act_ride_ftp > 0 else ftp
+
+        # Surface a stream the sample-equals-second assumption does not fit,
+        # rather than silently computing NP/CP/W'bal over the wrong time base.
+        cadence = sampling_cadence_s(offsets)
+        if cadence is not None and cadence > MAX_SAMPLING_CADENCE_S:
+            print(f"[fitness] WARNING activity {act_id}: samples average {cadence:.0f}s apart, "
+                  f"not 1s. NP, CP and W'bal count samples as seconds, so their windows span "
+                  f"{cadence:.0f}x longer than intended for this ride.")
+
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE activities
+                SET coasting_time_s = %s, kj_above_ftp = %s, polarization_index = %s
+                WHERE id = %s
+            """, (compute_coasting_time(power_samples),
+                  compute_kj_above_ftp(power_samples, act_ftp),
+                  compute_polarization_index(power_samples, act_ftp),
+                  act_id))
+        ride_metric_count += 1
+
+    print(f"[fitness] Computed ride metrics for {ride_metric_count} activities")
+
     # Step 3: Compute TSS using per-ride FTP (ride_ftp). VI-aware input:
     # NP for standard-variability rides (VI ≤ 1.30), avg_power for high-VI
     # rides (urban stop-and-go) where NP overestimates sustained load. HR
@@ -1117,14 +1370,16 @@ def recalculate_fitness(conn):
         print(f"[fitness] W'bal computation failed (non-fatal): {e}")
 
     # Step 8a: Backfill Strava segments for rides that don't have them
-    print("[fitness] Backfilling Strava segments...")
-    try:
-        from strava import backfill_strava_segments
-        seg_count = backfill_strava_segments(conn)
-        if seg_count > 0:
-            print(f"[fitness] Backfilled Strava segments for {seg_count} rides")
-    except Exception as e:
-        print(f"[fitness] Strava segment backfill failed (non-fatal): {e}")
+    # Only attempt this when Strava is actually configured. It runs on every
+    # recalculation, so with Strava removed as a source it otherwise hits the
+    # OAuth endpoint each time purely to fail — pointless network traffic and a
+    # recurring error line that trains the reader to ignore the log.
+    # Deliberately NOT an early return: Step 8b below still has to run.
+    if _strava_configured():
+        print("[fitness] Backfilling Strava segments...")
+        _backfill_strava_segments_safely(conn)
+    else:
+        print("[fitness] Strava not configured — skipping segment backfill")
 
     # Step 8b: Detect climbs for rides with altitude data that don't have climb rows yet
     print("[fitness] Detecting climbs...")

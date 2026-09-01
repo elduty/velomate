@@ -18,14 +18,23 @@ db:
   # password_env: VELOMATE_DB_PASS         # Read password from this env var
   # password_cmd: "vault read -field=password secret/velomate/db"  # Shell command
 
+# Strava — used by the CLI only, for pulling popular segments while route
+# planning. NOT an ingestion setting: the ingestor reads its activity-source
+# credentials from the environment, not this file.
+# Note Strava's API moved to a paid tier; a free key returns 403.
 strava:
   client_id: ""
   client_secret: ""
   refresh_token: ""
 
+# NOTE: activity-source credentials belong in `.env`, not here — the ingestor
+# runs in its own container and reads INTERVALS_ICU_*, RWGPS_* and STRAVA_* from
+# the environment. This file configures the CLI (database, home location,
+# display units, route-planning preferences). The rwgps block below is kept for
+# reference only; the CLI does not read it.
 rwgps:
-  api_key: ""         # From ridewithgps.com -> account settings -> developers
-  auth_token: ""      # Generated on the same API client page
+  api_key: ""         # reference only — set RWGPS_API_KEY in .env
+  auth_token: ""      # reference only — set RWGPS_AUTH_TOKEN in .env
 
 defaults:
   surface: road       # road, gravel, or mtb
@@ -34,6 +43,12 @@ defaults:
 fitness:
   max_hr: 0           # Your max heart rate (0 = auto-estimate from data)
   ftp: 0              # Functional Threshold Power in watts (0 = auto-estimate)
+
+display:
+  units: metric       # or imperial (mi / ft / mph / °F). Storage stays SI;
+                      # this only changes CLI output. For the dashboards set
+                      # VELOMATE_UNITS in .env — it selects which generated
+                      # dashboard set Grafana mounts.
 
 # Roads/areas to avoid when planning routes
 # Each entry is a lat,lng point with a radius in meters

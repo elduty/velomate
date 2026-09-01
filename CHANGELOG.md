@@ -1,5 +1,53 @@
 # Changelog
 
+## v1.7.0 — 2026-09-01
+
+Zwift rides reach VeloMate without Strava, and aerobic decoupling stops reporting a number for rides too short to have one.
+
+### New Features
+
+- **Zwift connects to intervals.icu directly.** Zwift only ever relayed to Strava, and a Strava-relayed activity is a stub intervals.icu may not re-serve through its API — so a Zwift ride could not reach VeloMate at all once Strava's API moved to a paid tier. Zwift and intervals.icu have since built a direct integration on Zwift's Training API: **intervals.icu → Settings → Zwift → Connect**. Completed rides download automatically, "Download Old Data" backfills up to a year, and planned workouts sync the other way. This resolves the v1.6.0 known limitation for Zwift specifically, and needs nothing installed locally.
+  - **Relaying through Garmin or Wahoo does not work**, and is documented as a dead end because it looks like it should. Both deliberately refuse to forward third-party-sourced activities to other platforms, so a Zwift ride landing in Garmin Connect or the Wahoo app never reaches intervals.icu.
+
+### Fixes
+
+- **Aerobic decoupling reported a value for rides far too short to have one.** The only guard was four samples — four seconds at 1 Hz. Decoupling compares the first and second half of a ride, and heart rate lags effort by minutes, so on a short ride the first half is mostly HR still climbing toward its steady value. That reads as enormous drift that never happened: a four-minute ride scored 46.6%, where anything above ~10% is already a strong signal on a real endurance ride. A ride now needs 20 minutes of pedalling, leaving each half a ten-minute average. Measured across the library before choosing the threshold, this blanks exactly one ride — the four-minute one; the next shortest carrying a value is 30 minutes.
+
+### Notes
+
+- **`METRICS_VERSION` 13 → 14**, so the stale decoupling values are recomputed on the next ingestor start.
+- **`VELOMATE_TOKEN_FALLBACK` is now settable from `.env`.** The ingestor already read it, but `docker-compose.yml` never passed it through, so the path could not be relocated without editing the compose file.
+- A test-suite defect was fixed alongside: one test module replaced `requests` in `sys.modules` with a mock, and because pytest imports every module into one process, that leaked into unrelated modules where `requests.RequestException` was no longer a real exception class.
+
+## v1.6.0 — 2026-08-27
+
+intervals.icu replaces Strava as the primary activity source, four new provider-independent metrics, and a round of correctness fixes from a full technical audit.
+
+### New Features
+
+- **intervals.icu as the primary activity source** — free, and relays Garmin Connect, Wahoo, Zwift, Polar, Suunto and Coros without needing a Strava account. Rolling-window sync with no cursor, so a transient per-ride failure simply retries on the next poll instead of blocking newer rides; a daily reconciliation sweep mirrors deletions. Cross-source dedup gives intervals.icu explicit precedence over Strava and RWGPS, which remain equal to each other. Set `INTERVALS_ICU_ATHLETE_ID` and `INTERVALS_ICU_API_KEY` from intervals.icu → Settings → Developer Settings.
+  - **Known limitation:** activities that reached intervals.icu *via Strava* cannot be served back through their API — Strava's terms forbid re-serving Strava data — so they are skipped and reported per batch. Upload directly to intervals.icu, or sync your head unit to it, for full coverage.
+- **Coasting time** — seconds spent freewheeling per ride, with the share shown on Activity Details. Context for stop-and-go riding, where a quarter of the ride is commonly at zero power.
+- **Work above FTP** — anaerobic work above threshold in kJ, the "matches burned" on a ride, isolated from overall volume.
+- **Polarization index** — Treff index over the three-zone model, answering whether training is genuinely polarised or accidentally threshold-heavy.
+- **CTL ramp rate** — rolling 7-day change in CTL on Overview, with the 5–7/week caution band. Complements 6w Fitness Δ by reading the *current* rate rather than a six-week comparison.
+
+Coasting time, Work above FTP and Polarization index are per-ride metrics computed by the ingestor from streams VeloMate already stores, so they are identical whichever source delivered the ride and are populated for Strava, RWGPS and intervals.icu rides alike. CTL ramp rate is different in kind — a daily value derived from the CTL series rather than from any ride's stream — but is provider-independent for the same underlying reason: CTL comes from TSS the ingestor computes itself.
+
+### Fixes
+
+- **Aerobic decoupling was unusable on stop-and-go rides.** Zero-power coasting samples were averaged into each half's efficiency factor, making the metric a function of how much the rider freewheeled rather than of cardiac drift. On VI 1.4+ rides that produced readings up to 97% — physiologically meaningless — and sometimes inverted the sign. Coasting is now excluded: mean error against an independent implementation fell from 27.9 to 12.4, and the worst reading from 97% to 9.6%.
+- **W'bal used one CP for every ride.** Each ride is now modelled against the CP/W' that was current on its own date. Early-season rides had been modelled against a CP 42–64 W too high — the difference between reading an effort as recovery or as above threshold.
+- **A single failing activity could wedge Strava ingestion permanently.** Activities are processed oldest-first with the cursor checkpointed after each, so one deterministically-failing ride aborted the pass and was re-hit every poll, silently stopping all newer rides. Failures are now classified: a malformed payload is skipped, a transient error stops the pass without advancing the cursor.
+- **The Strava refresh-token fallback could never run.** `/app/data` was root-owned while the container runs as a non-root user, so the write always failed — silently, behind a bare `except`. The directory is now owned correctly, the token is written atomically at `0600`, and a failure is reported rather than swallowed.
+- **Grafana panel arithmetic** — the coasting-share panel divided integers before scaling and read 0% for every ride.
+
+### Notes
+
+- **Strava has been removed as an active source in this deployment.** Its API moved to a paid tier and returns 403; historical Strava data is untouched and rides keep their `strava_id`. The code path remains and re-enables by setting the credentials again.
+- **`METRICS_VERSION` 11 → 13.** Two bumps: decoupling excluding coasting, then the new ride metrics and contemporaneous-CP W'bal. Both recompute stored values on the next ingestor start.
+- **Audit finding on stream sampling was withdrawn after measurement.** The concern was that NP/CP/W'bal count samples as seconds while streams contain gaps. Real streams are 99.5–99.8% exactly 1 second apart, and the gaps are auto-pause stops the device correctly excludes — filling them would compute NP over elapsed time and moved it *away* from an independent implementation. A `sampling_cadence_s` guard now warns if a ride is ever genuinely sparse-sampled, instead of resampling stored data.
+
 ## v1.5.1 — 2026-06-16
 
 ### Fixes

@@ -193,7 +193,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND((COALESCE(SUM(distance_m), 0) / 1000.0)::numeric, 1) AS \"Distance\" FROM activities WHERE $__timeFilter(date) AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}');",
+          "rawSql": "SELECT ROUND(((COALESCE(SUM(distance_m), 0) / 1000.0)::numeric) * 0.621371, 1) AS \"Distance\" FROM activities WHERE $__timeFilter(date) AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}');",
           "format": "table",
           "refId": "A"
         }
@@ -215,7 +215,7 @@
             "mode": "fixed",
             "fixedColor": "dark-blue"
           },
-          "unit": "lengthkm",
+          "unit": "lengthmi",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -245,7 +245,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND(COALESCE(SUM(elevation_m), 0)::numeric, 0) AS \"Elevation\" FROM activities WHERE $__timeFilter(date) AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}');",
+          "rawSql": "SELECT ROUND((COALESCE(SUM(elevation_m), 0)::numeric) * 3.28084, 0) AS \"Elevation\" FROM activities WHERE $__timeFilter(date) AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}');",
           "format": "table",
           "refId": "A"
         }
@@ -267,7 +267,7 @@
             "mode": "fixed",
             "fixedColor": "dark-blue"
           },
-          "unit": "lengthm",
+          "unit": "lengthft",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -504,7 +504,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND(AVG(avg_speed_kmh)::numeric, 1) AS \"Speed\" FROM activities WHERE $__timeFilter(date) AND avg_speed_kmh > 0 AND distance_m > 5000 AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}');",
+          "rawSql": "SELECT ROUND((AVG(avg_speed_kmh)::numeric) * 0.621371, 1) AS \"Speed\" FROM activities WHERE $__timeFilter(date) AND avg_speed_kmh > 0 AND distance_m > 5000 AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}');",
           "format": "table",
           "refId": "A"
         }
@@ -526,7 +526,7 @@
             "mode": "fixed",
             "fixedColor": "dark-purple"
           },
-          "unit": "velocitykmh",
+          "unit": "velocitymph",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -735,7 +735,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND((COALESCE((SELECT SUM(distance_m)/1000.0 FROM activities WHERE $__timeFilter(date) AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0) - COALESCE((SELECT SUM(distance_m)/1000.0 FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0))::numeric, 1) AS \"Delta\";",
+          "rawSql": "SELECT ROUND(((COALESCE((SELECT SUM(distance_m)/1000.0 FROM activities WHERE $__timeFilter(date) AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0) - COALESCE((SELECT SUM(distance_m)/1000.0 FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0))::numeric) * 0.621371, 1) AS \"Delta\";",
           "format": "table",
           "refId": "A"
         }
@@ -769,7 +769,7 @@
               }
             ]
           },
-          "unit": "lengthkm"
+          "unit": "lengthmi"
         }
       },
       "description": "Change in distance vs the equivalent previous period."
@@ -790,7 +790,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND((COALESCE((SELECT SUM(elevation_m) FROM activities WHERE $__timeFilter(date) AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0) - COALESCE((SELECT SUM(elevation_m) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0))::numeric, 0) AS \"Delta\";",
+          "rawSql": "SELECT ROUND(((COALESCE((SELECT SUM(elevation_m) FROM activities WHERE $__timeFilter(date) AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0) - COALESCE((SELECT SUM(elevation_m) FROM activities WHERE date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz) AND date < $__timeFrom()::timestamptz AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')), 0))::numeric) * 3.28084, 0) AS \"Delta\";",
           "format": "table",
           "refId": "A"
         }
@@ -824,7 +824,7 @@
               }
             ]
           },
-          "unit": "lengthm"
+          "unit": "lengthft"
         }
       },
       "description": "Change in elevation vs the equivalent previous period."
@@ -1064,7 +1064,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH curr AS (\n  SELECT AVG(avg_speed_kmh) AS avg FROM activities\n  WHERE avg_speed_kmh > 0 AND distance_m > 5000\n    AND $__timeFilter(date)\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n),\nprev AS (\n  SELECT AVG(avg_speed_kmh) AS avg FROM activities\n  WHERE avg_speed_kmh > 0 AND distance_m > 5000\n    AND date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz)\n    AND date < $__timeFrom()::timestamptz\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n)\nSELECT ROUND((COALESCE(curr.avg, 0) - COALESCE(prev.avg, 0))::numeric, 1) AS \"Delta\"\nFROM curr, prev;",
+          "rawSql": "WITH curr AS (\n  SELECT AVG(avg_speed_kmh) AS avg FROM activities\n  WHERE avg_speed_kmh > 0 AND distance_m > 5000\n    AND $__timeFilter(date)\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n),\nprev AS (\n  SELECT AVG(avg_speed_kmh) AS avg FROM activities\n  WHERE avg_speed_kmh > 0 AND distance_m > 5000\n    AND date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz)\n    AND date < $__timeFrom()::timestamptz\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n)\nSELECT ROUND(((COALESCE(curr.avg, 0) - COALESCE(prev.avg, 0))::numeric) * 0.621371, 1) AS \"Delta\"\nFROM curr, prev;",
           "format": "table",
           "refId": "A"
         }
@@ -1098,7 +1098,7 @@
               }
             ]
           },
-          "unit": "velocitykmh"
+          "unit": "velocitymph"
         }
       },
       "description": "Small samples (1-2 rides per period) can produce noisy deltas \u2014 use the All Time Progression trend panel for the smoothed long-term direction."
@@ -1593,7 +1593,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT CURRENT_DATE - MAX(date::date) AS \"Days\" FROM activities WHERE sport_type IS NOT NULL AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}');",
+          "rawSql": "SELECT CURRENT_DATE - MAX(date::date) AS \"Days\" FROM activities WHERE sport_type IS NOT NULL AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}') HAVING MAX(date::date) IS NOT NULL;",
           "format": "table",
           "refId": "A"
         }
@@ -2159,12 +2159,12 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.distance_m) / 1000.0, 0) AS \"Distance (km)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs  AND (CASE WHEN '${sport_type}' = 'all' THEN TRUE ELSE a.sport_type = '${sport_type}' END) GROUP BY gs ORDER BY gs;",
+          "rawSql": "SELECT gs AS \"time\", ROUND(((COALESCE(SUM(a.distance_m) / 1000.0, 0)) * 0.621371)::numeric, 1) AS \"Distance (mi)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs  AND (CASE WHEN '${sport_type}' = 'all' THEN TRUE ELSE a.sport_type = '${sport_type}' END) GROUP BY gs ORDER BY gs;",
           "format": "time_series",
           "refId": "A"
         },
         {
-          "rawSql": "SELECT gs AS \"time\", COALESCE(SUM(a.elevation_m), 0) AS \"Elevation (m)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs  AND (CASE WHEN '${sport_type}' = 'all' THEN TRUE ELSE a.sport_type = '${sport_type}' END) GROUP BY gs ORDER BY gs;",
+          "rawSql": "SELECT gs AS \"time\", ROUND(((COALESCE(SUM(a.elevation_m), 0)) * 3.28084)::numeric, 0) AS \"Elevation (ft)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs  AND (CASE WHEN '${sport_type}' = 'all' THEN TRUE ELSE a.sport_type = '${sport_type}' END) GROUP BY gs ORDER BY gs;",
           "format": "time_series",
           "refId": "B"
         }
@@ -2188,7 +2188,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Distance (km)"
+              "options": "Distance (mi)"
             },
             "properties": [
               {
@@ -2208,14 +2208,14 @@
               },
               {
                 "id": "unit",
-                "value": "lengthkm"
+                "value": "lengthmi"
               }
             ]
           },
           {
             "matcher": {
               "id": "byName",
-              "options": "Elevation (m)"
+              "options": "Elevation (ft)"
             },
             "properties": [
               {
@@ -2235,13 +2235,13 @@
               },
               {
                 "id": "unit",
-                "value": "lengthm"
+                "value": "lengthft"
               }
             ]
           }
         ]
       },
-      "description": "Volume \u2014 distance and climbing per period.\n\n\ud83d\udd35 Distance (km)\n\n\ud83d\udfe2 Elevation (m)"
+      "description": "Volume \u2014 distance and climbing per period.\n\n\ud83d\udd35 Distance (mi)\n\n\ud83d\udfe2 Elevation (ft)"
     },
     {
       "id": 602,
@@ -2447,7 +2447,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT gs AS \"time\", ROUND(AVG(a.avg_speed_kmh)::numeric, 1) AS \"Speed (km/h)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.avg_speed_kmh > 0 AND a.distance_m > 5000 AND (CASE WHEN '${sport_type}' = 'all' THEN TRUE ELSE a.sport_type = '${sport_type}' END) GROUP BY gs ORDER BY gs;",
+          "rawSql": "SELECT gs AS \"time\", ROUND((AVG(a.avg_speed_kmh)::numeric) * 0.621371, 1) AS \"Speed (mph)\" FROM generate_series(date_trunc('${group_by}', $__timeFrom()::timestamptz), date_trunc('${group_by}', $__timeTo()::timestamptz), '1 ${group_by}'::interval) gs LEFT JOIN activities a ON date_trunc('${group_by}', a.date) = gs AND a.avg_speed_kmh > 0 AND a.distance_m > 5000 AND (CASE WHEN '${sport_type}' = 'all' THEN TRUE ELSE a.sport_type = '${sport_type}' END) GROUP BY gs ORDER BY gs;",
           "format": "time_series",
           "refId": "A"
         },
@@ -2476,7 +2476,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Speed (km/h)"
+              "options": "Speed (mph)"
             },
             "properties": [
               {
@@ -2521,7 +2521,7 @@
           }
         ]
       },
-      "description": "Output \u2014 speed reflects fitness + conditions.\nCadence shows pedalling style changes.\n\n\ud83d\udd35 Speed (km/h)\n\n\ud83d\udfe2 Cadence (rpm)"
+      "description": "Output \u2014 speed reflects fitness + conditions.\nCadence shows pedalling style changes.\n\n\ud83d\udd35 Speed (mph)\n\n\ud83d\udfe2 Cadence (rpm)"
     },
     {
       "id": 605,
@@ -2631,7 +2631,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT date AS time,\n  ROUND((weekly_distance_m / 1000.0)::numeric, 1) AS \"Weekly Distance (km)\",\n  ROUND(weekly_elevation_m::numeric, 0) AS \"Weekly Elevation (m)\"\nFROM athlete_stats\nWHERE $__timeFilter(date)\nORDER BY date;",
+          "rawSql": "SELECT date AS time,\n  ROUND(((weekly_distance_m / 1000.0)::numeric) * 0.621371, 1) AS \"Weekly Distance (mi)\",\n  ROUND((weekly_elevation_m::numeric) * 3.28084, 0) AS \"Weekly Elevation (ft)\"\nFROM athlete_stats\nWHERE $__timeFilter(date)\nORDER BY date;",
           "format": "time_series",
           "refId": "A"
         }
@@ -2655,7 +2655,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Weekly Distance (km)"
+              "options": "Weekly Distance (mi)"
             },
             "properties": [
               {
@@ -2671,7 +2671,7 @@
               },
               {
                 "id": "unit",
-                "value": "lengthkm"
+                "value": "lengthmi"
               },
               {
                 "id": "min",
@@ -2682,7 +2682,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Weekly Elevation (m)"
+              "options": "Weekly Elevation (ft)"
             },
             "properties": [
               {
@@ -2698,7 +2698,7 @@
               },
               {
                 "id": "unit",
-                "value": "lengthm"
+                "value": "lengthft"
               },
               {
                 "id": "min",
@@ -2708,7 +2708,7 @@
           }
         ]
       },
-      "description": "7-day rolling totals \u2014 smoother than per-ride charts.\n\n\ud83d\udd35 Weekly Distance (km)\n\n\ud83d\udfe0 Weekly Elevation (m)\n\nNote: always shows all sports combined."
+      "description": "7-day rolling totals \u2014 smoother than per-ride charts.\n\n\ud83d\udd35 Weekly Distance (mi)\n\n\ud83d\udfe0 Weekly Elevation (ft)\n\nNote: always shows all sports combined."
     },
     {
       "id": 450,
@@ -2794,7 +2794,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT id, name AS \"Name\", TO_CHAR(date, 'YYYY-MM-DD') AS \"Date\", ROUND((distance_m / 1000.0)::numeric, 1) AS \"Dist (km)\", ROUND(elevation_m::numeric, 0) AS \"Elev (m)\", TO_CHAR(duration_s * interval '1 second', 'HH24:MI:SS') AS \"Duration\", ROUND(avg_speed_kmh::numeric, 1) AS \"Speed (km/h)\", avg_hr AS \"HR (bpm)\", avg_power AS \"Power (W)\", avg_cadence AS \"Cadence (rpm)\", CASE sport_type WHEN 'cycling_outdoor' THEN 'Outdoor' WHEN 'cycling_indoor' THEN 'Indoor' WHEN 'zwift' THEN 'Zwift' WHEN 'ebike' THEN 'E-Bike' ELSE sport_type END AS \"Type\", calories AS \"Cal (kcal)\", ROUND(tss::numeric, 0) AS \"TSS\", EXTRACT(EPOCH FROM date - interval '1 hour')::bigint * 1000 AS from_ts, EXTRACT(EPOCH FROM date + duration_s * interval '1 second' + interval '1 hour')::bigint * 1000 AS to_ts FROM activities WHERE $__timeFilter(date) ORDER BY date DESC;",
+          "rawSql": "SELECT id, name AS \"Name\", TO_CHAR(date, 'YYYY-MM-DD') AS \"Date\", ROUND(((distance_m / 1000.0)::numeric) * 0.621371, 1) AS \"Dist (mi)\", ROUND((elevation_m::numeric) * 3.28084, 0) AS \"Elev (ft)\", TO_CHAR(duration_s * interval '1 second', 'HH24:MI:SS') AS \"Duration\", ROUND((avg_speed_kmh::numeric) * 0.621371, 1) AS \"Speed (mph)\", avg_hr AS \"HR (bpm)\", avg_power AS \"Power (W)\", avg_cadence AS \"Cadence (rpm)\", CASE sport_type WHEN 'cycling_outdoor' THEN 'Outdoor' WHEN 'cycling_indoor' THEN 'Indoor' WHEN 'zwift' THEN 'Zwift' WHEN 'ebike' THEN 'E-Bike' ELSE sport_type END AS \"Type\", calories AS \"Cal (kcal)\", ROUND(tss::numeric, 0) AS \"TSS\", EXTRACT(EPOCH FROM date - interval '1 hour')::bigint * 1000 AS from_ts, EXTRACT(EPOCH FROM date + duration_s * interval '1 second' + interval '1 hour')::bigint * 1000 AS to_ts FROM activities WHERE $__timeFilter(date) ORDER BY date DESC;",
           "format": "table",
           "refId": "A"
         }
@@ -2863,6 +2863,72 @@
         ]
       },
       "description": "Recent rides. Click a row to open Activity Details."
+    },
+    {
+      "id": 1402,
+      "title": "CTL Ramp Rate",
+      "type": "stat",
+      "gridPos": {
+        "x": 21,
+        "y": 30,
+        "w": 3,
+        "h": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "WITH ramp AS (\n  SELECT date, ctl - LAG(ctl, 7) OVER (ORDER BY date) AS ramp_7d\n  FROM athlete_stats\n)\nSELECT ROUND(ramp_7d::numeric, 1) AS \"CTL/week\"\nFROM ramp\nWHERE ramp_7d IS NOT NULL\nORDER BY date DESC\nLIMIT 1;"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#3498db",
+                "value": null
+              },
+              {
+                "color": "#2ecc71",
+                "value": 0
+              },
+              {
+                "color": "#f1c40f",
+                "value": 5
+              },
+              {
+                "color": "#e67e22",
+                "value": 7
+              },
+              {
+                "color": "#e74c3c",
+                "value": 10
+              }
+            ]
+          }
+        }
+      },
+      "description": "How fast fitness (CTL) is changing, in CTL points per week.\n\nThe rolling 7-day change in CTL. Ramping too fast is the classic overuse pattern \u2014 the body adapts to load, but only at a rate it can absorb.\n\nUnlike 6w Fitness \u0394, which compares against six weeks ago, this reads the *current* rate of change, so it reacts within days rather than after a block.\n\n\ud83d\udd35 < 0 \u2014 Detraining (CTL falling)\n\n\ud83d\udfe2 0-5 \u2014 Sustainable build\n\n\ud83d\udfe1 5-7 \u2014 Aggressive, watch recovery\n\n\ud83d\udfe0 7-10 \u2014 Too fast for most riders\n\n\ud83d\udd34 > 10 \u2014 Very high injury/illness risk"
     }
   ]
 }

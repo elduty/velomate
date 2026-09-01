@@ -4,7 +4,7 @@ Implements the Monod-Scherrer 2-parameter hyperbolic model:
     P = W'/t + CP
 
 This is linear in (1/t, P), so numpy.polyfit handles the fit without
-needing scipy. See docs/superpowers/specs/2026-04-11-cp-w-prime-foundation-design.md
+needing scipy. See docs/design/specs/2026-04-11-cp-w-prime-foundation-design.md
 for the full design rationale and quality gating logic.
 """
 

@@ -1,9 +1,10 @@
 """Tests for pure functions in ingestor/strava.py."""
 
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 import pytest
 
+import strava
 from strava import _detect_device, _parse_activity, _merge_detail, _parse_streams, backfill
 
 
@@ -290,3 +291,83 @@ class TestBackfill:
             backfill(conn="conn")
         args, _ = mock_sync.call_args
         assert args[1] > 0  # a cutoff epoch, not full history
+
+
+class TestBackfillStravaSegmentsSentinel:
+    """A ride with no uphill Strava segments (or a 404 detail) must get a
+    source='strava' sentinel row so backfill_strava_segments stops re-fetching it
+    from the Strava API on every recalculation. Without the sentinel the ride
+    never gains a source='strava' row, so the NOT EXISTS selector keeps picking
+    it up every cycle — burning API quota and stretching each recalc. Mirrors the
+    detected-climbs 'none' sentinel; category='none' keeps it out of dashboards
+    (their climbs query filters `category != 'none'`)."""
+
+    def _conn(self, rides):
+        conn = MagicMock()
+        cur = MagicMock()
+        conn.cursor.return_value.__enter__ = MagicMock(return_value=cur)
+        conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+        cur.fetchall.return_value = rides
+        cur.fetchone.return_value = None  # _store_strava_climbs "already stored?" checks
+        return conn, cur
+
+    def _sentinel_inserts(self, cur):
+        return [
+            c for c in cur.execute.call_args_list
+            if "INSERT INTO ride_climbs" in c[0][0]
+            and "'strava'" in c[0][0] and "'none'" in c[0][0]
+        ]
+
+    def test_ride_without_segments_gets_sentinel(self):
+        conn, cur = self._conn([(1, 111)])
+        detail_no_climbs = {"segment_efforts": []}  # no uphill segments at all
+        with patch.object(strava, "_get_token", return_value="tok"), \
+             patch.object(strava, "fetch_activity_detail", return_value=detail_no_climbs), \
+             patch.object(strava.time, "sleep"):
+            strava.backfill_strava_segments(conn)
+        assert self._sentinel_inserts(cur), \
+            "ride with no segments must get a source='strava' sentinel"
+
+    def test_missing_detail_404_gets_sentinel(self):
+        """A 404 (deleted on Strava) returns {} — sentinel it so it isn't re-fetched."""
+        conn, cur = self._conn([(1, 111)])
+        with patch.object(strava, "_get_token", return_value="tok"), \
+             patch.object(strava, "fetch_activity_detail", return_value={}), \
+             patch.object(strava.time, "sleep"):
+            strava.backfill_strava_segments(conn)
+        assert self._sentinel_inserts(cur), \
+            "404 detail must get a source='strava' sentinel"
+
+    def test_ride_with_segments_gets_no_sentinel(self):
+        """A ride that DOES have storable segments stores them (source='strava')
+        and must NOT also get a 'none' sentinel."""
+        conn, cur = self._conn([(1, 111)])
+        detail = {"segment_efforts": [{
+            "elapsed_time": 600,
+            "segment": {"average_grade": 5.0, "distance": 2000,
+                        "elevation_high": 300, "elevation_low": 200, "name": "Test Climb"},
+        }]}
+        with patch.object(strava, "_get_token", return_value="tok"), \
+             patch.object(strava, "fetch_activity_detail", return_value=detail), \
+             patch.object(strava.time, "sleep"):
+            strava.backfill_strava_segments(conn)
+        assert not self._sentinel_inserts(cur), \
+            "ride with real segments must not also get a 'none' sentinel"
+
+    def test_transient_error_does_not_sentinel(self):
+        """Review guard (#150): a transient failure — 429 rate-limit, 5xx, or a
+        network blip — makes fetch_activity_detail RAISE (via raise_for_status);
+        it returns {} only on a genuine 404. The raise is caught by the loop's
+        except and the ride is retried next cycle — it must NOT be sentineled,
+        or a backfill run during quota exhaustion would permanently mark real
+        rides as segment-free. Any raised exception exercises this path (the
+        loop catches broad Exception), so we don't couple to requests.HTTPError
+        (other test modules replace `requests` with a MagicMock at import)."""
+        conn, cur = self._conn([(1, 111)])
+        with patch.object(strava, "_get_token", return_value="tok"), \
+             patch.object(strava, "fetch_activity_detail",
+                          side_effect=RuntimeError("simulated 429/5xx/network error")), \
+             patch.object(strava.time, "sleep"):
+            strava.backfill_strava_segments(conn)
+        assert not self._sentinel_inserts(cur), \
+            "a transient error must NOT sentinel the ride — it is retried next cycle"

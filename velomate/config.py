@@ -13,6 +13,7 @@ DEFAULTS = {
     "strava": {"client_id": "", "client_secret": "", "refresh_token": ""},
     "defaults": {"surface": "gravel", "loop": True},
     "fitness": {"max_hr": 0, "ftp": 0},
+    "display": {"units": "metric"},
 }
 
 ENV_MAP = {
@@ -26,6 +27,7 @@ ENV_MAP = {
     ("strava", "client_id"): "STRAVA_CLIENT_ID",
     ("strava", "client_secret"): "STRAVA_CLIENT_SECRET",
     ("strava", "refresh_token"): "STRAVA_REFRESH_TOKEN",
+    ("display", "units"): "VELOMATE_UNITS",
 }
 
 _config = None

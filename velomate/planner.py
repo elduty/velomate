@@ -1,6 +1,9 @@
 from datetime import datetime
 from typing import Dict, List, Optional
 
+from velomate.config import load as load_config
+from velomate.units import normalize_system, format_temp, format_speed, format_distance, format_elevation, format_precip
+
 
 def _top_routes(tours: List[Dict], n: int = 3, tsb: float = None) -> List[Dict]:
     """Return top N routes, deduplicated by distance/elevation bucket.
@@ -72,13 +75,14 @@ def recommend(days: List[Dict], tours: List[Dict], fitness: Dict = None) -> str:
         lines.append("")
 
     # Weather overview
+    system = normalize_system(load_config().get("display", {}).get("units", "metric"))
     lines.append("*📅 Weather Forecast*")
     for day in days:
         emoji = "☀️" if day["score"] >= 80 else "🌤" if day["score"] >= 60 else "🌥" if day["score"] >= 40 else "🌧"
         stars = "⭐" * (day["score"] // 20)
-        line = f"  • {day['day_name'][:3]} {day['date'][5:]}: {emoji} {day['weather']}, {day['temp_min']:.0f}–{day['temp_max']:.0f}°C, wind {day['wind']:.0f} km/h"
+        line = f"  • {day['day_name'][:3]} {day['date'][5:]}: {emoji} {day['weather']}, {format_temp(day['temp_min'], system)}–{format_temp(day['temp_max'], system)}, wind {format_speed(day['wind'], system)}"
         if day["precip"] > 0:
-            line += f", rain {day['precip']:.1f}mm"
+            line += f", rain {format_precip(day['precip'], system)}"
         line += f" [{stars}]"
         lines.append(line)
 
@@ -108,7 +112,7 @@ def recommend(days: List[Dict], tours: List[Dict], fitness: Dict = None) -> str:
             elev = r.get("elevation_up", 0)
             sport = r.get("sport", "cycling")
             date = r.get("date", "")[:10]
-            lines.append(f"  {i}. *{r['name']}* — {dist:.1f}km, +{elev:.0f}m ({sport})")
+            lines.append(f"  {i}. *{r['name']}* — {format_distance(dist, system)}, +{format_elevation(elev, system)} ({sport})")
             lines.append(f"     Last done: {date}")
     else:
         lines.append("  No routes found")

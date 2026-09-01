@@ -1,5 +1,6 @@
 """Tests for recalculate_fitness flow in ingestor/fitness.py."""
 
+import os
 import sys
 from datetime import date, timedelta
 from pathlib import Path
@@ -19,7 +20,9 @@ if str(_ingestor_dir) not in sys.path:
 _db_mock = sys.modules.get("db") or MagicMock()
 sys.modules["db"] = _db_mock
 
-from fitness import recalculate_fitness, compute_ef, METRICS_VERSION
+import fitness as ingestor_fitness
+from fitness import (recalculate_fitness, compute_ef, METRICS_VERSION,
+                     MIN_DECOUPLING_SAMPLES)
 
 # Wrap recalculate_fitness to patch get_sync_state (skip NP/EF reset)
 _original_recalc = recalculate_fitness
@@ -76,7 +79,9 @@ def _make_conn(activity_rows, power_activity_rows=None, tss_rows=None,
     # configured_ftp=True still need a (250,) response for that cursor.
     backfill_count_idx = 3 + 3 * n_power
     interval_select_idx = backfill_count_idx + 1 + b  # Step 2.5 top-level SELECT
-    tss_select_idx = interval_select_idx + 1
+    # +2: Step 2.5 interval SELECT, then the Step 2.6 ride-metrics SELECT.
+    # Both return [] in the mock, so neither spawns per-activity cursors.
+    tss_select_idx = interval_select_idx + 2
     tss_batch_idx = tss_select_idx + 1
     trimp_select_idx = tss_batch_idx + 1
     trimp_start_idx = trimp_select_idx + 1
@@ -111,8 +116,12 @@ def _make_conn(activity_rows, power_activity_rows=None, tss_rows=None,
             #   2: aerobic_decoupling UPDATE
             offset = idx - np_select_idx - 1
             if offset % 3 == 0:
-                # SELECT power, hr samples — return 60 samples at (200W, 150bpm)
-                cur.fetchall.return_value = [(200, 150)] * 60
+                # SELECT power, hr samples. Long enough to clear
+                # MIN_DECOUPLING_SAMPLES: below it compute_decoupling returns
+                # None, the decoupling UPDATE never opens, and the three-cursors
+                # -per-activity assumption above breaks, shifting every later
+                # index onto the wrong mock.
+                cur.fetchall.return_value = [(200, 150)] * MIN_DECOUPLING_SAMPLES
             # else: UPDATE np/ef/vi/work or UPDATE aerobic_decoupling
             # (no special setup needed for UPDATEs)
         elif idx == backfill_count_idx:
@@ -710,3 +719,70 @@ class TestRecalcEdgeCases:
         # estimate_ftp is now ALWAYS called so its result can be persisted
         # as the diagnostic estimated_ftp value, even when configured FTP is set
         mock_ftp.assert_called_once()
+
+
+class TestRideMetricsComputedAfterFtpBackfill:
+    """Audit of PR #174: a METRICS_VERSION reset NULLs ride_ftp, and Step 2 is
+    what backfills it. Computing the ftp-dependent ride metrics before that
+    would hand them a NULL threshold, store NULL for every ride, and never
+    recompute — the selector gates on coasting_time_s, which would already be
+    set. This pins the ordering in the source itself."""
+
+    def test_ride_metrics_step_runs_after_the_ride_ftp_backfill(self):
+        src = (Path(__file__).resolve().parent.parent / "ingestor" / "fitness.py").read_text()
+        reset_at = src.index("ride_ftp = NULL")
+        backfill_at = src.index("# Step 2: Backfill ride_ftp")
+        metrics_at = src.index("# Step 2.6: Provider-independent ride metrics")
+        assert reset_at < backfill_at < metrics_at, (
+            "the ride-metrics step must come after the ride_ftp backfill, "
+            "otherwise a METRICS_VERSION recalc stores NULL for every "
+            "ftp-dependent metric and never retries"
+        )
+
+    def test_ride_metrics_selector_reads_ride_ftp(self):
+        src = (Path(__file__).resolve().parent.parent / "ingestor" / "fitness.py").read_text()
+        step = src[src.index("# Step 2.6: Provider-independent ride metrics"):]
+        step = step[:step.index("# Step 3:")]
+        assert "a.ride_ftp" in step, "the step must read the backfilled ride_ftp"
+
+
+class TestStravaSegmentBackfillGating:
+    """With Strava removed as a source, the segment backfill ran on every
+    recalculation and hit the OAuth endpoint purely to fail — pointless traffic
+    and a recurring error line that trains the reader to ignore the log."""
+
+    def test_skipped_when_strava_is_not_configured(self):
+        with patch.dict(os.environ, {}, clear=True):
+            assert ingestor_fitness._strava_configured() is False
+
+    def test_configured_only_when_all_three_are_present(self):
+        with patch.dict(os.environ, {"STRAVA_CLIENT_ID": "a",
+                                     "STRAVA_CLIENT_SECRET": "b"}, clear=True):
+            assert ingestor_fitness._strava_configured() is False
+        with patch.dict(os.environ, {"STRAVA_CLIENT_ID": "a", "STRAVA_CLIENT_SECRET": "b",
+                                     "STRAVA_REFRESH_TOKEN": "c"}, clear=True):
+            assert ingestor_fitness._strava_configured() is True
+
+    def test_climb_detection_still_runs_when_strava_is_skipped(self):
+        """The gate must not be an early return — Step 8b follows it."""
+        src = (Path(__file__).resolve().parent.parent / "ingestor" / "fitness.py").read_text()
+        gate = src.index("Strava not configured — skipping segment backfill")
+        climbs = src.index("# Step 8b: Detect climbs")
+        assert gate < climbs
+        between = src[gate:climbs]
+        assert "return" not in between, "an early return here would skip climb detection"
+
+    def test_the_backfill_call_is_actually_guarded(self):
+        """The helper being correct is not enough — the call site must sit
+        behind the gate. Without this, replacing the condition with `if True`
+        passes every other test in this class."""
+        src = (Path(__file__).resolve().parent.parent / "ingestor" / "fitness.py").read_text()
+        i = src.index("if _strava_configured():")          # raises if the gate is gone
+        guarded = src[i:src.index("else:", i)]
+        assert "_backfill_strava_segments_safely(conn)" in guarded
+
+    def test_backfill_helper_swallows_failures(self):
+        conn = MagicMock()
+        with patch.dict(sys.modules, {"strava": MagicMock()}) as mods:
+            mods["strava"].backfill_strava_segments.side_effect = RuntimeError("token dead")
+            ingestor_fitness._backfill_strava_segments_safely(conn)   # must not raise

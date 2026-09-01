@@ -298,6 +298,33 @@ class TestParseTrackPoints:
     def test_first_point_missing_time_returns_empty(self):
         assert rwgps._parse_track_points([{"h": 140}]) == []
 
+    def test_offsets_sorted_when_points_out_of_order(self):
+        # RWGPS does not guarantee track_points arrive chronologically. Offsets
+        # must be measured from the earliest point and come out ascending, with
+        # each sample's sensor values travelling with its own timestamp.
+        pts = [
+            {"t": 1700000010, "h": 150},
+            {"t": 1700000000, "h": 140},
+            {"t": 1700000005, "h": 145},
+        ]
+        out = rwgps._parse_track_points(pts)
+        assert [p["time_offset"] for p in out] == [0, 5, 10]
+        assert [p["hr"] for p in out] == [140, 145, 150]
+
+    def test_offsets_strictly_increasing_with_subsecond_samples(self):
+        # Sub-second / same-second timestamps must not collapse to duplicate
+        # integer offsets — the telemetry trend charts require a strictly
+        # ascending x-index, and a plain int(t - t0) truncates ties.
+        pts = [
+            {"t": 1700000000.0, "h": 140},
+            {"t": 1700000000.4, "h": 141},
+            {"t": 1700000000.9, "h": 142},
+            {"t": 1700000001.2, "h": 143},
+        ]
+        offsets = [p["time_offset"] for p in rwgps._parse_track_points(pts)]
+        assert offsets == sorted(offsets)
+        assert len(set(offsets)) == len(offsets)
+
 
 from datetime import datetime, timezone, timedelta
 

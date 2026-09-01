@@ -10,6 +10,7 @@ import schedule
 from db import get_connection, create_schema, get_sync_state, set_sync_state
 from strava import sync_activities, backfill, reclassify_activities
 import rwgps
+import intervals_icu
 from fitness import recalculate_fitness
 
 
@@ -44,6 +45,8 @@ def _enabled_sources() -> list:
         sources.append("strava")
     if os.environ.get("RWGPS_API_KEY") and os.environ.get("RWGPS_AUTH_TOKEN"):
         sources.append("rwgps")
+    if os.environ.get("INTERVALS_ICU_ATHLETE_ID") and os.environ.get("INTERVALS_ICU_API_KEY"):
+        sources.append("intervals_icu")
     return sources
 
 
@@ -114,6 +117,67 @@ def poll_rwgps():
             conn.close()
 
 
+def _positive_int_env(name: str, default: int) -> int:
+    """Read a positive integer env var, falling back on anything unusable.
+
+    A zero or negative window would be actively dangerous here: the
+    reconciliation sweep would compare against an empty remote range and treat
+    the whole library as deleted.
+    """
+    raw = os.environ.get(name, "")
+    if not raw:
+        return default
+    try:
+        value = int(raw)
+    except ValueError:
+        print(f"[main] Invalid {name}={raw!r} — falling back to {default}")
+        return default
+    if value <= 0:
+        print(f"[main] Non-positive {name}={value} — falling back to {default}")
+        return default
+    return value
+
+
+def poll_intervals_icu():
+    """Re-query the intervals.icu sync window and store new/updated activities."""
+    conn = None
+    try:
+        conn = _get_healthy_conn()
+        if not conn:
+            print("[poll] intervals.icu: skipped — no DB connection")
+            return
+        ingested, skipped = intervals_icu.sync_activities(
+            conn, window_days=_positive_int_env("INTERVALS_ICU_SYNC_WINDOW_DAYS", 14))
+        # Only new or re-analysed rides count, so an unchanged window does not
+        # trigger a full recalculation every poll.
+        if ingested > 0:
+            recalculate_fitness(conn)
+        print(f"[poll] intervals.icu: {ingested} ingested, {skipped} unavailable")
+    except Exception as e:
+        print(f"[poll] intervals.icu error: {e}")
+        traceback.print_exc()
+    finally:
+        if conn:
+            conn.close()
+
+
+def _reconcile_intervals_icu():
+    """Daily bidirectional sweep — mirrors deletions, reports local gaps."""
+    conn = None
+    try:
+        conn = _get_healthy_conn()
+        if conn:
+            deleted, recovered = intervals_icu.reconcile(
+                conn, sweep_days=_positive_int_env("INTERVALS_ICU_SWEEP_DAYS", 90))
+            print(f"[daily] intervals.icu reconcile: {deleted} deleted, "
+                  f"{recovered} remote-only")
+    except Exception as e:
+        print(f"[daily] intervals.icu reconcile error: {e}")
+    finally:
+        if conn:
+            conn.close()
+
+
 def _backfill_months() -> int:
     """Resolve VELOMATE_BACKFILL_MONTHS env var. Default 12. 0 = full history.
     Invalid values fall back to the default so a typo never blocks ingestion.
@@ -129,6 +193,25 @@ def _backfill_months() -> int:
     if value < 0:
         print(f"[main] Negative VELOMATE_BACKFILL_MONTHS={value} — falling back to 12")
         return 12
+    return value
+
+
+def _poll_interval_minutes() -> int:
+    """Resolve POLL_INTERVAL_MINUTES env var. Default 10.
+    A non-numeric or non-positive value falls back to the default so a typo
+    never crash-loops the container after backfill/recalc have already run.
+    """
+    raw = os.environ.get("POLL_INTERVAL_MINUTES", "")
+    if not raw:
+        return 10
+    try:
+        value = int(raw)
+    except ValueError:
+        print(f"[main] Invalid POLL_INTERVAL_MINUTES={raw!r} — falling back to 10")
+        return 10
+    if value <= 0:
+        print(f"[main] Non-positive POLL_INTERVAL_MINUTES={value} — falling back to 10")
+        return 10
     return value
 
 
@@ -432,11 +515,16 @@ def run():
     except Exception as e:
         print(f"[main] Could not persist configured_backfill_months (non-fatal): {e}")
 
-    interval = int(os.environ.get("POLL_INTERVAL_MINUTES", 10))
+    interval = _poll_interval_minutes()
     if "strava" in enabled:
         schedule.every(interval).minutes.do(poll_strava)
     if "rwgps" in enabled:
         schedule.every(interval).minutes.do(poll_rwgps)
+    if "intervals_icu" in enabled:
+        schedule.every(interval).minutes.do(poll_intervals_icu)
+        # After the daily fitness recalc, so a sweep-driven deletion is picked
+        # up by the next one rather than sitting a day stale.
+        schedule.every().day.at("00:20").do(_reconcile_intervals_icu)
     schedule.every().day.at("00:05").do(_daily_fitness_recalc)
 
     print(f"[main] Polling {', '.join(enabled)} every {interval}min, fitness recalc daily at 00:05")
@@ -446,6 +534,8 @@ def run():
         poll_strava()
     if "rwgps" in enabled:
         poll_rwgps()
+    if "intervals_icu" in enabled:
+        poll_intervals_icu()
 
     while True:
         schedule.run_pending()

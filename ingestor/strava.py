@@ -1,6 +1,8 @@
 """Strava OAuth + activity fetching."""
 
 import os
+import pathlib
+import tempfile
 import time
 from datetime import datetime, timezone, timedelta
 
@@ -30,6 +32,55 @@ def _request_with_retry(method, url, max_retries=3, **kwargs):
 _access_token = None
 _token_expires_at = 0
 _current_refresh_token = None
+
+# Where the rotated refresh token is written when the DB write fails. Lives on
+# the velomate-token-data volume so it survives a container restart. Overridable
+# via VELOMATE_TOKEN_FALLBACK so tests can exercise a real write instead of
+# mocking one — a mocked write passed even while /app/data was root-owned and
+# unwritable by the app user, which made the fallback silently dead.
+DEFAULT_TOKEN_FALLBACK = "/app/data/.strava_refresh_token"
+
+
+def _token_fallback_path():
+    """Path for the on-disk refresh-token fallback. Read per call so the
+    environment can change between calls (and so tests can redirect it)."""
+    return pathlib.Path(os.environ.get("VELOMATE_TOKEN_FALLBACK", DEFAULT_TOKEN_FALLBACK))
+
+
+def _write_secret(path, value: str):
+    """Write a credential owner-readable only (0600).
+
+    Path.write_text would create the file with the process umask, typically
+    0644 — a world-readable refresh token.
+
+    Writes to a fresh temp file and atomically renames it into place, rather
+    than opening the destination and tightening it. Opening an existing file
+    cannot undo its permissions for anyone who already holds a descriptor on
+    it, so a token written into a previously-0644 inode is exposed to that
+    holder no matter how quickly it is chmod'ed. mkstemp creates with O_EXCL
+    at 0600, so the secret only ever occupies an inode no other process has
+    ever had open, and os.replace swaps it in atomically — a reader either
+    sees the whole old file or the whole new one, never a partial write.
+    """
+    path = pathlib.Path(path)
+    fd, tmp = tempfile.mkstemp(dir=str(path.parent), prefix=".strava-token-")
+    try:
+        try:
+            fh = os.fdopen(fd, "w")
+        except Exception:
+            # fdopen only takes ownership of the fd once it succeeds, so this
+            # is the one case where the raw fd still has to be closed by hand.
+            os.close(fd)
+            raise
+        with fh:
+            fh.write(value)
+        os.replace(tmp, path)
+    except Exception:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
 
 
 def refresh_access_token(client_id: str, client_secret: str, refresh_token: str) -> str:
@@ -70,12 +121,19 @@ def refresh_access_token(client_id: str, client_secret: str, refresh_token: str)
             _current_refresh_token = new_refresh
             print(f"[strava] WARNING: Could not persist new refresh token: {e}")
             # Fallback: write to file so token survives restart
+            path = _token_fallback_path()
             try:
-                import pathlib
-                pathlib.Path("/app/data/.strava_refresh_token").write_text(new_refresh)
-                print(f"[strava] Fallback: token written to /app/data/.strava_refresh_token")
-            except Exception:
-                pass
+                _write_secret(path, new_refresh)
+                print(f"[strava] Fallback: token written to {path}")
+            except Exception as file_err:
+                # Never swallow this. Both persistence paths have now failed, so
+                # the rotated token exists only in memory and is lost on restart —
+                # Strava auth then breaks until the OAuth flow is re-run.
+                print(
+                    f"[strava] ERROR: Could not write token fallback to {path}: {file_err}. "
+                    "The rotated refresh token is in memory only and will be lost on restart — "
+                    "check that the directory exists and is writable by the container user."
+                )
 
     return _access_token
 
@@ -87,13 +145,12 @@ def _get_token() -> str:
     # Check file fallback before env var
     if not _current_refresh_token:
         try:
-            import pathlib
-            token_path = pathlib.Path("/app/data/.strava_refresh_token")
+            token_path = _token_fallback_path()
             if token_path.exists():
                 _current_refresh_token = token_path.read_text().strip()
                 print("[strava] Loaded refresh token from file fallback")
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[strava] Could not read token fallback: {e}")
 
     # Prefer DB-stored refresh token over env var (Strava rotates them)
     refresh_token = _current_refresh_token or os.environ["STRAVA_REFRESH_TOKEN"]
@@ -228,17 +285,37 @@ def _store_strava_climbs(conn, activity_id: int, climbs: list[dict]) -> int:
     return stored
 
 
+def _store_strava_segment_sentinel(conn, activity_id: int) -> None:
+    """Mark a ride as having no Strava segments to fetch.
+
+    Inserts a source='strava' sentinel row (category='none', gain_m=0) so the
+    NOT EXISTS selector in backfill_strava_segments stops re-fetching this ride
+    from the Strava API on every recalculation. Rides that legitimately have no
+    uphill segments (indoor/Zwift, flat routes) or 404 on detail otherwise never
+    gain a source='strava' row and are re-fetched forever — burning API quota and
+    stretching each recalc. category='none' keeps the sentinel out of dashboards
+    (their climbs query filters `category != 'none'`); NULL start_alt/peak_alt are
+    ignored by the overlap check in fitness.detect_climbs_for_rides. Mirrors the
+    detected-climbs 'none' sentinel there.
+    """
+    with conn.cursor() as cur:
+        cur.execute("""
+            INSERT INTO ride_climbs (activity_id, gain_m, category, source)
+            VALUES (%s, 0, 'none', 'strava')
+        """, (activity_id,))
+
+
 def backfill_strava_segments(conn) -> int:
     """Re-fetch Strava activity details for rides missing Strava segment data.
 
     Finds rides that have a strava_id but no source='strava' rows in
     ride_climbs, fetches their detail from the Strava API, and stores
-    any uphill segment efforts.
+    any uphill segment efforts. Rides with no storable segments get a
+    source='strava' sentinel so they are not re-fetched next cycle.
 
     Rate-limited: 1 second between API calls.
     """
     import time as _time
-    from db import get_connection
 
     # Find rides with Strava IDs that don't have Strava segments yet
     with conn.cursor() as cur:
@@ -263,13 +340,23 @@ def backfill_strava_segments(conn) -> int:
             _time.sleep(1.0)  # rate limit
             detail = fetch_activity_detail(token, strava_id)
             if not detail:
+                # detail is falsy ONLY on a genuine 404 (deleted on Strava):
+                # fetch_activity_detail returns {} for 404 but RAISES (via
+                # raise_for_status) on 429/5xx/network errors. Those raises are
+                # caught by the except below and retried next cycle — they never
+                # reach here — so sentineling a 404 can't mis-fire on a transient
+                # rate-limit. (Regression-tested: test_transient_error_does_not_sentinel.)
+                _store_strava_segment_sentinel(conn, act_id)
                 continue
             strava_climbs = parse_segment_climbs(detail)
-            if strava_climbs:
-                stored = _store_strava_climbs(conn, act_id, strava_climbs)
-                if stored:
-                    count += 1
-                    print(f"[segments] Activity {act_id} (strava {strava_id}): {stored} segments")
+            stored = _store_strava_climbs(conn, act_id, strava_climbs) if strava_climbs else 0
+            if stored:
+                count += 1
+                print(f"[segments] Activity {act_id} (strava {strava_id}): {stored} segments")
+            else:
+                # No uphill segments to store — sentinel this ride so the
+                # NOT EXISTS selector skips it on every later recalculation.
+                _store_strava_segment_sentinel(conn, act_id)
         except Exception as e:
             print(f"[segments] Failed for activity {act_id}: {e}")
             continue
@@ -412,7 +499,26 @@ def _parse_streams(raw_streams: dict) -> list:
 
 
 def sync_activities(conn, after_epoch: int = None):
-    """Fetch recent activities from Strava, store with streams."""
+    """Fetch recent activities from Strava, store with streams.
+
+    Activities are processed oldest-first and the cursor
+    (strava_last_activity_epoch) is checkpointed after each one completes, so a
+    transient failure mid-pass keeps all progress up to the last finished
+    activity instead of discarding the whole pass and restarting from
+    after_epoch. This lets a large/full-history backfill make durable forward
+    progress and converge within Strava's rate limits rather than re-fetching
+    everything every cycle until a (statistically unlikely) zero-failure pass.
+    Ascending order is imposed here — not assumed from the API response — so the
+    checkpoint is always safe. Mirrors the RWGPS sync checkpoint.
+
+    Per-activity failures are classified rather than allowed to abort the pass:
+    a deterministic data error (KeyError/TypeError from a malformed payload) is
+    skipped and checkpointed past, because it would fail identically on every
+    retry and would otherwise block every newer activity permanently; anything
+    else is treated as transient and stops the pass with the cursor left at the
+    last fully-completed activity, so the next cycle retries it. Same contract
+    as the RWGPS sync loop.
+    """
     from db import upsert_activity, upsert_streams, get_sync_state, set_sync_state
 
     token = _get_token()
@@ -424,66 +530,97 @@ def sync_activities(conn, after_epoch: int = None):
     activities = fetch_recent_activities(token, after_epoch)
     print(f"[strava] Fetched {len(activities)} activities since epoch {after_epoch}")
 
-    ingested = 0
+    def _epoch(raw):
+        """Parse a Strava start_date to a UTC epoch int, or None if unparseable."""
+        try:
+            return int(datetime.fromisoformat(
+                (raw.get("start_date") or "").replace("Z", "+00:00")).timestamp())
+        except (ValueError, TypeError, AttributeError):
+            return None
 
+    # Oldest-first so checkpointing after each activity is safe (all earlier
+    # epochs are already done). Undated activities (no parseable start_date —
+    # anomalous for Strava) sort last and never advance the cursor.
+    ordered = sorted(
+        ((_epoch(raw), raw) for raw in activities),
+        key=lambda t: (t[0] is None, t[0] or 0),
+    )
+
+    ingested = 0
     latest_epoch = after_epoch
-    for raw in activities:
-        # Skip non-cycling activities
+
+    def _checkpoint(epoch):
+        """Advance the persisted cursor to epoch (monotonic; skips None).
+
+        Durability relies on conn.autocommit=True (set in db.get_connection):
+        set_sync_state and the preceding upsert_activity/upsert_streams commit
+        immediately, so a later exception in the same pass cannot roll back an
+        activity that was already checkpointed. (Same mechanism the RWGPS sync
+        checkpoint depends on.)
+        """
+        nonlocal latest_epoch
+        if epoch is not None and epoch > latest_epoch:
+            latest_epoch = epoch
+            set_sync_state(conn, "strava_last_activity_epoch", str(latest_epoch))
+
+    for epoch, raw in ordered:
+        # Skip non-cycling activities, but advance the cursor past them so they
+        # aren't re-fetched.
         strava_type = raw.get("type", "")
         if strava_type and strava_type not in CYCLING_STRAVA_TYPES:
             print(f"  ⏭ Skipping {raw.get('name', '?')} ({strava_type})")
-            # Still track epoch so we don't re-fetch skipped activities
-            start = raw.get("start_date", "")
-            if start:
-                try:
-                    dt = datetime.fromisoformat(start.replace("Z", "+00:00"))
-                    epoch = int(dt.timestamp())
-                    if epoch > latest_epoch:
-                        latest_epoch = epoch
-                except (ValueError, TypeError):
-                    pass
+            _checkpoint(epoch)
             continue
 
-        data = _parse_activity(raw)
-
-        # Fetch detailed activity for calories, HR, suffer_score
-        time.sleep(1.0)
-        detail = fetch_activity_detail(token, raw["id"])
-        data = _merge_detail(data, detail)
-
-        activity_id, streams_preserved = upsert_activity(conn, data)
-
-        # Store Strava segment efforts as climb data
         try:
-            strava_climbs = parse_segment_climbs(detail)
-            if strava_climbs:
-                _store_strava_climbs(conn, activity_id, strava_climbs)
-        except Exception as e:
-            print(f"  [segments] {e}")
+            data = _parse_activity(raw)
 
-        # Fetch streams with rate limiting
-        time.sleep(1.5)
-        raw_streams = fetch_activity_streams(token, raw["id"])
-        streams = _parse_streams(raw_streams)
-        if streams and not streams_preserved:
-            upsert_streams(conn, activity_id, streams)
+            # Fetch detailed activity for calories, HR, suffer_score
+            time.sleep(1.0)
+            detail = fetch_activity_detail(token, raw["id"])
+            data = _merge_detail(data, detail)
 
-        # Track latest activity time (use UTC start_date, not local)
-        start = raw.get("start_date", "")
-        if start:
+            activity_id, streams_preserved = upsert_activity(conn, data)
+
+            # Store Strava segment efforts as climb data
             try:
-                dt = datetime.fromisoformat(start.replace("Z", "+00:00"))
-                epoch = int(dt.timestamp())
-                if epoch > latest_epoch:
-                    latest_epoch = epoch
-            except (ValueError, TypeError):
-                pass
+                strava_climbs = parse_segment_climbs(detail)
+                if strava_climbs:
+                    _store_strava_climbs(conn, activity_id, strava_climbs)
+            except Exception as e:
+                print(f"  [segments] {e}")
+
+            # Fetch streams with rate limiting
+            time.sleep(1.5)
+            raw_streams = fetch_activity_streams(token, raw["id"])
+            streams = _parse_streams(raw_streams)
+            if streams and not streams_preserved:
+                upsert_streams(conn, activity_id, streams)
+        except (KeyError, TypeError) as e:
+            # Deterministic per-activity data error — malformed payload, missing
+            # field, wrong type. It will fail identically on every retry, so
+            # skip it and checkpoint PAST it; otherwise this one ride blocks
+            # every newer ride forever. Mirrors the RWGPS sync classification.
+            print(f"  [strava] Skipping activity {raw.get('id')} "
+                  f"({raw.get('name', '?')}) — unprocessable ({type(e).__name__}: {e})")
+            _checkpoint(epoch)
+            continue
+        except Exception as e:
+            # Transient — network, 5xx after retries, DB blip. The ride is fine
+            # and retryable, so stop the pass WITHOUT advancing the cursor. The
+            # next cycle resumes from the last fully-completed activity.
+            # (ValueError lands here on purpose: a truncated-response
+            # JSONDecodeError is a ValueError subclass and is retryable.)
+            print(f"  [strava] Transient failure on activity {raw.get('id')} "
+                  f"({raw.get('name', '?')}): {e} — stopping pass, retrying next cycle")
+            break
 
         ingested += 1
         print(f"  → {data['name']} ({(data.get('date') or '')[:10]}) — {(data.get('distance_m') or 0)/1000:.1f}km")
 
-    if latest_epoch > after_epoch:
-        set_sync_state(conn, "strava_last_activity_epoch", str(latest_epoch))
+        # Activity fully stored — checkpoint so this progress survives a later
+        # failure in the same pass.
+        _checkpoint(epoch)
 
     return ingested
 

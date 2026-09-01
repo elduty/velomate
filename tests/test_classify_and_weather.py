@@ -5,10 +5,14 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock
 
-# Mock modules not installed locally before importing
-sys.modules["psycopg2"] = MagicMock()
-sys.modules["psycopg2.extras"] = MagicMock()
-sys.modules["requests"] = MagicMock()
+# Stand in for modules that may not be installed locally. `setdefault`, not
+# assignment: pytest imports every test module into one process, so clobbering a
+# real module here leaks the mock into every module imported afterwards — which
+# turned `requests.RequestException` into a MagicMock and broke unrelated tests.
+# The rest of the suite already uses setdefault; this file was the outlier.
+sys.modules.setdefault("psycopg2", MagicMock())
+sys.modules.setdefault("psycopg2.extras", MagicMock())
+sys.modules.setdefault("requests", MagicMock())
 
 # ingestor/ has no __init__.py — add it to sys.path so `from db import ...` works
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "ingestor"))
@@ -124,8 +128,10 @@ class TestClassifyActivity:
 class TestMergeActivityData:
     def test_richer_data_wins(self):
         # existing has HR only (richness 2), new has power (richness 3) — new wins
-        existing = (1, 100, "watch", 50000, 140, None, None, None)
+        existing = (1, 100, "watch", 50000, 140, None, None, None, None, None)
         new_data = {
+            # same source tier as the existing row, so richness is what decides
+            "strava_id": 100,
             "device": "karoo",
             "avg_hr": None,
             "avg_power": 200,
@@ -140,15 +146,16 @@ class TestMergeActivityData:
 
     def test_poorer_data_skipped(self):
         # existing has HR + power (richness 5), new has nothing — skip
-        existing = (1, 100, "karoo", 50000, 140, 200, None, None)
+        existing = (1, 100, "karoo", 50000, 140, 200, None, None, None, None)
         new_data = {"device": "watch"}
         merged = merge_activity_data(existing, new_data)
         assert merged["_skip_insert"] is True
 
     def test_equal_richness_new_wins(self):
         # both have HR only — new wins (tie goes to new)
-        existing = (1, 100, "watch", 50000, 130, None, None, None)
-        new_data = {"device": "garmin", "avg_hr": 135, "distance_m": 50000}
+        existing = (1, 100, "watch", 50000, 130, None, None, None, None, None)
+        new_data = {"strava_id": 100, "device": "garmin", "avg_hr": 135,
+                    "distance_m": 50000}
         merged = merge_activity_data(existing, new_data)
         assert merged.get("_skip_insert") is None
 

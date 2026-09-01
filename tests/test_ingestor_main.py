@@ -259,6 +259,40 @@ class TestParseBackfillMonths:
 
 
 # ---------------------------------------------------------------------------
+# _poll_interval_minutes — typo-tolerant like _backfill_months
+# ---------------------------------------------------------------------------
+
+class TestPollIntervalMinutes:
+    """POLL_INTERVAL_MINUTES must never crash-loop the container on a bad value.
+    A non-numeric or non-positive value falls back to the default of 10."""
+
+    def test_default_when_unset(self, monkeypatch):
+        monkeypatch.delenv("POLL_INTERVAL_MINUTES", raising=False)
+        assert ingestor_main._poll_interval_minutes() == 10
+
+    def test_valid_value(self, monkeypatch):
+        monkeypatch.setenv("POLL_INTERVAL_MINUTES", "5")
+        assert ingestor_main._poll_interval_minutes() == 5
+
+    def test_invalid_string_falls_back(self, monkeypatch):
+        monkeypatch.setenv("POLL_INTERVAL_MINUTES", "ten")
+        assert ingestor_main._poll_interval_minutes() == 10
+
+    def test_zero_falls_back(self, monkeypatch):
+        """An interval of 0 is nonsensical for schedule.every(N).minutes."""
+        monkeypatch.setenv("POLL_INTERVAL_MINUTES", "0")
+        assert ingestor_main._poll_interval_minutes() == 10
+
+    def test_negative_falls_back(self, monkeypatch):
+        monkeypatch.setenv("POLL_INTERVAL_MINUTES", "-3")
+        assert ingestor_main._poll_interval_minutes() == 10
+
+    def test_empty_falls_back(self, monkeypatch):
+        monkeypatch.setenv("POLL_INTERVAL_MINUTES", "")
+        assert ingestor_main._poll_interval_minutes() == 10
+
+
+# ---------------------------------------------------------------------------
 # _describe_backfill_months
 # ---------------------------------------------------------------------------
 
@@ -452,3 +486,90 @@ class TestEnabledSources:
     def test_partial_rwgps_creds_not_enabled(self):
         with patch.dict(os.environ, {"RWGPS_API_KEY": "k"}, clear=True):
             assert ingestor_main._enabled_sources() == []
+
+
+class TestIntervalsIcuSource:
+    def test_enabled_when_both_credentials_present(self):
+        with patch.dict(os.environ, {"INTERVALS_ICU_ATHLETE_ID": "i1",
+                                     "INTERVALS_ICU_API_KEY": "k"}, clear=True):
+            assert "intervals_icu" in ingestor_main._enabled_sources()
+
+    def test_not_enabled_with_only_the_athlete_id(self):
+        with patch.dict(os.environ, {"INTERVALS_ICU_ATHLETE_ID": "i1"}, clear=True):
+            assert "intervals_icu" not in ingestor_main._enabled_sources()
+
+    def test_not_enabled_with_only_the_api_key(self):
+        with patch.dict(os.environ, {"INTERVALS_ICU_API_KEY": "k"}, clear=True):
+            assert "intervals_icu" not in ingestor_main._enabled_sources()
+
+    def test_poll_closes_the_connection_on_success(self):
+        with patch.object(ingestor_main, "_get_healthy_conn") as gc, \
+             patch.object(ingestor_main.intervals_icu, "sync_activities", return_value=(2, 1)), \
+             patch.object(ingestor_main, "recalculate_fitness"):
+            conn = gc.return_value
+            ingestor_main.poll_intervals_icu()
+        conn.close.assert_called_once()
+
+    def test_poll_closes_the_connection_on_error(self):
+        with patch.object(ingestor_main, "_get_healthy_conn") as gc, \
+             patch.object(ingestor_main.intervals_icu, "sync_activities",
+                          side_effect=RuntimeError("boom")):
+            conn = gc.return_value
+            ingestor_main.poll_intervals_icu()   # must not raise
+        conn.close.assert_called_once()
+
+    def test_poll_recalculates_only_when_something_was_ingested(self):
+        with patch.object(ingestor_main, "_get_healthy_conn"), \
+             patch.object(ingestor_main.intervals_icu, "sync_activities", return_value=(0, 3)), \
+             patch.object(ingestor_main, "recalculate_fitness") as recalc:
+            ingestor_main.poll_intervals_icu()
+        assert not recalc.called, "a window with no new or re-analysed rides must not recalc"
+
+    def test_poll_recalculates_when_rides_were_ingested(self):
+        with patch.object(ingestor_main, "_get_healthy_conn"), \
+             patch.object(ingestor_main.intervals_icu, "sync_activities", return_value=(2, 0)), \
+             patch.object(ingestor_main, "recalculate_fitness") as recalc:
+            ingestor_main.poll_intervals_icu()
+        assert recalc.called
+
+    def test_poll_skips_cleanly_without_a_db_connection(self):
+        with patch.object(ingestor_main, "_get_healthy_conn", return_value=None), \
+             patch.object(ingestor_main.intervals_icu, "sync_activities") as sync:
+            ingestor_main.poll_intervals_icu()
+        assert not sync.called
+
+    def test_reconcile_closes_the_connection(self):
+        with patch.object(ingestor_main, "_get_healthy_conn") as gc, \
+             patch.object(ingestor_main.intervals_icu, "reconcile", return_value=(1, 0)):
+            conn = gc.return_value
+            ingestor_main._reconcile_intervals_icu()
+        conn.close.assert_called_once()
+
+    def test_reconcile_survives_an_error(self):
+        with patch.object(ingestor_main, "_get_healthy_conn") as gc, \
+             patch.object(ingestor_main.intervals_icu, "reconcile",
+                          side_effect=RuntimeError("boom")):
+            conn = gc.return_value
+            ingestor_main._reconcile_intervals_icu()   # must not raise
+        conn.close.assert_called_once()
+
+
+class TestPositiveIntEnv:
+    def test_default_when_unset(self):
+        with patch.dict(os.environ, {}, clear=True):
+            assert ingestor_main._positive_int_env("NOPE", 14) == 14
+
+    def test_reads_a_valid_value(self):
+        with patch.dict(os.environ, {"X": "30"}, clear=True):
+            assert ingestor_main._positive_int_env("X", 14) == 30
+
+    def test_non_numeric_falls_back(self):
+        with patch.dict(os.environ, {"X": "abc"}, clear=True):
+            assert ingestor_main._positive_int_env("X", 14) == 14
+
+    def test_non_positive_falls_back(self):
+        """A zero or negative window would make the sweep delete the library."""
+        with patch.dict(os.environ, {"X": "0"}, clear=True):
+            assert ingestor_main._positive_int_env("X", 90) == 90
+        with patch.dict(os.environ, {"X": "-5"}, clear=True):
+            assert ingestor_main._positive_int_env("X", 90) == 90

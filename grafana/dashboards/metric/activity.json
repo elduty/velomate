@@ -1,0 +1,3377 @@
+{
+  "uid": "velomate-activity",
+  "title": "Activity Details",
+  "tags": [
+    "velomate"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "schemaVersion": 39,
+  "version": 3,
+  "graphTooltip": 2,
+  "time": {
+    "from": "now-2y",
+    "to": "now"
+  },
+  "refresh": "",
+  "links": [
+    {
+      "title": "Overview",
+      "url": "/d/velomate-main/overview",
+      "type": "link",
+      "icon": "dashboard"
+    },
+    {
+      "title": "All Time Progression",
+      "url": "/d/velomate-progression/all-time-progression",
+      "type": "link",
+      "icon": "dashboard"
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "activity_id",
+        "type": "query",
+        "label": "Activity",
+        "datasource": {
+          "type": "postgres",
+          "uid": "velomate"
+        },
+        "query": "SELECT id AS __value, name || ' (' || TO_CHAR(date, 'YYYY-MM-DD') || ')' AS __text FROM activities ORDER BY date DESC",
+        "refresh": 2,
+        "sort": 0,
+        "current": {},
+        "options": []
+      },
+      {
+        "name": "map_metric",
+        "type": "custom",
+        "label": "Map color",
+        "query": "Speed : speed_kmh, Heart Rate : hr, Power : power",
+        "current": {
+          "text": "Speed",
+          "value": "speed_kmh"
+        },
+        "options": [
+          {
+            "text": "Speed",
+            "value": "speed_kmh",
+            "selected": true
+          },
+          {
+            "text": "Heart Rate",
+            "value": "hr",
+            "selected": false
+          },
+          {
+            "text": "Power",
+            "value": "power",
+            "selected": false
+          }
+        ]
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Distance",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND((distance_m / 1000.0)::numeric, 1) AS \"Distance\" FROM activities WHERE id = ${activity_id};",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 28,
+          "titleSize": 14
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "N/A",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-blue"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-blue",
+                "value": null
+              }
+            ]
+          },
+          "unit": "lengthkm"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Elevation",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 4,
+        "y": 0
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND(elevation_m::numeric, 0) AS \"Elevation\" FROM activities WHERE id = ${activity_id};",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 28,
+          "titleSize": 14
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "N/A",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-blue"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-blue",
+                "value": null
+              }
+            ]
+          },
+          "unit": "lengthm"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Duration",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 8,
+        "y": 0
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT duration_s AS \"Duration\" FROM activities WHERE id = ${activity_id};",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 28,
+          "titleSize": 14
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "N/A",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-blue"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-blue",
+                "value": null
+              }
+            ]
+          },
+          "unit": "dthms"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Avg Speed",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 12,
+        "y": 0
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND(avg_speed_kmh::numeric, 1) AS \"Speed\" FROM activities WHERE id = ${activity_id};",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 28,
+          "titleSize": 14
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "N/A",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-blue"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-blue",
+                "value": null
+              }
+            ]
+          },
+          "unit": "velocitykmh"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Max Speed",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 16,
+        "y": 0
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND((SELECT MAX(speed_kmh) FROM activity_streams WHERE activity_id = ${activity_id} AND speed_kmh IS NOT NULL)::numeric, 1) AS \"Max Speed\";",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 28,
+          "titleSize": 14
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "N/A",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-blue"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-blue",
+                "value": null
+              }
+            ]
+          },
+          "unit": "velocitykmh"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Calories",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 20,
+        "y": 0
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT calories AS \"Calories\" FROM activities WHERE id = ${activity_id};",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 28,
+          "titleSize": 14
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "N/A",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-orange"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-orange",
+                "value": null
+              }
+            ]
+          },
+          "unit": "kcal"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "TSS",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 0,
+        "y": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND(tss::numeric, 0) AS \"TSS\" FROM activities WHERE id = ${activity_id};",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 28,
+          "titleSize": 14
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "N/A",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-purple"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-purple",
+                "value": null
+              }
+            ]
+          }
+        }
+      },
+      "description": "Training Stress Score\nHow hard was this ride relative to your FTP?\n100 = 1 hour at threshold.\nCalculated from power (preferred) or heart rate."
+    },
+    {
+      "id": 8,
+      "title": "Avg Power",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 4,
+        "y": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT avg_power AS \"Power\" FROM activities WHERE id = ${activity_id};",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 28,
+          "titleSize": 14
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "N/A",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-purple"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-purple",
+                "value": null
+              }
+            ]
+          },
+          "unit": "watt"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "title": "Max Power",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 8,
+        "y": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT max_power AS \"Max Power\" FROM activities WHERE id = ${activity_id};",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 28,
+          "titleSize": 14
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "N/A",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-purple"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-purple",
+                "value": null
+              }
+            ]
+          },
+          "unit": "watt"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "title": "Avg HR",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 12,
+        "y": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT avg_hr AS \"HR\" FROM activities WHERE id = ${activity_id};",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 28,
+          "titleSize": 14
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "N/A",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-orange"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-orange",
+                "value": null
+              }
+            ]
+          },
+          "unit": "bpm"
+        }
+      }
+    },
+    {
+      "id": 11,
+      "title": "Max HR",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 16,
+        "y": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT max_hr AS \"Max HR\" FROM activities WHERE id = ${activity_id};",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 28,
+          "titleSize": 14
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "N/A",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-orange"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-orange",
+                "value": null
+              }
+            ]
+          },
+          "unit": "bpm"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "title": "Avg Cadence",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 20,
+        "y": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT avg_cadence AS \"Cadence\" FROM activities WHERE id = ${activity_id};",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 28,
+          "titleSize": 14
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "N/A",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-orange"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-orange",
+                "value": null
+              }
+            ]
+          },
+          "unit": "rpm"
+        }
+      }
+    },
+    {
+      "id": 900,
+      "type": "row",
+      "title": "Route",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "panels": []
+    },
+    {
+      "id": 30,
+      "title": "Route",
+      "type": "geomap",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 7
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT lat AS \"latitude\", lng AS \"longitude\", CASE '${map_metric}' WHEN 'speed_kmh' THEN speed_kmh WHEN 'hr' THEN hr WHEN 'power' THEN power END AS \"metric\", time_offset FROM activity_streams WHERE activity_id = ${activity_id} AND lat IS NOT NULL AND lng IS NOT NULL ORDER BY time_offset;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "view": {
+          "id": "fit",
+          "lat": 0,
+          "lon": 0,
+          "zoom": 12
+        },
+        "layers": [
+          {
+            "type": "route",
+            "name": "Route",
+            "config": {
+              "style": {
+                "color": {
+                  "field": "metric",
+                  "fixed": "green"
+                },
+                "opacity": 0.8,
+                "lineWidth": 3
+              }
+            },
+            "location": {
+              "mode": "coords",
+              "latitude": "latitude",
+              "longitude": "longitude"
+            }
+          }
+        ]
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-GrYlRd"
+          },
+          "noValue": "No data"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "metric"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "continuous-GrYlRd"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "description": "GPS route with color overlay.\n\nUse the Map Color dropdown to switch between:\n\n\u2022 Speed \u2014 green (fast) to red (slow)\n\n\u2022 Heart Rate \u2014 green (low) to red (high)\n\n\u2022 Power \u2014 green (low) to red (high)"
+    },
+    {
+      "id": 1500,
+      "type": "table",
+      "title": "Detected Climbs",
+      "description": "Climbs detected on this ride.\n\nNamed climbs come from Strava segments. Unlisted hills are\ndetected from the GPS elevation profile using the RDP algorithm.\n\nThe Source column shows where each climb came from.",
+      "gridPos": {
+        "x": 0,
+        "y": 17,
+        "w": 24,
+        "h": 6
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  COALESCE(segment_name, category) AS \"Name\",\n  gain_m AS \"Gain (m)\",\n  length_m AS \"Length (m)\",\n  avg_grade AS \"Avg Grade (%)\",\n  start_alt AS \"Start (m)\",\n  peak_alt AS \"Peak (m)\",\n  TO_CHAR(duration_s * interval '1 second', 'HH24:MI:SS') AS \"Duration\",\n  source AS \"Source\"\nFROM ride_climbs\nWHERE activity_id = ${activity_id}\n  AND category != 'none'\nORDER BY gain_m DESC;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No climbs detected",
+          "custom": {
+            "align": "center"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Name"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 200
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Source"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 80
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 901,
+      "type": "row",
+      "title": "Power Quality",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 23
+      },
+      "panels": []
+    },
+    {
+      "id": 34,
+      "title": "Normalized Power",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 6,
+        "x": 0,
+        "y": 24
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND(np::numeric, 0) AS \"NP (W)\" FROM activities WHERE id = ${activity_id} AND np IS NOT NULL;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "watt",
+          "color": {
+            "fixedColor": "#8b5cf6",
+            "mode": "fixed"
+          },
+          "noValue": "N/A"
+        },
+        "overrides": []
+      },
+      "description": "Normalized Power (NP)\nWhat the ride \"felt like\" in watts.\n30s rolling avg raised to 4th power, then root-averaged.\nHard efforts cost disproportionately more.\nNP > Avg Power = variable effort\nNP \u2248 Avg Power = steady effort"
+    },
+    {
+      "id": 35,
+      "title": "Intensity Factor",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 6,
+        "x": 6,
+        "y": 24
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND(intensity_factor::numeric, 2) AS \"IF\" FROM activities WHERE id = ${activity_id} AND intensity_factor IS NOT NULL;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#808080",
+                "value": null
+              },
+              {
+                "color": "#3498db",
+                "value": 0.6
+              },
+              {
+                "color": "#2ecc71",
+                "value": 0.7
+              },
+              {
+                "color": "#f1c40f",
+                "value": 0.85
+              },
+              {
+                "color": "#e67e22",
+                "value": 0.95
+              },
+              {
+                "color": "#e74c3c",
+                "value": 1.05
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "noValue": "N/A"
+        },
+        "overrides": []
+      },
+      "description": "Intensity Factor (IF)\n\nNP \u00f7 FTP \u2014 how hard was this ride?\n\n\n\n\ud83d\udd18 < 0.6 \u2014 Recovery\n\n\ud83d\udd35 0.6-0.7 \u2014 Easy endurance\n\n\ud83d\udfe2 0.7-0.85 \u2014 Tempo / group ride\n\n\ud83d\udfe1 0.85-0.95 \u2014 Threshold work\n\n\ud83d\udfe0 0.95-1.05 \u2014 Race effort\n\n\ud83d\udd34 > 1.05 \u2014 Short max effort"
+    },
+    {
+      "id": 36,
+      "title": "Variability Index",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 6,
+        "x": 12,
+        "y": 24
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND(variability_index::numeric, 2) AS \"VI\" FROM activities WHERE id = ${activity_id} AND variability_index IS NOT NULL;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#2ecc71",
+                "value": null
+              },
+              {
+                "color": "#f1c40f",
+                "value": 1.05
+              },
+              {
+                "color": "#e74c3c",
+                "value": 1.15
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "noValue": "N/A"
+        },
+        "overrides": []
+      },
+      "description": "Variability Index (VI)\n\nNP \u00f7 Avg Power \u2014 how steady was your pacing?\n\n\n\n\ud83d\udfe2 1.00-1.05 \u2014 Very smooth (TT, ERG mode)\n\n\ud83d\udfe1 1.05-1.15 \u2014 Normal (group ride, rolling terrain)\n\n\ud83d\udd34 > 1.15 \u2014 Very spiky (crits, stop-start)\n\n\n\nLower VI at same NP = more efficient pacing"
+    },
+    {
+      "id": 38,
+      "title": "Efficiency Factor",
+      "type": "stat",
+      "gridPos": {
+        "h": 3,
+        "w": 6,
+        "x": 18,
+        "y": 24
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND(ef::numeric, 2) AS \"EF\" FROM activities WHERE id = ${activity_id} AND ef IS NOT NULL;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "N/A",
+          "color": {
+            "fixedColor": "#8b5cf6",
+            "mode": "fixed"
+          }
+        }
+      },
+      "description": "Efficiency Factor (EF)\nNP \u00f7 Avg HR \u2014 aerobic efficiency.\nHigher = fitter (more watts per heartbeat).\n\n\ud83d\udcc8 EF rising at same NP = fitness improving\n\ud83d\udcc9 EF dropping = fatigue, heat, or detraining"
+    },
+    {
+      "id": 39,
+      "title": "Work",
+      "type": "stat",
+      "gridPos": {
+        "x": 0,
+        "y": 27,
+        "w": 6,
+        "h": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND(COALESCE(work_kj, avg_power * duration_s / 1000.0)::numeric, 1) AS \"Work\" FROM activities WHERE id = ${activity_id} AND COALESCE(work_kj, avg_power) IS NOT NULL;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "N/A",
+          "unit": "kJ",
+          "color": {
+            "fixedColor": "#8b5cf6",
+            "mode": "fixed"
+          }
+        }
+      },
+      "description": "Work (kJ)\nTotal mechanical energy output.\nComputed from per-second power stream data.\nRoughly equals calories burned (1 kJ \u2248 1 kcal)."
+    },
+    {
+      "id": 43,
+      "title": "TRIMP",
+      "type": "stat",
+      "gridPos": {
+        "x": 6,
+        "y": 27,
+        "w": 6,
+        "h": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND(trimp::numeric, 0) AS \"TRIMP\" FROM activities WHERE id = ${activity_id} AND trimp IS NOT NULL;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "N/A",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#808080",
+                "value": null
+              },
+              {
+                "color": "#3498db",
+                "value": 50
+              },
+              {
+                "color": "#2ecc71",
+                "value": 75
+              },
+              {
+                "color": "#f1c40f",
+                "value": 100
+              },
+              {
+                "color": "#e67e22",
+                "value": 125
+              },
+              {
+                "color": "#e74c3c",
+                "value": 150
+              }
+            ]
+          }
+        }
+      },
+      "description": "TRIMP (Training Impulse) \u2014 Banister formula\nExponential HR-based effort score calibrated for 1\u20132 hour rides.\n\n\ud83d\udd18 < 50 \u2014 Recovery\n\n\ud83d\udd35 50-75 \u2014 Easy endurance\n\n\ud83d\udfe2 75-100 \u2014 Moderate endurance\n\n\ud83d\udfe1 100-125 \u2014 Tempo / sustained\n\n\ud83d\udfe0 125-150 \u2014 Threshold / hard\n\n\ud83d\udd34 > 150 \u2014 Very hard / extreme\n\nNote: TRIMP and TSS measure different things. On stop-and-go rides (urban, MTB, crit) TRIMP can be notably higher than TSS \u2014 your HR stays elevated through coasting while power drops to zero. Both values are honest; the ride's true load sits between them."
+    },
+    {
+      "id": 411,
+      "title": "Aerobic Decoupling",
+      "type": "stat",
+      "gridPos": {
+        "x": 12,
+        "y": 27,
+        "w": 6,
+        "h": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND(aerobic_decoupling::numeric, 1) AS \"Decoupling %\" FROM activities WHERE id = ${activity_id} AND aerobic_decoupling IS NOT NULL;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "unit": "percent",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 5
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          }
+        }
+      },
+      "description": "Aerobic Decoupling (Friel)\nPower:HR ratio drift \u2014 first half vs second half.\n\nPositive = cardiac drift (HR rising relative to power).\n\n\ud83d\udfe2 < 5% \u2014 Good aerobic fitness\n\n\ud83d\udfe1 5-10% \u2014 Moderate drift\n\n\ud83d\udd34 > 10% \u2014 Significant drift, base fitness needs work"
+    },
+    {
+      "id": 37,
+      "title": "W/kg (NP)",
+      "description": "Normalized power-to-weight ratio for this ride.\n\nCalculated as NP / ride_weight. Uses NP rather than avg_power\nbecause it better reflects the physiological cost of variable efforts.\n\nSet your weight via VELOMATE_WEIGHT in .env.",
+      "type": "stat",
+      "gridPos": {
+        "x": 18,
+        "y": 27,
+        "w": 6,
+        "h": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND((a.np / a.ride_weight)::numeric, 2) AS \"W/kg\" FROM activities a WHERE a.id = ${activity_id} AND a.np IS NOT NULL AND a.np > 0 AND a.ride_weight IS NOT NULL AND a.ride_weight > 0;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No weight",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-orange"
+          },
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-orange",
+                "value": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 1200,
+      "type": "stat",
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "title": "Min W'bal",
+      "description": "Lowest W'bal during the ride \u2014 how close to empty your\nanaerobic battery got.\n\nComputed via Skiba differential model using the latest CP/W'\nestimate. Requires power data.",
+      "gridPos": {
+        "x": 0,
+        "y": 30,
+        "w": 6,
+        "h": 3
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND((MIN(s.w_bal) / 1000.0)::numeric, 1) AS \"Min W'bal (kJ)\" FROM activity_streams s WHERE s.activity_id = ${activity_id} AND s.w_bal IS NOT NULL;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No W'bal",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-red"
+          },
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-red",
+                "value": null
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "id": 1201,
+      "type": "stat",
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "title": "Time W'bal < 25%",
+      "description": "Percentage of ride time where W'bal was below 25% of W'.\nShows how much of the ride was 'in the red.'\n\nNote: uses the latest W' estimate for the 25% threshold \u2014\na known approximation (see spec).",
+      "gridPos": {
+        "x": 6,
+        "y": 30,
+        "w": 6,
+        "h": 3
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND(\n  (COUNT(*) FILTER (WHERE s.w_bal < (\n    SELECT COALESCE(w_prime_kj, 20.0) * 1000.0 * 0.25\n    FROM cp_estimates ORDER BY date DESC LIMIT 1\n  )) * 100.0 / NULLIF(COUNT(*), 0))::numeric, 1\n) AS \"Time < 25% (%)\"\nFROM activity_streams s\nWHERE s.activity_id = ${activity_id}\n  AND s.w_bal IS NOT NULL;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No W'bal",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-orange"
+          },
+          "unit": "percent",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-orange",
+                "value": null
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "id": 1100,
+      "title": "Detected Intervals",
+      "type": "table",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 33
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  ROW_NUMBER() OVER (ORDER BY start_offset_s) AS \"#\",\n  TO_CHAR((start_offset_s || ' seconds')::interval, 'HH24:MI:SS') AS \"Start\",\n  LPAD((duration_s / 60)::text, 2, '0') || ':' || LPAD((duration_s % 60)::text, 2, '0') AS \"Duration\",\n  ROUND(avg_power::numeric, 0) AS \"Avg W\",\n  ROUND(np::numeric, 0) AS \"NP\",\n  ROUND(max_power::numeric, 0) AS \"Max W\",\n  classification AS \"Type\"\nFROM ride_intervals\nWHERE activity_id = ${activity_id}\nORDER BY start_offset_s;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No intervals detected"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Type"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "sprint": {
+                        "color": "purple",
+                        "index": 0
+                      },
+                      "anaerobic": {
+                        "color": "red",
+                        "index": 1
+                      },
+                      "vo2": {
+                        "color": "orange",
+                        "index": 2
+                      },
+                      "threshold": {
+                        "color": "yellow",
+                        "index": 3
+                      },
+                      "sweetspot": {
+                        "color": "green",
+                        "index": 4
+                      },
+                      "tempo": {
+                        "color": "blue",
+                        "index": 5
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "description": "Automatically detected sustained efforts in this ride, classified by duration and intensity (% of ride FTP).\n\n\ud83d\udfe3 Sprint \u2014 > 150% FTP, < 30s\n\n\ud83d\udd34 Anaerobic \u2014 120\u2013150% FTP, 30s \u2013 2 min\n\n\ud83d\udfe0 VO2 \u2014 105\u2013120% FTP, 2 \u2013 5 min\n\n\ud83d\udfe1 Threshold \u2014 95\u2013105% FTP, 5 \u2013 20 min\n\n\ud83d\udfe2 Sweet spot \u2014 83\u201394% FTP, 15 \u2013 60 min\n\n\ud83d\udd35 Tempo \u2014 75\u201385% FTP, > 20 min"
+    },
+    {
+      "id": 902,
+      "type": "row",
+      "title": "Zone Analysis",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 41
+      },
+      "panels": []
+    },
+    {
+      "id": 400,
+      "title": "HR Zones by Kilometer",
+      "type": "barchart",
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 42
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "WITH dist AS (\n  SELECT s.time_offset, s.hr,\n    SUM(s.speed_kmh / 3600.0) OVER (ORDER BY s.time_offset) AS km\n  FROM activity_streams s\n  WHERE s.activity_id = ${activity_id}\n    AND s.speed_kmh IS NOT NULL\n),\nzoned AS (\n  SELECT FLOOR(km)::int + 1 AS km,\n    CASE\n      WHEN d.hr < mhr.val * 0.60 THEN 'Z1 Recovery'\n      WHEN d.hr < mhr.val * 0.70 THEN 'Z2 Endurance'\n      WHEN d.hr < mhr.val * 0.80 THEN 'Z3 Tempo'\n      WHEN d.hr < mhr.val * 0.90 THEN 'Z4 Threshold'\n      ELSE 'Z5 VO2max'\n    END AS zone\n  FROM dist d\n  CROSS JOIN (\n    SELECT COALESCE(\n      NULLIF((SELECT value::numeric FROM sync_state WHERE key = 'configured_max_hr'), 0),\n      (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY max_hr) FROM activities WHERE max_hr IS NOT NULL AND max_hr > 0),\n      185\n    ) AS val\n  ) mhr\n  WHERE d.hr IS NOT NULL AND d.hr > 0\n)\nSELECT km || ' km' AS \"Kilometer\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z1 Recovery' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z1 Recovery\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z2 Endurance' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z2 Endurance\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z3 Tempo' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z3 Tempo\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z4 Threshold' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z4 Threshold\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z5 VO2max' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z5 VO2max\"\nFROM zoned\nGROUP BY km\nORDER BY km;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "orientation": "vertical",
+        "showValue": "never",
+        "stacking": "normal",
+        "barWidth": 0.8,
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "noValue": "No data",
+          "custom": {
+            "fillOpacity": 80,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z1 Recovery"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#6b7280",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z2 Endurance"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#3b82f6",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z3 Tempo"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#22c55e",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z4 Threshold"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#eab308",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z5 VO2max"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#ef4444",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "description": "HR zone distribution per kilometer.\n\nShows where on the route you were working hard. Stacked to 100% \u2014 each bar shows the zone split for that km.\n\n\ud83d\udd18 Z1 < 60% max HR \u2014 Recovery\n\n\ud83d\udd35 Z2 60-70% max HR \u2014 Endurance\n\n\ud83d\udfe2 Z3 70-80% max HR \u2014 Tempo\n\n\ud83d\udfe1 Z4 80-90% max HR \u2014 Threshold\n\n\ud83d\udd34 Z5 > 90% max HR \u2014 VO2max"
+    },
+    {
+      "id": 403,
+      "title": "Power Zones by Kilometer",
+      "type": "barchart",
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 48
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "WITH dist AS (\n  SELECT s.time_offset, s.power,\n    SUM(s.speed_kmh / 3600.0) OVER (ORDER BY s.time_offset) AS km\n  FROM activity_streams s\n  WHERE s.activity_id = ${activity_id}\n    AND s.speed_kmh IS NOT NULL\n),\nzoned AS (\n  SELECT FLOOR(km)::int + 1 AS km,\n    CASE\n      WHEN d.power < ftp.val * 0.55 THEN 'Z1 Recovery'\n      WHEN d.power < ftp.val * 0.75 THEN 'Z2 Endurance'\n      WHEN d.power < ftp.val * 0.90 THEN 'Z3 Tempo'\n      WHEN d.power < ftp.val * 1.05 THEN 'Z4 Threshold'\n      WHEN d.power < ftp.val * 1.20 THEN 'Z5 VO2max'\n      WHEN d.power < ftp.val * 1.50 THEN 'Z6 Anaerobic'\n      ELSE 'Z7 Neuromuscular'\n    END AS zone\n  FROM dist d\n  CROSS JOIN (\n    SELECT COALESCE(\n      (SELECT value::numeric FROM sync_state WHERE key = 'configured_ftp' AND value::numeric > 0),\n      (SELECT value::numeric FROM sync_state WHERE key = 'estimated_ftp' AND value::numeric > 0),\n      150\n    ) AS val\n  ) ftp\n  WHERE d.power IS NOT NULL AND d.power > 0\n)\nSELECT km || ' km' AS \"Kilometer\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z1 Recovery' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z1 Recovery\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z2 Endurance' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z2 Endurance\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z3 Tempo' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z3 Tempo\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z4 Threshold' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z4 Threshold\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z5 VO2max' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z5 VO2max\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z6 Anaerobic' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z6 Anaerobic\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z7 Neuromuscular' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z7 Neuromuscular\"\nFROM zoned\nGROUP BY km\nORDER BY km;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "orientation": "vertical",
+        "showValue": "never",
+        "stacking": "normal",
+        "barWidth": 0.8,
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "noValue": "No data",
+          "custom": {
+            "fillOpacity": 80,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z1 Recovery"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#6b7280",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z2 Endurance"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#3b82f6",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z3 Tempo"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#22c55e",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z4 Threshold"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#eab308",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z5 VO2max"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#f97316",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z6 Anaerobic"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#ef4444",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z7 Neuromuscular"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#9333ea",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "description": "Power zone distribution per kilometer.\n\nShows where on the route you produced the most power. 7 Coggan zones based on FTP.\n\n\ud83d\udd18 Z1 < 55% FTP \u2014 Recovery\n\n\ud83d\udd35 Z2 55-75% FTP \u2014 Endurance\n\n\ud83d\udfe2 Z3 75-90% FTP \u2014 Tempo\n\n\ud83d\udfe1 Z4 90-105% FTP \u2014 Threshold\n\n\ud83d\udfe0 Z5 105-120% FTP \u2014 VO2max\n\n\ud83d\udd34 Z6 120-150% FTP \u2014 Anaerobic\n\n\ud83d\udfe3 Z7 > 150% FTP \u2014 Neuromuscular"
+    },
+    {
+      "id": 31,
+      "title": "HR Zones",
+      "type": "barchart",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 54
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "WITH lthr AS (SELECT COALESCE((SELECT value::numeric FROM sync_state WHERE key = 'configured_max_hr' AND value::numeric > 0), (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY max_hr) FROM activities WHERE max_hr IS NOT NULL AND max_hr > 0), 185) AS thr), data AS (SELECT CASE WHEN s.hr < lthr.thr * 0.60 THEN 'z1' WHEN s.hr < lthr.thr * 0.70 THEN 'z2' WHEN s.hr < lthr.thr * 0.80 THEN 'z3' WHEN s.hr < lthr.thr * 0.90 THEN 'z4' ELSE 'z5' END AS z FROM activity_streams s, lthr WHERE s.activity_id = ${activity_id} AND s.hr IS NOT NULL AND s.hr > 0) SELECT 'HR' AS \"x\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z1'), 0) AS \"Z1 Recovery\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z2'), 0) AS \"Z2 Endurance\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z3'), 0) AS \"Z3 Tempo\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z4'), 0) AS \"Z4 Threshold\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z5'), 0) AS \"Z5 VO2max\";",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "xField": "x",
+        "showValue": "never",
+        "stacking": "normal",
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "dthms",
+          "noValue": "No data"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z1 Recovery"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#808080",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z2 Endurance"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#3498db",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z3 Tempo"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#2ecc71",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z4 Threshold"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#f1c40f",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z5 VO2max"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#e74c3c",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "description": "Time in each heart rate zone.\nBased on % of max HR.\n\n\ud83d\udd18 Z1 < 60% \u2014 Recovery\n\n\ud83d\udd35 Z2 60-70% \u2014 Endurance\n\n\ud83d\udfe2 Z3 70-80% \u2014 Tempo\n\n\ud83d\udfe1 Z4 80-90% \u2014 Threshold\n\n\ud83d\udd34 Z5 > 90% \u2014 VO2max"
+    },
+    {
+      "id": 32,
+      "title": "Power Zones",
+      "type": "barchart",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 54
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "WITH ftp AS (\n  SELECT COALESCE(\n    (SELECT value::numeric FROM sync_state WHERE key = 'configured_ftp' AND value::numeric > 0),\n    (SELECT value::numeric FROM sync_state WHERE key = 'estimated_ftp' AND value::numeric > 0),\n    150\n  ) AS ftp_val\n), data AS (SELECT CASE WHEN s.power < ftp.ftp_val * 0.55 THEN 'z1' WHEN s.power < ftp.ftp_val * 0.75 THEN 'z2' WHEN s.power < ftp.ftp_val * 0.90 THEN 'z3' WHEN s.power < ftp.ftp_val * 1.05 THEN 'z4' WHEN s.power < ftp.ftp_val * 1.20 THEN 'z5' WHEN s.power < ftp.ftp_val * 1.50 THEN 'z6' ELSE 'z7' END AS z FROM activity_streams s, ftp WHERE s.activity_id = ${activity_id} AND s.power IS NOT NULL AND s.power > 0) SELECT 'Power' AS \"x\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z1'), 0) AS \"Z1 Recovery\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z2'), 0) AS \"Z2 Endurance\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z3'), 0) AS \"Z3 Tempo\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z4'), 0) AS \"Z4 Threshold\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z5'), 0) AS \"Z5 VO2max\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z6'), 0) AS \"Z6 Anaerobic\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z7'), 0) AS \"Z7 Neuromuscular\";",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "xField": "x",
+        "showValue": "never",
+        "stacking": "normal",
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "dthms",
+          "noValue": "No data"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z1 Recovery"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#808080",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z2 Endurance"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#3498db",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z3 Tempo"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#2ecc71",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z4 Threshold"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#f1c40f",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z5 VO2max"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#e67e22",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z6 Anaerobic"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#e74c3c",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z7 Neuromuscular"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#9333ea",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "description": "Time in each power zone.\n\nZones based on FTP, estimated from best 20-min power \u00d7 0.95 or configured via VELOMATE_FTP.\n\n\ud83d\udd18 Z1 < 55% \u2014 Recovery\n\n\ud83d\udd35 Z2 55-75% \u2014 Endurance\n\n\ud83d\udfe2 Z3 75-90% \u2014 Tempo\n\n\ud83d\udfe1 Z4 90-105% \u2014 Threshold\n\n\ud83d\udfe0 Z5 105-120% \u2014 VO2max\n\n\ud83d\udd34 Z6 120-150% \u2014 Anaerobic\n\n\ud83d\udfe3 Z7 > 150% \u2014 Neuromuscular"
+    },
+    {
+      "id": 42,
+      "title": "HR Distribution",
+      "type": "barchart",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 62
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "WITH lthr AS (SELECT COALESCE((SELECT value::numeric FROM sync_state WHERE key = 'configured_max_hr' AND value::numeric > 0), (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY max_hr) FROM activities WHERE max_hr IS NOT NULL AND max_hr > 0), 185) AS thr), buckets AS (SELECT FLOOR(hr / 5) * 5 AS bucket, COUNT(*) / 60.0 AS mins, CASE WHEN hr < lthr.thr * 0.60 THEN 'Z1 Recovery' WHEN hr < lthr.thr * 0.70 THEN 'Z2 Endurance' WHEN hr < lthr.thr * 0.80 THEN 'Z3 Tempo' WHEN hr < lthr.thr * 0.90 THEN 'Z4 Threshold' ELSE 'Z5 VO2max' END AS zone FROM activity_streams, lthr WHERE activity_id = ${activity_id} AND hr IS NOT NULL AND hr > 0 GROUP BY bucket, zone) SELECT bucket::int AS \"HR (bpm)\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z1 Recovery'), 0) AS \"Z1 Recovery\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z2 Endurance'), 0) AS \"Z2 Endurance\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z3 Tempo'), 0) AS \"Z3 Tempo\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z4 Threshold'), 0) AS \"Z4 Threshold\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z5 VO2max'), 0) AS \"Z5 VO2max\" FROM buckets GROUP BY bucket ORDER BY bucket;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "orientation": "vertical",
+        "xField": "HR (bpm)",
+        "showValue": "never",
+        "stacking": "normal"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z1 Recovery"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#808080",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "min"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z2 Endurance"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#3498db",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "min"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z3 Tempo"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#2ecc71",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "min"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z4 Threshold"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#f1c40f",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "min"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z5 VO2max"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#e74c3c",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "min"
+              }
+            ]
+          }
+        ]
+      },
+      "description": "Heart rate histogram \u2014 time at each 5 bpm bucket, colored by zone.\nWider spread = more variable effort.\nTall narrow peak = steady-state ride."
+    },
+    {
+      "id": 41,
+      "title": "Power Distribution",
+      "type": "barchart",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 62
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "WITH ftp AS (\n  SELECT COALESCE(\n    (SELECT value::numeric FROM sync_state WHERE key = 'configured_ftp' AND value::numeric > 0),\n    (SELECT value::numeric FROM sync_state WHERE key = 'estimated_ftp' AND value::numeric > 0),\n    150\n  ) AS ftp_val\n), buckets AS (SELECT FLOOR(power / 25) * 25 AS bucket, COUNT(*) / 60.0 AS mins, CASE WHEN power < ftp.ftp_val * 0.55 THEN 'Z1 Recovery' WHEN power < ftp.ftp_val * 0.75 THEN 'Z2 Endurance' WHEN power < ftp.ftp_val * 0.90 THEN 'Z3 Tempo' WHEN power < ftp.ftp_val * 1.05 THEN 'Z4 Threshold' WHEN power < ftp.ftp_val * 1.20 THEN 'Z5 VO2max' WHEN power < ftp.ftp_val * 1.50 THEN 'Z6 Anaerobic' ELSE 'Z7 Neuromuscular' END AS zone FROM activity_streams, ftp WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0 GROUP BY bucket, zone) SELECT bucket::int AS \"Power (W)\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z1 Recovery'), 0) AS \"Z1 Recovery\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z2 Endurance'), 0) AS \"Z2 Endurance\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z3 Tempo'), 0) AS \"Z3 Tempo\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z4 Threshold'), 0) AS \"Z4 Threshold\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z5 VO2max'), 0) AS \"Z5 VO2max\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z6 Anaerobic'), 0) AS \"Z6 Anaerobic\",\n  COALESCE(SUM(mins) FILTER (WHERE zone = 'Z7 Neuromuscular'), 0) AS \"Z7 Neuromuscular\" FROM buckets GROUP BY bucket ORDER BY bucket;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "orientation": "vertical",
+        "xField": "Power (W)",
+        "showValue": "never",
+        "stacking": "normal"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z1 Recovery"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#808080",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "min"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z2 Endurance"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#3498db",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "min"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z3 Tempo"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#2ecc71",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "min"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z4 Threshold"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#f1c40f",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "min"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z5 VO2max"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#e67e22",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "min"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z6 Anaerobic"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#e74c3c",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "min"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Z7 Neuromuscular"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#9333ea",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "min"
+              }
+            ]
+          }
+        ]
+      },
+      "description": "Power histogram \u2014 time at each 10W bucket, colored by zone.\nWider spread = more variable effort.\nLarge Z1 spike = coasting/descending time."
+    },
+    {
+      "id": 903,
+      "type": "row",
+      "title": "Power Duration",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 70
+      },
+      "panels": []
+    },
+    {
+      "id": 40,
+      "title": "Power Duration Curve",
+      "type": "barchart",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 71
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT d.label AS \"Duration\", d.best_power AS \"This Ride (W)\" FROM (\nSELECT 1 AS ord, '5s' AS label, ROUND(MAX(avg_p)::numeric, 0) AS best_power FROM (SELECT AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 4 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 2, '10s', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 9 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 3, '30s', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 29 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 4, '1min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 59 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 5, '2min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 119 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 6, '5min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 299 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 7, '10min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 599 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 8, '20min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 1199 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 9, '60min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 3599 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL) s WHERE avg_p IS NOT NULL\n) d WHERE d.best_power IS NOT NULL ORDER BY d.ord;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No power data"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "This Ride (W)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#8b5cf6",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "watt"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "orientation": "vertical",
+        "xField": "Duration",
+        "showValue": "always",
+        "barWidth": 0.5
+      },
+      "description": "Best sustained average power at each duration.\n\nShows the highest average power you held\n\nfor each time window during this ride.\n\nSteep drop = sprinter profile.\n\nFlat curve = endurance profile."
+    },
+    {
+      "id": 1300,
+      "type": "barchart",
+      "title": "Durability Profile",
+      "description": "How much power you retained in the second half vs the first half.\n\n100% = no fade. 90% = lost 10% of your power.\n> 100% = negative split (went harder in the back half).\n\nShows at which durations you fade most \u2014 short efforts\n(anaerobic) vs long efforts (aerobic) may differ.",
+      "gridPos": {
+        "x": 0,
+        "y": 79,
+        "w": 18,
+        "h": 6
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "WITH stream AS (\n  SELECT time_offset, COALESCE(power, 0) AS power,\n    MAX(time_offset) OVER () AS max_offset\n  FROM activity_streams\n  WHERE activity_id = ${activity_id}\n),\nfirst_half AS (\n  SELECT ROW_NUMBER() OVER (ORDER BY time_offset) AS rn,\n    AVG(power) OVER w60 AS p60, AVG(power) OVER w120 AS p120,\n    AVG(power) OVER w300 AS p300, AVG(power) OVER w600 AS p600,\n    AVG(power) OVER w1200 AS p1200\n  FROM stream WHERE time_offset <= max_offset / 2\n  WINDOW w60   AS (ORDER BY time_offset ROWS BETWEEN 59   PRECEDING AND CURRENT ROW),\n         w120  AS (ORDER BY time_offset ROWS BETWEEN 119  PRECEDING AND CURRENT ROW),\n         w300  AS (ORDER BY time_offset ROWS BETWEEN 299  PRECEDING AND CURRENT ROW),\n         w600  AS (ORDER BY time_offset ROWS BETWEEN 599  PRECEDING AND CURRENT ROW),\n         w1200 AS (ORDER BY time_offset ROWS BETWEEN 1199 PRECEDING AND CURRENT ROW)\n),\nsecond_half AS (\n  SELECT ROW_NUMBER() OVER (ORDER BY time_offset) AS rn,\n    AVG(power) OVER w60 AS p60, AVG(power) OVER w120 AS p120,\n    AVG(power) OVER w300 AS p300, AVG(power) OVER w600 AS p600,\n    AVG(power) OVER w1200 AS p1200\n  FROM stream WHERE time_offset > max_offset / 2\n  WINDOW w60   AS (ORDER BY time_offset ROWS BETWEEN 59   PRECEDING AND CURRENT ROW),\n         w120  AS (ORDER BY time_offset ROWS BETWEEN 119  PRECEDING AND CURRENT ROW),\n         w300  AS (ORDER BY time_offset ROWS BETWEEN 299  PRECEDING AND CURRENT ROW),\n         w600  AS (ORDER BY time_offset ROWS BETWEEN 599  PRECEDING AND CURRENT ROW),\n         w1200 AS (ORDER BY time_offset ROWS BETWEEN 1199 PRECEDING AND CURRENT ROW)\n)\nSELECT '1 min' AS \"Duration\",\n  ROUND(((SELECT MAX(p60) FROM second_half WHERE rn >= 60) /\n    NULLIF((SELECT MAX(p60) FROM first_half WHERE rn >= 60), 0) * 100)::numeric) AS \"2nd Half / 1st Half (%)\"\nUNION ALL SELECT '2 min',\n  ROUND(((SELECT MAX(p120) FROM second_half WHERE rn >= 120) /\n    NULLIF((SELECT MAX(p120) FROM first_half WHERE rn >= 120), 0) * 100)::numeric)\nUNION ALL SELECT '5 min',\n  ROUND(((SELECT MAX(p300) FROM second_half WHERE rn >= 300) /\n    NULLIF((SELECT MAX(p300) FROM first_half WHERE rn >= 300), 0) * 100)::numeric)\nUNION ALL SELECT '10 min',\n  ROUND(((SELECT MAX(p600) FROM second_half WHERE rn >= 600) /\n    NULLIF((SELECT MAX(p600) FROM first_half WHERE rn >= 600), 0) * 100)::numeric)\nUNION ALL SELECT '20 min',\n  ROUND(((SELECT MAX(p1200) FROM second_half WHERE rn >= 1200) /\n    NULLIF((SELECT MAX(p1200) FROM first_half WHERE rn >= 1200), 0) * 100)::numeric);",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "Short ride",
+          "unit": "percent",
+          "min": 0,
+          "max": 130,
+          "custom": {
+            "fillOpacity": 80
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#e74c3c",
+                "value": null
+              },
+              {
+                "color": "#f1c40f",
+                "value": 90
+              },
+              {
+                "color": "#2ecc71",
+                "value": 95
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "orientation": "vertical",
+        "showValue": "always",
+        "stacking": "none",
+        "barWidth": 0.6
+      }
+    },
+    {
+      "id": 1301,
+      "type": "stat",
+      "title": "Durability Index",
+      "description": "2nd-half best 5-min power / 1st-half best 5-min power.\n\n1.0 = no fade. 0.9 = 10% power drop in the back half.\n\n\ud83d\udfe2 >= 0.95 \u2014 good durability\n\n\ud83d\udfe1 0.90-0.95 \u2014 moderate fade\n\n\ud83d\udd34 < 0.90 \u2014 significant durability deficit",
+      "gridPos": {
+        "x": 18,
+        "y": 79,
+        "w": 6,
+        "h": 6
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "WITH stream AS (\n  SELECT time_offset, COALESCE(power, 0) AS power,\n    MAX(time_offset) OVER () AS max_offset\n  FROM activity_streams\n  WHERE activity_id = ${activity_id}\n),\nfirst_half AS (\n  SELECT ROW_NUMBER() OVER (ORDER BY time_offset) AS rn,\n    AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 299 PRECEDING AND CURRENT ROW) AS p300\n  FROM stream WHERE time_offset <= max_offset / 2\n),\nsecond_half AS (\n  SELECT ROW_NUMBER() OVER (ORDER BY time_offset) AS rn,\n    AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 299 PRECEDING AND CURRENT ROW) AS p300\n  FROM stream WHERE time_offset > max_offset / 2\n)\nSELECT ROUND(\n  (SELECT MAX(p300) FROM second_half WHERE rn >= 300)::numeric /\n  NULLIF((SELECT MAX(p300) FROM first_half WHERE rn >= 300)::numeric, 0)\n, 2) AS \"Durability\";",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "Short ride",
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#e74c3c",
+                "value": null
+              },
+              {
+                "color": "#f1c40f",
+                "value": 0.9
+              },
+              {
+                "color": "#2ecc71",
+                "value": 0.95
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "id": 904,
+      "type": "row",
+      "title": "Splits",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 85
+      },
+      "panels": []
+    },
+    {
+      "id": 33,
+      "title": "Per-km Splits",
+      "type": "table",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 86
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "WITH deltas AS (SELECT time_offset, hr, power, speed_kmh, altitude_m, cadence, COALESCE(speed_kmh, 0) / 3600.0 * (time_offset - LAG(time_offset, 1, time_offset) OVER (ORDER BY time_offset)) AS dist_delta, altitude_m - LAG(altitude_m) OVER (ORDER BY time_offset) AS alt_delta FROM activity_streams WHERE activity_id = ${activity_id}), cumulative AS (SELECT time_offset, hr, power, speed_kmh, altitude_m, cadence, alt_delta, SUM(dist_delta) OVER (ORDER BY time_offset ROWS UNBOUNDED PRECEDING) AS dist_km FROM deltas), splits AS (SELECT FLOOR(dist_km)::int + 1 AS km, COUNT(*) AS seconds, ROUND(AVG(speed_kmh)::numeric, 1) AS avg_speed, ROUND(AVG(hr)::numeric, 0) AS avg_hr, ROUND(AVG(NULLIF(power, 0))::numeric, 0) AS avg_power, ROUND(AVG(NULLIF(cadence, 0))::numeric, 0) AS avg_cadence, ROUND(COALESCE(SUM(CASE WHEN alt_delta > 0 THEN alt_delta ELSE 0 END), 0)::numeric, 0) AS elev_gain FROM cumulative WHERE dist_km >= 0 GROUP BY FLOOR(dist_km)::int) SELECT km AS \"KM\", CASE WHEN seconds = MIN(seconds) OVER () THEN '\ud83d\udfe2 ' WHEN seconds = MAX(seconds) OVER () THEN '\ud83d\udd34 ' ELSE '' END || TO_CHAR(seconds * interval '1 second', 'MI:SS') AS \"Pace\", CASE WHEN avg_speed = MAX(avg_speed) OVER () THEN '\ud83d\udfe2 ' WHEN avg_speed = MIN(avg_speed) OVER () THEN '\ud83d\udd34 ' ELSE '' END || avg_speed::text AS \"Avg Speed\", CASE WHEN avg_hr IS NULL THEN '\u2014' WHEN avg_hr = MIN(avg_hr) OVER () THEN '\ud83d\udfe2 ' || avg_hr::text WHEN avg_hr = MAX(avg_hr) OVER () THEN '\ud83d\udd34 ' || avg_hr::text ELSE avg_hr::text END AS \"Avg HR\", CASE WHEN avg_power IS NULL THEN '\u2014' WHEN avg_power = MAX(avg_power) OVER () THEN '\ud83d\udfe2 ' || avg_power::text WHEN avg_power = MIN(avg_power) OVER () THEN '\ud83d\udd34 ' || avg_power::text ELSE avg_power::text END AS \"Avg Power\", CASE WHEN avg_cadence IS NULL THEN '\u2014' WHEN avg_cadence = MAX(avg_cadence) OVER () THEN '\ud83d\udfe2 ' || avg_cadence::text WHEN avg_cadence = MIN(avg_cadence) OVER () THEN '\ud83d\udd34 ' || avg_cadence::text ELSE avg_cadence::text END AS \"Cadence\", elev_gain AS \"Elev Gain (m)\" FROM splits WHERE km < (SELECT MAX(km) FROM splits) ORDER BY km;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showHeader": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "\u2014"
+        },
+        "overrides": []
+      },
+      "description": "Performance breakdown per completed kilometer.\n\n\ud83d\udfe2 = best value in that column\n\n\ud83d\udd34 = worst value in that column\n\nLast incomplete km excluded."
+    },
+    {
+      "id": 905,
+      "type": "row",
+      "title": "Ride Telemetry",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 94
+      },
+      "panels": []
+    },
+    {
+      "id": 20,
+      "title": "Speed & Elevation",
+      "type": "trend",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 95
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT DISTINCT ON (time_offset)\n  ROUND(time_offset / 60.0, 2) AS \"Elapsed (min)\",\n  speed_kmh AS \"Speed (km/h)\",\n  altitude_m AS \"Elevation (m)\"\nFROM activity_streams\nWHERE activity_id = ${activity_id}\nORDER BY time_offset;",
+          "format": "table",
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "velomate"
+          }
+        }
+      ],
+      "options": {
+        "xField": "Elapsed (min)",
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "spanNulls": false,
+            "pointSize": 3,
+            "showPoints": "never",
+            "lineInterpolation": "smooth"
+          },
+          "noValue": "No data"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Speed (km/h)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "velocitykmh"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#5794F2"
+                }
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "left"
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "Speed (km/h)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Elevation (m)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "lengthm"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#73BF69"
+                }
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "Elevation (m)"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 30
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.fillBelowTo",
+                "value": "Elevation (m)"
+              },
+              {
+                "id": "custom.lineInterpolation",
+                "value": "smooth"
+              }
+            ]
+          }
+        ]
+      },
+      "description": "Per-second telemetry plotted over elapsed time.\nSpeed overlaid with elevation profile."
+    },
+    {
+      "id": 21,
+      "title": "Heart Rate & Power",
+      "type": "trend",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 105
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT DISTINCT ON (time_offset)\n  ROUND(time_offset / 60.0, 2) AS \"Elapsed (min)\",\n  hr AS \"HR (bpm)\",\n  power AS \"Power (W)\"\nFROM activity_streams\nWHERE activity_id = ${activity_id}\nORDER BY time_offset;",
+          "format": "table",
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "velomate"
+          }
+        }
+      ],
+      "options": {
+        "xField": "Elapsed (min)",
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "spanNulls": false,
+            "showPoints": "never",
+            "pointSize": 3,
+            "lineInterpolation": "smooth"
+          },
+          "noValue": "No data for this activity"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "HR (bpm)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bpm"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#F2495C"
+                }
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "left"
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "Heart Rate (bpm)"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 10
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Power (W)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "watt"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#FF9830"
+                }
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "Power (W)"
+              },
+              {
+                "id": "custom.thresholdsStyle",
+                "value": {
+                  "mode": "area"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "value": null,
+                      "color": "#6b728020"
+                    },
+                    {
+                      "value": 91,
+                      "color": "#3b82f620"
+                    },
+                    {
+                      "value": 124,
+                      "color": "#22c55e20"
+                    },
+                    {
+                      "value": 149,
+                      "color": "#eab30820"
+                    },
+                    {
+                      "value": 173,
+                      "color": "#f9731620"
+                    },
+                    {
+                      "value": 198,
+                      "color": "#ef444420"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "description": "Per-second telemetry plotted over elapsed time.\nHR and power overlaid to spot effort patterns.\nPower zone bands calibrated to FTP 165W \u2014 update in dashboard JSON if FTP changes."
+    },
+    {
+      "id": 22,
+      "title": "Cadence & Grade",
+      "type": "trend",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 115
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "WITH pts AS (\n  SELECT DISTINCT ON (time_offset) time_offset, cadence, altitude_m, speed_kmh\n  FROM activity_streams\n  WHERE activity_id = ${activity_id}\n  ORDER BY time_offset\n),\ncumul AS (\n  SELECT\n    time_offset, cadence, altitude_m,\n    COALESCE(speed_kmh, 0) / 3600.0 *\n      (time_offset - LAG(time_offset, 1, time_offset) OVER (ORDER BY time_offset)) AS dist_delta\n  FROM pts\n),\nwith_dist AS (\n  SELECT *,\n    SUM(dist_delta) OVER (ORDER BY time_offset ROWS UNBOUNDED PRECEDING) AS cum_dist\n  FROM cumul\n),\nsmoothed AS (\n  SELECT\n    time_offset, cadence, cum_dist,\n    altitude_m,\n    altitude_m - LAG(altitude_m, 20) OVER (ORDER BY time_offset) AS alt_window,\n    cum_dist - LAG(cum_dist, 20) OVER (ORDER BY time_offset) AS dist_window\n  FROM with_dist\n)\nSELECT\n  ROUND(time_offset / 60.0, 2) AS \"Elapsed (min)\",\n  cadence AS \"Cadence (rpm)\",\n  CASE WHEN dist_window > 0.005 THEN ROUND((alt_window / (dist_window * 1000) * 100)::numeric, 1) ELSE 0 END AS \"Grade (%)\"\nFROM smoothed\nORDER BY time_offset;",
+          "format": "table",
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "velomate"
+          }
+        }
+      ],
+      "options": {
+        "xField": "Elapsed (min)",
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "spanNulls": false,
+            "showPoints": "never",
+            "pointSize": 3,
+            "lineInterpolation": "smooth"
+          },
+          "noValue": "No data for this activity"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Cadence (rpm)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#B877D9"
+                }
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "left"
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "Cadence (rpm)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Grade (%)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#ff9830"
+                }
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "Grade (%)"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 20
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 1202,
+      "title": "W'bal (Anaerobic Battery)",
+      "description": "Per-second remaining anaerobic work capacity.\n\nStarts at W' (full battery). Drains when power exceeds CP.\nRefills exponentially when power is below CP.\n\nSkiba differential model with GoldenCheetah tau.\nComputed from the latest CP/W' estimate.",
+      "type": "trend",
+      "gridPos": {
+        "x": 0,
+        "y": 125,
+        "w": 24,
+        "h": 10
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT DISTINCT ON (time_offset)\n  ROUND(time_offset / 60.0, 2) AS \"Elapsed (min)\",\n  ROUND((w_bal / 1000.0)::numeric, 1) AS \"W'bal (kJ)\",\n  power AS \"Power (W)\"\nFROM activity_streams\nWHERE activity_id = ${activity_id} AND w_bal IS NOT NULL\nORDER BY time_offset;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#2ecc71"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "pointSize": 0
+          },
+          "noValue": "No W'bal data"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Power (W)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "watt"
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#666666"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      }
+    },
+    {
+      "id": 906,
+      "type": "row",
+      "title": "Distributions",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 135
+      },
+      "panels": []
+    },
+    {
+      "id": 402,
+      "title": "Power vs Heart Rate",
+      "type": "xychart",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 136
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  s.hr AS \"Heart Rate\",\n  s.power AS \"Power (W)\"\nFROM activity_streams s\nWHERE s.activity_id = ${activity_id}\n  AND s.hr IS NOT NULL AND s.hr > 0\n  AND s.power IS NOT NULL AND s.power > 0\n  AND s.time_offset % 5 = 0\nORDER BY s.time_offset;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "seriesMapping": "manual",
+        "series": [
+          {
+            "x": "Heart Rate",
+            "y": "Power (W)",
+            "pointSize": {
+              "fixed": 3
+            },
+            "pointColor": {
+              "fixed": "#8b5cf6"
+            }
+          }
+        ],
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "custom": {
+            "pointSize": {
+              "fixed": 3
+            },
+            "show": "points"
+          },
+          "color": {
+            "fixedColor": "#8b5cf6",
+            "mode": "fixed"
+          }
+        },
+        "overrides": []
+      },
+      "description": "Scatter plot showing power output vs heart rate.\n\nA tight cluster = good aerobic efficiency.\nPoints drifting right over time = cardiac drift."
+    },
+    {
+      "id": 1800,
+      "title": "Coasting Time",
+      "type": "stat",
+      "gridPos": {
+        "x": 12,
+        "y": 30,
+        "w": 6,
+        "h": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND((coasting_time_s * 100.0 / NULLIF(duration_s, 0))::numeric, 0) AS \"Coasting %\" FROM activities WHERE id = ${activity_id} AND coasting_time_s IS NOT NULL AND duration_s > 0;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "noValue": "N/A",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#2ecc71",
+                "value": null
+              },
+              {
+                "color": "#f1c40f",
+                "value": 20
+              },
+              {
+                "color": "#e67e22",
+                "value": 35
+              }
+            ]
+          }
+        }
+      },
+      "description": "Share of the ride spent freewheeling (zero power).\n\nComputed from the power stream by the ingestor, so it is identical whichever source delivered the ride.\n\nHigh coasting means stop-and-go riding, which inflates Variability Index and makes NP-based TSS overestimate \u2014 the reason VeloMate switches to average power above VI 1.30.\n\n\ud83d\udfe2 < 20% \u2014 Steady riding\n\n\ud83d\udfe1 20-35% \u2014 Mixed / rolling\n\n\ud83d\udfe0 > 35% \u2014 Heavy stop-and-go"
+    },
+    {
+      "id": 1801,
+      "title": "Work Above FTP",
+      "type": "stat",
+      "gridPos": {
+        "x": 18,
+        "y": 30,
+        "w": 6,
+        "h": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND(kj_above_ftp::numeric, 0) AS \"kJ > FTP\" FROM activities WHERE id = ${activity_id} AND kj_above_ftp IS NOT NULL;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "N/A",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#808080",
+                "value": null
+              },
+              {
+                "color": "#3498db",
+                "value": 25
+              },
+              {
+                "color": "#2ecc71",
+                "value": 50
+              },
+              {
+                "color": "#f1c40f",
+                "value": 100
+              },
+              {
+                "color": "#e67e22",
+                "value": 150
+              },
+              {
+                "color": "#e74c3c",
+                "value": 250
+              }
+            ]
+          }
+        }
+      },
+      "description": "Anaerobic work spent above threshold \u2014 the \"matches burned\" on this ride.\n\nOnly the excess over FTP counts: a second at 300 W with a 200 W threshold contributes 100 J. Riding below threshold contributes nothing, so this isolates the anaerobic cost from overall volume.\n\n\ud83d\udd18 < 25 kJ \u2014 Few matches burned\n\n\ud83d\udd35 25-50 kJ \u2014 Light anaerobic load\n\n\ud83d\udfe2 50-100 kJ \u2014 Moderate\n\n\ud83d\udfe1 100-150 kJ \u2014 Substantial\n\n\ud83d\udfe0 150-250 kJ \u2014 Heavy\n\n\ud83d\udd34 > 250 kJ \u2014 Very heavy"
+    },
+    {
+      "id": 1802,
+      "title": "Polarization Index",
+      "type": "stat",
+      "gridPos": {
+        "x": 0,
+        "y": 33,
+        "w": 6,
+        "h": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND(polarization_index::numeric, 2) AS \"PI\" FROM activities WHERE id = ${activity_id} AND polarization_index IS NOT NULL;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "N/A",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#e67e22",
+                "value": null
+              },
+              {
+                "color": "#f1c40f",
+                "value": 1.5
+              },
+              {
+                "color": "#2ecc71",
+                "value": 2.0
+              }
+            ]
+          }
+        }
+      },
+      "description": "Treff polarization index over the three-zone model.\n\nPI = log10( (Z1 / Z2) \u00d7 Z3 \u00d7 100 ), each zone a fraction of pedalling time. Z1 is below 75% FTP, Z2 is 75-105%, Z3 is above 105%. Coasting is excluded \u2014 freewheeling is not easy riding.\n\nHigh means lots of easy and a real hard fraction with little in the middle; low means threshold-heavy.\n\n\ud83d\udfe0 < 1.5 \u2014 Threshold-heavy\n\n\ud83d\udfe1 1.5-2.0 \u2014 Mixed\n\n\ud83d\udfe2 \u2265 2.0 \u2014 Polarised"
+    }
+  ]
+}

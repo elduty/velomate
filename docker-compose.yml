@@ -28,6 +28,10 @@ services:
       STRAVA_REFRESH_TOKEN: ${STRAVA_REFRESH_TOKEN:-}
       RWGPS_API_KEY: ${RWGPS_API_KEY:-}
       RWGPS_AUTH_TOKEN: ${RWGPS_AUTH_TOKEN:-}
+      INTERVALS_ICU_ATHLETE_ID: ${INTERVALS_ICU_ATHLETE_ID:-}
+      INTERVALS_ICU_API_KEY: ${INTERVALS_ICU_API_KEY:-}
+      INTERVALS_ICU_SYNC_WINDOW_DAYS: ${INTERVALS_ICU_SYNC_WINDOW_DAYS:-14}
+      INTERVALS_ICU_SWEEP_DAYS: ${INTERVALS_ICU_SWEEP_DAYS:-90}
       VELOMATE_MAX_HR: ${VELOMATE_MAX_HR:-0}
       VELOMATE_FTP: ${VELOMATE_FTP:-0}
       VELOMATE_RESTING_HR: ${VELOMATE_RESTING_HR:-0}
@@ -35,6 +39,10 @@ services:
       VELOMATE_RESET_RIDE_FTP: ${VELOMATE_RESET_RIDE_FTP:-0}
       VELOMATE_BACKFILL_MONTHS: ${VELOMATE_BACKFILL_MONTHS:-12}
       POLL_INTERVAL_MINUTES: ${POLL_INTERVAL_MINUTES:-10}
+      # Where a rotated Strava refresh token is written if the DB write
+      # fails. Defaults inside the velomate-token-data volume so it
+      # survives a restart; override only to relocate it.
+      VELOMATE_TOKEN_FALLBACK: ${VELOMATE_TOKEN_FALLBACK:-/app/data/.strava_refresh_token}
       PYTHONUNBUFFERED: "${PYTHONUNBUFFERED:-1}"
     depends_on:
       velomate-postgres:
@@ -51,7 +59,10 @@ services:
     volumes:
       - velomate-grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
-      - ./grafana/dashboards:/etc/grafana/dashboards
+      # Selects the generated dashboard set: metric or imperial. Use exactly
+      # one of those two — any other value resolves to a nonexistent directory
+      # and Grafana provisions no dashboards at all.
+      - ./grafana/dashboards/${VELOMATE_UNITS:-metric}:/etc/grafana/dashboards
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
       GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:${GRAFANA_PORT:-3021}/}

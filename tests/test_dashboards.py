@@ -1,5 +1,6 @@
 """Structural validation of Grafana dashboard JSON files."""
 
+import glob
 import json
 import os
 import pytest
@@ -8,7 +9,9 @@ DASHBOARD_DIR = os.path.join(os.path.dirname(__file__), "..", "grafana", "dashbo
 
 
 def get_dashboard_files():
-    return [f for f in os.listdir(DASHBOARD_DIR) if f.endswith(".json")]
+    # All dashboards under grafana/dashboards/<set>/*.json (metric, imperial)
+    pattern = os.path.join(DASHBOARD_DIR, "*", "*.json")
+    return sorted(os.path.relpath(p, DASHBOARD_DIR) for p in glob.glob(pattern))
 
 
 def iter_all_panels(dashboard):
