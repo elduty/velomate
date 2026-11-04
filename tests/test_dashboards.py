@@ -85,8 +85,8 @@ class TestDashboardStructure:
             if (p.get("options") or {}).get("colorMode") != "value":
                 continue
             sql = " ".join(t.get("rawSql", "") for t in (p.get("targets") or []))
-            if "${activity_id}" not in sql:
-                continue  # per-ride single-activity stat panels only
+            if "${activity_id}" not in sql and "${route}" not in sql:
+                continue  # panels scoped to a single activity or route
             assert "IS NOT NULL" in sql.upper(), (
                 f"{filename} panel {p['id']} '{p.get('title')}': colorMode:value "
                 f"per-ride stat with no NULL guard — a no-sensor ride emits a NULL "

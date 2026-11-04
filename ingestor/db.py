@@ -117,6 +117,41 @@ def create_schema(conn):
             ALTER TABLE activities ADD COLUMN IF NOT EXISTS kj_above_ftp FLOAT;
             ALTER TABLE activities ADD COLUMN IF NOT EXISTS polarization_index FLOAT;
 
+            -- Route identity. Computed by the ingestor from stored GPS, so a
+            -- ride groups the same way whichever source delivered it.
+            CREATE TABLE IF NOT EXISTS ride_routes (
+                id            SERIAL PRIMARY KEY,
+                label         TEXT NOT NULL,
+                distance_m    DOUBLE PRECISION,
+                elevation_m   DOUBLE PRECISION,
+                ride_count    INTEGER NOT NULL DEFAULT 0,
+                first_ridden  DATE,
+                last_ridden   DATE
+            );
+
+            -- Route identity must survive a rebuild. Step 2.7 deletes and
+            -- re-inserts every route on each recalculation, and drawing a
+            -- fresh serial id each time renumbered every route whenever a ride
+            -- landed -- which silently emptied the Route Comparison dashboard
+            -- for anyone holding a saved var-route=<id> URL, since its panels
+            -- filter WHERE route_id = <id>. The founding ride is the stable
+            -- natural key: activity ids never change and founding order is
+            -- deterministic, so it hands a rebuilt route its previous id.
+            ALTER TABLE ride_routes
+                ADD COLUMN IF NOT EXISTS founding_activity_id INTEGER;
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_ride_routes_founding_activity
+                ON ride_routes(founding_activity_id)
+                WHERE founding_activity_id IS NOT NULL;
+
+            -- Nullable on purpose: an indoor ride, or one with too little GPS,
+            -- has no route and that is a normal state rather than a failure.
+            ALTER TABLE activities ADD COLUMN IF NOT EXISTS route_id INTEGER
+                REFERENCES ride_routes(id);
+            ALTER TABLE activities ADD COLUMN IF NOT EXISTS route_signature TEXT;
+
+            CREATE INDEX IF NOT EXISTS idx_activities_route
+                ON activities(route_id);
+
             CREATE TABLE IF NOT EXISTS cp_estimates (
                 date            DATE PRIMARY KEY,
                 cp_watts        FLOAT,

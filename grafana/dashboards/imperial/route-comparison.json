@@ -1,0 +1,359 @@
+{
+  "uid": "velomate-route-comparison",
+  "title": "Route Comparison",
+  "tags": [
+    "velomate",
+    "cycling"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "graphTooltip": 2,
+  "refresh": "",
+  "time": {
+    "from": "now-1y",
+    "to": "now"
+  },
+  "links": [
+    {
+      "title": "Overview",
+      "url": "/d/velomate-overview/overview",
+      "type": "link",
+      "icon": "dashboard"
+    },
+    {
+      "title": "Activity Detail",
+      "url": "/d/velomate-activity/activity-details",
+      "type": "link",
+      "icon": "dashboard"
+    },
+    {
+      "title": "All Time Progression",
+      "url": "/d/velomate-progression/all-time-progression",
+      "type": "link",
+      "icon": "dashboard"
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "route",
+        "label": "Route",
+        "type": "query",
+        "datasource": {
+          "type": "postgres",
+          "uid": "velomate"
+        },
+        "refresh": 1,
+        "sort": 0,
+        "includeAll": false,
+        "multi": false,
+        "definition": "routes by ride count",
+        "query": "SELECT label || ' (' || ride_count || ' rides)' AS __text, id AS __value\nFROM ride_routes\nWHERE ride_count > 1\nORDER BY ride_count DESC, last_ridden DESC",
+        "current": {},
+        "options": []
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Route Summary",
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "description": "The selected route, summarised across every attempt.\n\nDistance and elevation are medians, so one unusually long attempt does not skew them.\n\nShows no data until a route has been ridden at least twice \u2014 there is nothing to compare on a single attempt.",
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "textMode": "value_and_name",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "velomate"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT ride_count AS \"Attempts\",\n       ROUND(((distance_m / 1000.0) * 0.621371)::numeric, 1) AS \"Distance (mi)\",\n       ROUND(((elevation_m) * 3.28084)::numeric, 0) AS \"Elevation (ft)\",\n       first_ridden AS \"First Ridden\",\n       last_ridden AS \"Last Ridden\"\nFROM ride_routes\nWHERE id = NULLIF('${route}', '')::integer",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Effort Trend",
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 4
+      },
+      "description": "Effort on this route over time. Rising power at the same heart rate is fitness; a faster day at the same power is usually conditions.\n\nElapsed time is deliberately absent \u2014 on a stop-and-go route it mostly measures traffic lights.",
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "pointSize": 6,
+            "showPoints": "always",
+            "spanNulls": true
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "velomate"
+          },
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT date AS time,\n       np AS \"NP (W)\",\n       avg_power AS \"Avg Power (W)\",\n       avg_hr AS \"Avg HR (bpm)\"\nFROM activities\nWHERE route_id = NULLIF('${route}', '')::integer AND np IS NOT NULL\nORDER BY date",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Efficiency Trend",
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 4
+      },
+      "description": "Efficiency Factor (NP / avg HR) rising while decoupling falls is the clearest aerobic-fitness signal available from stored data.\n\n\ud83d\udfe2 Decoupling < 5% \u2014 well within aerobic base\n\n\ud83d\udfe1 Decoupling 5-10% \u2014 moderate drift\n\n\ud83d\udd34 Decoupling > 10% \u2014 significant drift\n\nRides under 20 minutes of pedalling store no decoupling value: heart-rate lag makes it meaningless over a short effort.",
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "pointSize": 6,
+            "showPoints": "always",
+            "spanNulls": true
+          },
+          "decimals": 2
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Aerobic Decoupling (%)"
+            },
+            "properties": [
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "unit",
+                "value": "percent"
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "velomate"
+          },
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT date AS time,\n       ef AS \"Efficiency Factor\",\n       aerobic_decoupling AS \"Aerobic Decoupling (%)\"\nFROM activities\nWHERE route_id = NULLIF('${route}', '')::integer AND ef IS NOT NULL\nORDER BY date",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "bargauge",
+      "title": "Latest vs Best vs Median",
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 13
+      },
+      "description": "The most recent attempt against this route's best and median.\n\nMedian rather than mean, so a single exceptional ride does not move the reference.",
+      "options": {
+        "displayMode": "gradient",
+        "orientation": "horizontal",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "velomate"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "-- Each arm is parenthesised. An unparenthesised ORDER BY / LIMIT on a\n-- UNION arm binds to the whole union and PostgreSQL rejects it.\n(SELECT 'Latest' AS \"Attempt\", np AS \"NP (W)\", ef AS \"EF\"\n FROM activities WHERE route_id = NULLIF('${route}', '')::integer AND np IS NOT NULL\n ORDER BY date DESC LIMIT 1)\nUNION ALL\n(SELECT 'Best', MAX(np), MAX(ef)\n FROM activities WHERE route_id = NULLIF('${route}', '')::integer AND np IS NOT NULL\n HAVING COUNT(*) > 0)\nUNION ALL\n(SELECT 'Median',\n        PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY np),\n        PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY ef)\n FROM activities WHERE route_id = NULLIF('${route}', '')::integer AND np IS NOT NULL\n HAVING COUNT(*) > 0)",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "table",
+      "title": "Attempts",
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 16,
+        "x": 8,
+        "y": 13
+      },
+      "description": "Every attempt on this route, newest first. Click a row to open that ride in Activity Details.\n\nW/kg uses each ride's own stamped weight, so historical attempts keep the weight they were ridden at.",
+      "options": {
+        "showHeader": true,
+        "footer": {
+          "show": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 2,
+          "custom": {
+            "align": "auto"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "id"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Date"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "View Activity",
+                    "url": "/d/velomate-activity/activity-detail?var-activity_id=${__data.fields.id}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "velomate"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT date AS \"Date\",\n       id AS \"id\",\n       np AS \"NP (W)\",\n       intensity_factor AS \"IF\",\n       ef AS \"EF\",\n       avg_hr AS \"Avg HR\",\n       aerobic_decoupling AS \"Decoupling (%)\",\n       tss AS \"TSS\",\n       ROUND((np / NULLIF(ride_weight, 0))::numeric, 2) AS \"W/kg\",\n       duration_s / 60 AS \"Duration (min)\",\n       ROUND(((avg_speed_kmh) * 0.621371)::numeric, 1) AS \"Avg Speed (mph)\",\n       ROUND(((distance_m / 1000.0) * 0.621371)::numeric, 1) AS \"Distance (mi)\"\nFROM activities\nWHERE route_id = NULLIF('${route}', '')::integer\nORDER BY date DESC",
+          "refId": "A"
+        }
+      ]
+    }
+  ]
+}

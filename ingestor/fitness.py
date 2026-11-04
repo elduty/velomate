@@ -21,7 +21,7 @@ HIGH_VI_THRESHOLD = 1.30
 
 # Bump this when NP/EF/Work calculation logic changes.
 # On startup, if the stored version differs, all values are recalculated.
-METRICS_VERSION = "14"  # v14: decoupling needs a 20-minute minimum ride
+METRICS_VERSION = "15"  # v15: route identity from GPS signatures
 
 
 def calculate_tss(duration_s: int, avg_hr: int, threshold_hr: int) -> float:
@@ -964,7 +964,7 @@ def recalculate_fitness(conn):
         with conn.cursor() as cur:
             # ride_weight intentionally excluded — it's user-configured, not derived.
             # Historical rides preserve their stamped weight across version bumps.
-            cur.execute("UPDATE activities SET tss = NULL, np = NULL, ef = NULL, work_kj = NULL, ride_ftp = NULL, intensity_factor = NULL, trimp = NULL, variability_index = NULL, aerobic_decoupling = NULL, coasting_time_s = NULL, kj_above_ftp = NULL, polarization_index = NULL")
+            cur.execute("UPDATE activities SET tss = NULL, np = NULL, ef = NULL, work_kj = NULL, ride_ftp = NULL, intensity_factor = NULL, trimp = NULL, variability_index = NULL, aerobic_decoupling = NULL, coasting_time_s = NULL, kj_above_ftp = NULL, polarization_index = NULL, route_signature = NULL")
             cur.execute("UPDATE activity_streams SET w_bal = NULL WHERE w_bal IS NOT NULL")
             cur.execute("DELETE FROM athlete_stats")
             cur.execute("DELETE FROM ride_intervals")
@@ -1210,6 +1210,179 @@ def recalculate_fitness(conn):
         ride_metric_count += 1
 
     print(f"[fitness] Computed ride metrics for {ride_metric_count} activities")
+
+    # Step 2.7: Route identity. Reduce each ride's GPS to a set of ~111 m cells
+    # and group rides whose sets overlap. Computed from our own streams, so a
+    # ride groups the same way whichever source delivered it.
+    #
+    # MUST run after Step 2, for the same reason as Step 2.6: a METRICS_VERSION
+    # reset clears derived columns and Step 2 is what refills ride_ftp.
+    #
+    # Routes are rebuilt from scratch each run, oldest ride first, so founding
+    # order is deterministic and a constant change cannot leave half the
+    # library grouped under the old rules. Ids survive the rebuild even so:
+    # each route is handed back the id its founding ride held last time. That
+    # was originally judged not to matter — "only a bookmarked var-route URL
+    # would notice" — but it did: every new ride renumbered the whole table,
+    # so any saved Route Comparison link filtered on an id that no longer
+    # existed and rendered five empty panels.
+    from route_match import (build_signature, encode_signature, decode_signature,
+                             best_route_match, is_loop, derive_label)
+
+    print("[fitness] Assigning routes...")
+    with conn.cursor() as cur:
+        # Snapshot route identity BEFORE the rebuild wipes it, keyed on the
+        # founding ride. Without this the rebuild draws a fresh serial id for
+        # every route on every recalculation, so each new ride renumbered the
+        # whole table and emptied Route Comparison for anyone holding a saved
+        # var-route=<id> URL.
+        cur.execute("""
+            SELECT founding_activity_id, id FROM ride_routes
+            WHERE founding_activity_id IS NOT NULL
+        """)
+        preserved_ids = dict(cur.fetchall())
+
+        if not preserved_ids:
+            # First run after the upgrade: no route has recorded a founder yet.
+            # Derive it the way the rebuild picks one — the oldest ride
+            # currently on the route — so the upgrade itself does not renumber
+            # everything once, breaking the very URLs it exists to protect.
+            cur.execute("""
+                SELECT DISTINCT ON (route_id) id, route_id
+                FROM activities
+                WHERE route_id IS NOT NULL
+                ORDER BY route_id, date, id
+            """)
+            preserved_ids = dict(cur.fetchall())
+
+        cur.execute("UPDATE activities SET route_id = NULL")
+        cur.execute("DELETE FROM ride_routes")
+
+        # Advance the sequence past every id the rebuild is about to reclaim,
+        # BEFORE the loop that reclaims them. A restored or re-seeded database
+        # can leave the sequence behind its data; a genuinely new route founded
+        # during the loop then draws a DEFAULT id equal to one another founder
+        # claims explicitly, and the primary-key collision aborts the whole
+        # recalculation — on every run, until the sequence is fixed by hand.
+        # Doing this after the loop would be too late for that first rebuild,
+        # which is the only one that meets the condition.
+        if preserved_ids:
+            cur.execute("SELECT setval('ride_routes_id_seq', %s)",
+                        (max(max(preserved_ids.values()), 1),))
+        cur.execute("""
+            SELECT id, date::date, distance_m, elevation_m
+            FROM activities
+            WHERE date IS NOT NULL
+            ORDER BY date, id
+        """)
+        route_candidates = cur.fetchall()
+
+    routes = {}
+    route_members = {}
+    route_assigned = 0
+
+    for act_id, act_date, act_dist, act_elev in route_candidates:
+        with conn.cursor() as cur:
+            cur.execute("SELECT route_signature FROM activities WHERE id = %s",
+                        (act_id,))
+            stored = cur.fetchone()[0]
+
+        if stored:
+            # Reuse the stored signature: set operations on a few KB of text
+            # instead of re-reading thousands of stream rows per ride.
+            cells = decode_signature(stored)
+        else:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT lat, lng FROM activity_streams
+                    WHERE activity_id = %s
+                      AND lat IS NOT NULL AND lng IS NOT NULL
+                    ORDER BY time_offset
+                """, (act_id,))
+                cells = build_signature(cur.fetchall())
+            if cells:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        "UPDATE activities SET route_signature = %s WHERE id = %s",
+                        (encode_signature(cells), act_id))
+
+        if not cells:
+            continue  # indoor or too sparse — route_id stays NULL
+
+        # Loop-ness needs the track's two endpoints, and the signature-reuse
+        # path never loads any points. Both arms guard lat AND lng, which are
+        # independently nullable: a lat-without-lng row would otherwise reach
+        # haversine_m as None and abort the whole loop.
+        with conn.cursor() as cur:
+            cur.execute("""
+                (SELECT lat, lng FROM activity_streams
+                  WHERE activity_id = %s
+                    AND lat IS NOT NULL AND lng IS NOT NULL
+                  ORDER BY time_offset LIMIT 1)
+                UNION ALL
+                (SELECT lat, lng FROM activity_streams
+                  WHERE activity_id = %s
+                    AND lat IS NOT NULL AND lng IS NOT NULL
+                  ORDER BY time_offset DESC LIMIT 1)
+            """, (act_id, act_id))
+            endpoints = cur.fetchall()
+        loop = is_loop(endpoints)
+
+        route_id, _score = best_route_match(cells, routes)
+        if route_id is None:
+            # This ride founds a route, so it carries that route's identity.
+            # Hand back the id the same founder held before the rebuild;
+            # only a genuinely new route takes a fresh one.
+            reused = preserved_ids.get(act_id)
+            with conn.cursor() as cur:
+                if reused is not None:
+                    cur.execute("""
+                        INSERT INTO ride_routes (id, founding_activity_id, label,
+                                                 distance_m, elevation_m,
+                                                 ride_count, first_ridden, last_ridden)
+                        VALUES (%s, %s, %s, %s, %s, 0, %s, %s) RETURNING id
+                    """, (reused, act_id, derive_label(act_dist, loop),
+                          act_dist, act_elev, act_date, act_date))
+                else:
+                    cur.execute("""
+                        INSERT INTO ride_routes (founding_activity_id, label,
+                                                 distance_m, elevation_m,
+                                                 ride_count, first_ridden, last_ridden)
+                        VALUES (%s, %s, %s, %s, 0, %s, %s) RETURNING id
+                    """, (act_id, derive_label(act_dist, loop), act_dist,
+                          act_elev, act_date, act_date))
+                route_id = cur.fetchone()[0]
+            routes[route_id] = []
+            route_members[route_id] = {"dist": [], "elev": []}
+
+        routes[route_id].append(cells)
+        route_members[route_id]["dist"].append(act_dist)
+        route_members[route_id]["elev"].append(act_elev)
+        with conn.cursor() as cur:
+            cur.execute("UPDATE activities SET route_id = %s WHERE id = %s",
+                        (route_id, act_id))
+        route_assigned += 1
+
+        # Median distance/elevation, so one unusually long attempt does not
+        # skew the label or the summary.
+        dists = sorted(d for d in route_members[route_id]["dist"] if d)
+        elevs = sorted(e for e in route_members[route_id]["elev"] if e)
+        med_d = dists[len(dists) // 2] if dists else None
+        med_e = elevs[len(elevs) // 2] if elevs else None
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE ride_routes
+                SET ride_count = %s, distance_m = %s, elevation_m = %s,
+                    label = %s, last_ridden = %s
+                WHERE id = %s
+            """, (len(routes[route_id]), med_d, med_e,
+                  derive_label(med_d, loop), act_date, route_id))
+
+    with conn.cursor() as cur:
+        cur.execute("SELECT COUNT(*) FROM ride_routes WHERE ride_count > 1")
+        route_repeated = cur.fetchone()[0]
+    print(f"[fitness] Assigned {route_assigned} rides to "
+          f"{len(routes)} routes ({route_repeated} ridden more than once)")
 
     # Step 3: Compute TSS using per-ride FTP (ride_ftp). VI-aware input:
     # NP for standard-variability rides (VI ≤ 1.30), avg_power for high-VI

@@ -1,5 +1,6 @@
 """Tests for recalculate_fitness flow in ingestor/fitness.py."""
 
+import inspect
 import os
 import sys
 from datetime import date, timedelta
@@ -79,9 +80,14 @@ def _make_conn(activity_rows, power_activity_rows=None, tss_rows=None,
     # configured_ftp=True still need a (250,) response for that cursor.
     backfill_count_idx = 3 + 3 * n_power
     interval_select_idx = backfill_count_idx + 1 + b  # Step 2.5 top-level SELECT
-    # +2: Step 2.5 interval SELECT, then the Step 2.6 ride-metrics SELECT.
-    # Both return [] in the mock, so neither spawns per-activity cursors.
-    tss_select_idx = interval_select_idx + 2
+    # +4, one per top-level cursor between the interval SELECT and TSS:
+    #   +1 Step 2.5 interval SELECT      (returns [] -> no per-activity cursors)
+    #   +2 Step 2.6 ride-metrics SELECT  (returns [] -> no per-activity cursors)
+    #   +3 Step 2.7 route candidates     (returns [] -> no per-activity cursors)
+    #   +4 Step 2.7 repeated-route COUNT (returns a row, see route_count_idx)
+    route_candidates_idx = interval_select_idx + 2
+    route_count_idx = interval_select_idx + 3
+    tss_select_idx = interval_select_idx + 4
     tss_batch_idx = tss_select_idx + 1
     trimp_select_idx = tss_batch_idx + 1
     trimp_start_idx = trimp_select_idx + 1
@@ -135,6 +141,14 @@ def _make_conn(activity_rows, power_activity_rows=None, tss_rows=None,
             # stream-fetch/insert path; pure-function coverage is in
             # tests/test_intervals.py).
             cur.fetchall.return_value = []
+        elif idx == route_candidates_idx:
+            # Step 2.7 clears routes, then selects candidates. Empty here, so
+            # the per-activity assignment loop does not run in the mock; the
+            # matcher itself is covered by tests/test_route_match.py.
+            cur.fetchall.return_value = []
+        elif idx == route_count_idx:
+            # SELECT COUNT(*) FROM ride_routes -- fetchone()[0] must subscript.
+            cur.fetchone.return_value = (0,)
         elif idx == tss_select_idx:
             cur.fetchall.return_value = activity_rows
         elif idx == tss_batch_idx:
@@ -786,3 +800,49 @@ class TestStravaSegmentBackfillGating:
         with patch.dict(sys.modules, {"strava": MagicMock()}) as mods:
             mods["strava"].backfill_strava_segments.side_effect = RuntimeError("token dead")
             ingestor_fitness._backfill_strava_segments_safely(conn)   # must not raise
+
+
+class TestRouteAssignment:
+    """Step 2.7 groups rides onto routes. It MUST run after Step 2.
+
+    A METRICS_VERSION reset NULLs derived columns, and Step 2 is what backfills
+    ride_ftp. A step placed before it writes NULLs that are never recomputed —
+    the trap that left two metrics permanently NULL earlier in this project.
+    """
+
+    def test_route_step_runs_after_ftp_backfill(self):
+        """Assert on ORDER, not merely that both steps exist."""
+        src = inspect.getsource(ingestor_fitness.recalculate_fitness)
+        assert "Step 2.7" in src, "route assignment step is missing"
+        assert src.index("Step 2:") < src.index("Step 2.7"), (
+            "Step 2.7 must come after the ride_ftp backfill in Step 2"
+        )
+
+    def test_route_step_runs_before_tss(self):
+        """And before Step 3, so the pass keeps its documented order."""
+        src = inspect.getsource(ingestor_fitness.recalculate_fitness)
+        assert src.index("Step 2.7") < src.index("Step 3:")
+
+    def test_metrics_version_bumped_for_route_backfill(self):
+        """Without a bump, existing installs never build signatures."""
+        assert ingestor_fitness.METRICS_VERSION == "15"
+
+    def test_reset_clears_route_signature(self):
+        """Signatures are reused when present, so a version reset must clear
+        them — otherwise a CELL_DEGREES change would silently have no effect."""
+        src = inspect.getsource(ingestor_fitness.recalculate_fitness)
+        reset = [l for l in src.splitlines() if "UPDATE activities SET tss = NULL" in l]
+        assert reset, "metrics reset statement not found"
+        assert "route_signature = NULL" in reset[0], (
+            "the METRICS_VERSION reset must clear route_signature"
+        )
+
+    def test_endpoint_query_guards_both_coordinates(self):
+        """lat and lng are independently nullable; a lat-without-lng row would
+        reach haversine_m as None and abort assignment for the whole library."""
+        src = inspect.getsource(ingestor_fitness.recalculate_fitness)
+        step = src[src.index("Step 2.7"):src.index("Step 3:")]
+        endpoints = step[step.index("ORDER BY time_offset LIMIT 1") - 400:]
+        assert step.count("lat IS NOT NULL AND lng IS NOT NULL") >= 3, (
+            "every activity_streams read in Step 2.7 must guard lat AND lng"
+        )

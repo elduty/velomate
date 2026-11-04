@@ -46,9 +46,9 @@ Inspired by [TeslaMate](https://github.com/teslamate-org/teslamate). Works with 
 
 ### Grafana Dashboards
 
-Three dashboards with 128 panels across 12 visualization types.
+Four dashboards with 125 panels across 12 visualization types.
 
-**Overview** (43 panels) — your training hub
+**Overview** (41 panels) — your training hub
 - 10 period summary stats (Rides, Distance, Elevation, Duration, TSS, Avg Power, Avg HR, Avg Speed, Avg Decoupling, Calories) with sport type filter
 - 10 delta comparison cards (vs previous period, including Δ Calories)
 - Fitness section: CTL/ATL/TSB with fill-between shading and form-zone TSB colouring (overreached/fatigued/neutral/optimal/fresh/detraining), Configured + Estimated FTP side-by-side, TSB gauge, weekly streak, days since ride, 6-week fitness delta, ride type donut
@@ -59,7 +59,7 @@ Three dashboards with 128 panels across 12 visualization types.
 
 ![Activity Details](screenshots/activity.png)
 
-**Activity Details** (41 panels) — per-ride deep dive
+**Activity Details** (43 panels) — per-ride deep dive
 - 12 summary stat cards + 8 advanced metrics (NP, IF, VI, EF, Work, TRIMP, aerobic decoupling, W/kg)
 - GPS route map with speed/HR/power color overlay
 - HR and power zones by kilometer (stacked bar charts)
@@ -74,7 +74,7 @@ Three dashboards with 128 panels across 12 visualization types.
 
 ![All Time Progression](screenshots/progression.png)
 
-**All Time Progression** (44 panels) — long-term trends
+**All Time Progression** (36 panels) — long-term trends
 - 6 stat cards: total distance, elevation, rides, hours, current FTP, peak CTL
 - 8 progression scatter plots with 10-ride rolling averages (speed, power, NP, EF, HR, distance, aerobic decoupling, NP/kg)
 - Athlete Type classification (sprinter/pursuiter/rouleur/time-triallist/climber from W'/CP ratio) and VO2max estimate (Storer formula from CP + weight), with a VO2max progression trend
@@ -89,6 +89,23 @@ Three dashboards with 128 panels across 12 visualization types.
 - Annual totals table
 - Personal records with drill-down links
 - All-time ride map
+
+**Route Comparison** (5 panels) — same route, different days
+
+- Route selector listing every route ridden more than once, most-ridden first
+- Effort trend across attempts (NP, avg power, avg HR) and efficiency trend (EF, aerobic decoupling)
+- Latest attempt against the route's best and median
+- Attempts table with drill-through to Activity Details
+
+Routes are detected automatically from GPS: each ride is reduced to a set of
+~111 m grid cells, and rides whose cells overlap by 70% or more are the same
+route. Matching is direction-agnostic, so riding a loop the other way still
+counts, and unaffected by pauses or where on a loop the ride started. Rides
+without usable GPS — indoor and virtual — have no route and do not appear.
+
+Progress here is measured by **effort, not elapsed time**. On a stop-and-go
+route elapsed time mostly measures traffic lights, so a faster day is often a
+luckier one rather than a fitter rider.
 
 ![Route Preview](screenshots/route-preview.png)
 

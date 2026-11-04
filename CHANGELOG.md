@@ -1,5 +1,23 @@
 # Changelog
 
+## v1.8.0 — 2026-09-01
+
+Rides are grouped onto the routes they were ridden on, with a dashboard for comparing attempts.
+
+### New Features
+
+- **Route Comparison dashboard.** Rides on the same route are grouped automatically and compared across attempts — effort trend (NP, avg power, avg HR), efficiency trend (EF and aerobic decoupling), the latest attempt against the route's best and median, and an attempts table drilling through to Activity Details.
+- **Automatic route detection.** Each ride's GPS is reduced to a set of ~111 m grid cells, and rides whose cells overlap by 70% or more are the same route. Comparing sets rather than sequences makes this independent of direction, speed, pauses, and where on a loop the ride started. Computed by the ingestor from streams already stored, so a ride groups identically whichever source delivered it.
+
+Progress on a route is measured by effort rather than elapsed time. On a stop-and-go route elapsed time mostly reflects traffic, so a faster day is usually a luckier one.
+
+### Notes
+
+- **`METRICS_VERSION` 14 → 15**, which derives every ride's route signature and clusters the library on the next ingestor start.
+- Rides with fewer than 60 usable GPS samples, and indoor or virtual rides, have no route. This is expected rather than a failure.
+- The matching threshold is measured rather than tuned: within a route real rides overlap 0.87–0.99, against any other ride at most 0.15, and clustering is identical anywhere between 0.5 and 0.8.
+- Route ids are rebuilt on each recalculation, so a bookmarked `var-route=<id>` URL may point elsewhere afterwards. The dashboard itself is unaffected, since its selector is a live query.
+
 ## v1.7.0 — 2026-09-01
 
 Zwift rides reach VeloMate without Strava, and aerobic decoupling stops reporting a number for rides too short to have one.
