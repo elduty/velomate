@@ -14,6 +14,7 @@ detector that runs over power streams.
 
 import os
 import time
+from collections import Counter
 from datetime import datetime, timedelta, timezone
 
 import requests
@@ -25,6 +26,11 @@ _MIN_REQUEST_INTERVAL_S = 0.12
 
 # Warn when the rolling 15-minute budget (2500 for API-key callers) gets low.
 _LOW_BUDGET_RESERVE = 100
+
+# Activity types stored as rides. Anything else, a run or walk from the same
+# watch, stays out of the library and out of CTL.
+CYCLING_TYPES = {"Ride", "VirtualRide", "GravelRide", "MountainBikeRide",
+                 "EBikeRide", "EMountainBikeRide", "TrackRide", "Cyclocross"}
 
 _last_request_at = 0.0
 
@@ -172,6 +178,17 @@ def _is_unavailable_stub(activity: dict) -> bool:
     return bool(activity.get("_note")) or activity.get("source") == "STRAVA"
 
 
+def _is_cycling(activity: dict) -> bool:
+    """True unless the activity names a type outside CYCLING_TYPES.
+
+    An activity with no type passes, as it does on the Strava path: the parser
+    already treats a missing type as a ride, and dropping a real ride because a
+    field was absent is the worse mistake.
+    """
+    activity_type = activity.get("type")
+    return not activity_type or activity_type in CYCLING_TYPES
+
+
 def _detect_device(activity: dict) -> str:
     """Same heuristics as strava._detect_device, on intervals.icu field names."""
     name = (activity.get("device_name") or "").lower()
@@ -292,6 +309,23 @@ MAX_DELETIONS_PER_SWEEP = 5
 # than stranded indefinitely.
 PENDING_DELETIONS_KEY = "intervals_icu_pending_deletions"
 
+# Remote-only rides one sweep may ingest. A normal day finds none, so this only
+# bites after an outage, and whatever it leaves the next sweep picks up. It keeps
+# one surprising response from turning the daily sweep into a backfill.
+MAX_INGESTS_PER_SWEEP = 25
+
+# Wall clock one pass over missing rides may take. The scheduler has a single
+# thread, so polling waits for it. Twelve months of rides fit comfortably at
+# about a second each; a longer history continues on the next daily sweep.
+MISSING_RIDES_PASS_SECONDS = 1800
+
+# sync_state key, non-empty while a backfill has rides left to fetch. Written
+# before the first ride is stored, so rows without it read as a finished install
+# and a crash midway cannot pass for one.
+BACKFILL_PENDING_KEY = "intervals_icu_backfill_pending"
+
+_FULL_HISTORY_OLDEST = "1970-01-01T00:00:00"
+
 
 def _window_start(days: int) -> str:
     return (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%dT00:00:00")
@@ -316,7 +350,51 @@ def _parse_ts(value):
     return dt.astimezone(timezone.utc)
 
 
-def sync_activities(conn, window_days: int = 14) -> tuple:
+def _ingest_activity(conn, activity: dict) -> bool:
+    """Store one activity. Returns True when it was new or had been re-analysed."""
+    from db import upsert_activity, get_intervals_icu_analyzed, ACTIVITY_ABSENT
+
+    data = _parse_activity(activity)
+
+    # Re-fetch streams only when the ride has been (re-)analysed since
+    # we last stored it. Skipping this would re-download every stream in
+    # the window on every poll, which the rate budget will not absorb.
+    #
+    # Compared as datetimes, NOT strings: the API sends millisecond
+    # precision ("...824+00:00") while the value read back from a
+    # TIMESTAMPTZ column renders microseconds ("...824000+00:00"). A
+    # string compare is never equal after the first store, so the gate
+    # would always fire and defeat its own purpose.
+    raw_stored = get_intervals_icu_analyzed(conn, activity["id"])
+    incoming = _parse_ts(data["intervals_icu_analyzed"])
+    if raw_stored is ACTIVITY_ABSENT:
+        changed = True          # never stored — must ingest
+    else:
+        # A stored NULL compares equal to an incoming None, so a ride
+        # intervals.icu never analyses is stored once and then left
+        # alone instead of re-ingesting on every poll.
+        changed = _parse_ts(raw_stored) != incoming
+
+    streams = []
+    if changed:
+        streams = _parse_streams(get_streams(activity["id"]))
+        watts = [p["power"] for p in streams if p["power"] is not None]
+        if watts:
+            data["max_power"] = max(watts)
+
+    # max_power stays None on the unchanged path, which is safe:
+    # _do_insert COALESCEs every sensor column, so a NULL never
+    # overwrites a stored value. Streams land in the same transaction as
+    # the row, so `analyzed` never claims streams that failed to write.
+    upsert_activity(conn, data, streams=streams)
+
+    if changed:
+        print(f"  → {data['name']} ({(data.get('date') or '')[:10]}) "
+              f"— {(data.get('distance_m') or 0)/1000:.1f}km")
+    return changed
+
+
+def sync_activities(conn, window_days: int = 14, problems: list = None) -> tuple:
     """Re-query the last `window_days` and upsert. Returns (ingested, skipped_stubs).
 
     `ingested` counts only activities that were new or had been re-analysed —
@@ -327,72 +405,186 @@ def sync_activities(conn, window_days: int = 14) -> tuple:
     There is no cursor to withhold: the window is re-queried unconditionally,
     so a transient per-activity failure simply retries next poll and can never
     block newer rides the way a cursor-based loop can.
-    """
-    from db import (upsert_activity, upsert_streams,
-                    get_intervals_icu_analyzed, ACTIVITY_ABSENT)
 
+    `problems`, when given, collects why this pass delivered less than a healthy
+    one would, for what no exception reports: a swallowed per-activity failure,
+    a window of nothing but stubs, and an empty 200 over rides we hold from that
+    window. A window that is empty or unchanged because nothing happened adds
+    nothing to it.
+    """
+    from db import count_intervals_icu_rides_since
+
+    problems = [] if problems is None else problems
     activities = list_activities(oldest=_window_start(window_days))
     ingested = 0   # new or re-analysed — the recalculation trigger
     seen = 0       # upserted, changed or not — observability only
     skipped = 0
+    non_cycling = Counter()
 
     for activity in activities:
         if _is_unavailable_stub(activity):
             skipped += 1
             continue
+        if not _is_cycling(activity):
+            non_cycling[activity["type"]] += 1
+            continue
         try:
-            data = _parse_activity(activity)
-
-            # Re-fetch streams only when the ride has been (re-)analysed since
-            # we last stored it. Skipping this would re-download every stream in
-            # the window on every poll, which the rate budget will not absorb.
-            #
-            # Compared as datetimes, NOT strings: the API sends millisecond
-            # precision ("...824+00:00") while the value read back from a
-            # TIMESTAMPTZ column renders microseconds ("...824000+00:00"). A
-            # string compare is never equal after the first store, so the gate
-            # would always fire and defeat its own purpose.
-            raw_stored = get_intervals_icu_analyzed(conn, activity["id"])
-            incoming = _parse_ts(data["intervals_icu_analyzed"])
-            if raw_stored is ACTIVITY_ABSENT:
-                changed = True          # never stored — must ingest
-            else:
-                # A stored NULL compares equal to an incoming None, so a ride
-                # intervals.icu never analyses is stored once and then left
-                # alone instead of re-ingesting on every poll.
-                changed = _parse_ts(raw_stored) != incoming
-
-            streams = []
-            if changed:
-                streams = _parse_streams(get_streams(activity["id"]))
-                watts = [p["power"] for p in streams if p["power"] is not None]
-                if watts:
-                    data["max_power"] = max(watts)
-
-            # max_power stays None on the unchanged path, which is safe:
-            # _do_insert COALESCEs every sensor column, so a NULL never
-            # overwrites a stored value.
-            activity_id, streams_preserved = upsert_activity(conn, data)
-            if streams and not streams_preserved:
-                upsert_streams(conn, activity_id, streams)
-
+            changed = _ingest_activity(conn, activity)
             seen += 1
             if changed:
                 ingested += 1
-                print(f"  → {data['name']} ({(data.get('date') or '')[:10]}) "
-                      f"— {(data.get('distance_m') or 0)/1000:.1f}km")
         except Exception as e:
             # No cursor to protect, so a failure is logged and the batch
             # continues; the next poll re-queries this activity anyway.
             print(f"  [intervals_icu] Skipping {activity.get('id')} "
                   f"({type(e).__name__}: {e})")
+            problems.append(f"{activity.get('id')} failed ({type(e).__name__})")
         time.sleep(1.0)
 
     if skipped:
         print(f"[intervals_icu] {skipped} Strava-relayed activities unavailable via the API "
               f"(expected — they cannot be re-served)")
+    if non_cycling:
+        print(f"[intervals_icu] Not stored, not cycling: {dict(non_cycling)}")
     print(f"[intervals_icu] {seen} activities in window, {ingested} new or re-analysed")
+    if skipped and not seen:
+        problems.append(f"all {skipped} rides in the window are Strava stubs")
+    if not activities:
+        # One day narrower than the query, for the same UTC-versus-local reason
+        # as reconcile(): a ride at the edge can fall outside the remote window.
+        held = count_intervals_icu_rides_since(
+            conn, _window_start(max(window_days - 1, 1))[:10])
+        if held:
+            problems.append(f"empty window, but {held} stored rides fall inside it")
     return ingested, skipped
+
+
+def _stored_ids(conn, activity_ids) -> set:
+    """Which of these intervals.icu ids already have a row, at any date."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT intervals_icu_id FROM activities "
+                    "WHERE intervals_icu_id = ANY(%s)", (list(activity_ids),))
+        return {row[0] for row in cur.fetchall()}
+
+
+def _is_second_upload(conn, activity: dict, listed_ids: set) -> bool:
+    """True when this ride is stored under another id the remote still lists.
+
+    Two uploads of one ride are two intervals.icu ids for one row, and only one
+    id fits on it. Without this the other always looks missing: ingesting it
+    either changes nothing or swaps the id on the row, which makes the first one
+    look missing next time, and that repeats on every sweep.
+    """
+    from db import find_duplicate
+
+    data = _parse_activity(activity)
+    if not data["date"] or not data["duration_s"]:
+        return False
+    row = find_duplicate(conn, data["date"], data["duration_s"], data["distance_m"])
+    return bool(row and row[8] and row[8] in listed_ids)
+
+
+def _richness(activity: dict) -> int:
+    """Sort key for a pass. A ride that won't parse sorts last and fails on its own
+    in the loop, because this runs ahead of the per-ride isolation."""
+    from db import _data_richness
+
+    try:
+        return _data_richness(_parse_activity(activity))
+    except Exception:
+        return 0
+
+
+def _ingest_missing(conn, activities: list, cap: int = None) -> tuple:
+    """Ingest the listed rides that have no row yet. Returns (ingested, finished).
+
+    For the backfill and the sweep, which reach well past the sync window. A ride
+    that already has a row is left alone, re-analysed or not, so nothing old is
+    overwritten and a re-run costs one list call plus whatever is still missing.
+
+    `finished` is False when a later pass has something to do: a ride failed, or
+    the pass stopped at the cap, the time budget or a rate limit.
+    """
+    listed_ids = {a["id"] for a in activities}
+    stored = _stored_ids(conn, listed_ids)
+    missing = [a for a in activities if a["id"] not in stored
+               and not _is_unavailable_stub(a) and _is_cycling(a)]
+    # Richest first, so of two uploads of one ride the one with power is kept.
+    missing.sort(key=_richness, reverse=True)
+
+    deadline = time.monotonic() + MISSING_RIDES_PASS_SECONDS
+    ingested = failed = 0
+    for position, activity in enumerate(missing):
+        if (cap is not None and ingested >= cap) or time.monotonic() >= deadline:
+            print(f"[intervals_icu] {ingested} ingested, stopping with "
+                  f"{len(missing) - position} missing rides left for the next pass")
+            return ingested, False
+        try:
+            if _is_second_upload(conn, activity, listed_ids):
+                print(f"  [intervals_icu] {activity['id']} is a second upload of a "
+                      f"stored ride — not stored")
+                continue
+            if _ingest_activity(conn, activity):
+                ingested += 1
+        except Exception as e:
+            print(f"  [intervals_icu] Skipping {activity.get('id')} "
+                  f"({type(e).__name__}: {e})")
+            failed += 1
+            # The client has already waited out its retries. Every ride after
+            # this one would sit through the same wait, so leave them for later.
+            if getattr(getattr(e, "response", None), "status_code", None) == 429:
+                print("[intervals_icu] Still rate limited — stopping this pass")
+                return ingested, False
+        time.sleep(1.0)
+    return ingested, failed == 0
+
+
+def backfill(conn, months: int = 12) -> int:
+    """Fetch the history the sync window never reaches. months=0 = full history.
+
+    One pass, bounded by MISSING_RIDES_PASS_SECONDS. Returns the rides it
+    ingested. The pending key stays set until a pass finds nothing left to do, so
+    a crash, a rate limit or a failed ride is picked up by the next start or the
+    next daily sweep, and only what is still missing is fetched.
+    """
+    from db import set_sync_state
+
+    set_sync_state(conn, BACKFILL_PENDING_KEY, str(months))
+    oldest = _FULL_HISTORY_OLDEST if months == 0 else _window_start(months * 30)
+    print(f"[intervals_icu] Backfilling activities since {oldest[:10]}")
+    activities = list_activities(oldest=oldest, limit=RECONCILE_FETCH_LIMIT)
+    if len(activities) >= RECONCILE_FETCH_LIMIT:
+        print(f"[intervals_icu] WARNING: the listing hit its {RECONCILE_FETCH_LIMIT} ceiling, "
+              f"so activities older than the oldest one listed were not seen")
+
+    ingested, finished = _ingest_missing(conn, activities)
+    # An empty listing proves nothing: it may be a degraded 200, and this key is
+    # the only thing that would retry it once the poll has stored some rows.
+    if finished and activities:
+        set_sync_state(conn, BACKFILL_PENDING_KEY, "")
+        print(f"[intervals_icu] Backfill complete: {ingested} ingested")
+    else:
+        print(f"[intervals_icu] Backfill pass: {ingested} ingested, will resume")
+    return ingested
+
+
+def _ingest_remote_only(conn, remote_cycling_ids: set, sweep_days: int) -> int:
+    """Ingest rides the sweep found remotely with no row here. Returns how many.
+
+    Checked against every stored id rather than the sweep's local window, which
+    is a day narrower than the remote one: a ride on that edge is stored, not
+    missing. The sweep's own listing is masked down to ids, so one more call
+    fetches full activities, and only on a day there is something to fetch.
+    """
+    remote_only = remote_cycling_ids - _stored_ids(conn, remote_cycling_ids)
+    if not remote_only:
+        return 0
+    print(f"[intervals_icu] {len(remote_only)} remote activities not stored locally")
+    activities = list_activities(oldest=_window_start(sweep_days),
+                                 limit=RECONCILE_FETCH_LIMIT)
+    ingested, _finished = _ingest_missing(conn, activities, cap=MAX_INGESTS_PER_SWEEP)
+    print(f"[intervals_icu] sweep ingested {ingested} remote-only activities")
+    return ingested
 
 
 def reconcile(conn, sweep_days: int = 90) -> tuple:
@@ -406,6 +598,10 @@ def reconcile(conn, sweep_days: int = 90) -> tuple:
 
     The deletion pass is gated on the remote set being plausible — a
     degraded-but-successful response must never be able to empty the library.
+
+    `recovered` counts rides ingested because the sweep found them remotely with
+    no row here. That only happens once the deletion pass has run, so a response
+    too doubtful to delete from is not ingested from either.
     """
     from db import handle_intervals_icu_deletion
 
@@ -418,10 +614,17 @@ def reconcile(conn, sweep_days: int = 90) -> tuple:
     # window returns the complete library with or without it, but a truncated
     # result would delete real rides, so the guarantee is worth stating.
     remote = list_activities(oldest=_window_start(sweep_days),
-                             fields=["id", "start_date_local", "source"],
+                             fields=["id", "start_date_local", "source", "type"],
                              limit=RECONCILE_FETCH_LIMIT)
     stub_ids = {a["id"] for a in remote if _is_unavailable_stub(a)}
     remote_ids = {a["id"] for a in remote if not _is_unavailable_stub(a)}
+    # Deliberately NOT removed from remote_ids. This set is what the deletion
+    # pass and its plausibility guards read: a stored ride retyped upstream, or
+    # one whose type is outside the allow-list, is still present remotely, and
+    # filtering it out here would delete it. They only stop counting as rides we
+    # are missing, so the sweep never tries to ingest them.
+    non_cycling_ids = {a["id"] for a in remote
+                       if not _is_unavailable_stub(a) and not _is_cycling(a)}
 
     # The local window is deliberately ONE DAY NARROWER than the remote one.
     # We store `date` as the activity's UTC start, while the API interprets
@@ -492,7 +695,7 @@ def reconcile(conn, sweep_days: int = 90) -> tuple:
                   f"Deferring — if the next sweep reports the identical set it will "
                   f"be treated as a real bulk deletion and processed. A partial "
                   f"response is unlikely to repeat exactly.")
-            return (0, len(remote_ids - local_ids))
+            return (0, 0)
     else:
         # A normal-sized batch clears any pending confirmation.
         from db import set_sync_state
@@ -504,8 +707,4 @@ def reconcile(conn, sweep_days: int = 90) -> tuple:
             deleted += 1
             print(f"  ✕ {missing} removed on intervals.icu — deleted")
 
-    recovered = len(remote_ids - local_ids)
-    if recovered:
-        print(f"[intervals_icu] {recovered} remote activities not present locally "
-              f"— next poll will ingest any inside the sync window")
-    return deleted, recovered
+    return deleted, _ingest_remote_only(conn, remote_ids - non_cycling_ids, sweep_days)

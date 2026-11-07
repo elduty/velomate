@@ -4,14 +4,90 @@ import os
 import sys
 import time
 import traceback
+from datetime import datetime, timezone
 
 import schedule
 
-from db import get_connection, create_schema, get_sync_state, set_sync_state
+from db import (backfill_missing_speed, create_schema, get_connection, get_sync_state,
+                has_activities, set_sync_state)
 from strava import sync_activities, backfill, reclassify_activities
 import rwgps
 import intervals_icu
-from fitness import recalculate_fitness
+from fitness import configured_threshold, recalculate_fitness
+
+# Ingest health, read by the Overview stats and the Ingestion Stalled alert. Those
+# queries use the row's typed last_synced_at, so `value` is only for a human
+# reading sync_state and a bad one cannot fail them.
+LAST_SUCCESSFUL_POLL_KEY = "last_successful_poll"
+SKIPPED_STUBS_KEY = "intervals_icu_skipped_stubs"
+
+# Enabled sources that have delivered since last_successful_poll last advanced.
+_delivered = set()
+
+# Rides are committed before recalculation runs, and the next poll sees them as
+# unchanged, so a failed recalculation has to be remembered: otherwise it is never
+# retried, and it stops the poll counting as a success for one cycle only.
+_recalc_pending = False
+
+
+def _recalculate_if_needed(conn, changed: bool):
+    """Recalculate if this poll changed anything or an earlier recalculation failed."""
+    global _recalc_pending
+    _recalc_pending = _recalc_pending or changed
+    if _recalc_pending:
+        recalculate_fitness(conn)
+        _recalc_pending = False
+
+
+def _recalculate_at_startup(conn):
+    """Recalculate before the poll loop starts. A raise here would restart the
+    container into the same failure, so it stays pending for the next poll."""
+    try:
+        _recalculate_if_needed(conn, True)
+        print("[main] Fitness recalculated through today")
+    except Exception as e:
+        print(f"[main] Fitness recalculation failed, the next poll retries it: {e}")
+        traceback.print_exc()
+
+
+def _backfill_speed_at_startup(conn):
+    """Give stored GPS rides with no speed one. Failing only leaves them as they were,
+    so it never stops the ingestor."""
+    try:
+        filled = backfill_missing_speed(conn)
+        if filled:
+            print(f"[main] Derived speed from GPS for {filled} stored rides")
+    except Exception as e:
+        print(f"[main] Deriving speed for stored rides failed, the next start retries it: {e}")
+        traceback.print_exc()
+
+
+def _write_health(conn, key: str, value: str):
+    """Write a health key. Health only reports on the poll, so a failure here is
+    logged and never takes the poll down with it."""
+    try:
+        set_sync_state(conn, key, value)
+    except Exception as e:
+        print(f"[health] Could not write {key}: {e}")
+
+
+def _record_poll(conn, source: str, problems: list):
+    """Advance last_successful_poll once every enabled source has delivered.
+
+    The key is one row, so a healthy source must not hide a dead one: it moves
+    only when the whole enabled set has come good since the last move.
+
+    `problems` is what the sync swallowed. Without it a poll where every ride
+    failed, or where every ride is an unreadable stub, reaches here exactly like
+    a quiet week with nothing new, and only the quiet week is healthy.
+    """
+    if problems:
+        print(f"[health] {source} poll not counted as a success: {'; '.join(problems)}")
+        return
+    _delivered.add(source)
+    if _delivered.issuperset(_enabled_sources()):
+        _delivered.clear()
+        _write_health(conn, LAST_SUCCESSFUL_POLL_KEY, datetime.now(timezone.utc).isoformat())
 
 
 def _get_healthy_conn():
@@ -73,9 +149,10 @@ def poll_strava():
         if not conn:
             print("[poll] Strava: skipped — no DB connection")
             return
-        count = sync_activities(conn)
-        if count > 0:
-            recalculate_fitness(conn)
+        problems = []
+        count = sync_activities(conn, problems=problems)
+        _recalculate_if_needed(conn, count > 0)
+        _record_poll(conn, "strava", problems)
         print(f"[poll] Strava: {count} new activities")
     except Exception as e:
         print(f"[poll] Strava error: {e}")
@@ -93,8 +170,10 @@ def poll_rwgps():
         if not conn:
             print("[poll] RWGPS: skipped — no DB connection")
             return
+        problems = []
         if get_sync_state(conn, "rwgps_last_sync_datetime"):
-            ingested, deleted = rwgps.sync_activities(conn)   # incremental from cursor
+            # incremental from cursor
+            ingested, deleted = rwgps.sync_activities(conn, problems=problems)
         else:
             # No cursor yet — the initial backfill never completed cleanly (e.g. a
             # transient failure withheld the cursor). Re-run the BOUNDED backfill
@@ -104,10 +183,10 @@ def poll_rwgps():
             # VELOMATE_BACKFILL_MONTHS. The bounded retry stays within the window
             # and seeds the cursor once it completes a clean pass.
             print("[poll] RWGPS: no cursor yet — running bounded backfill")
-            ingested = rwgps.backfill(conn, months=_backfill_months())
+            ingested = rwgps.backfill(conn, months=_backfill_months(), problems=problems)
             deleted = 0
-        if ingested > 0 or deleted > 0:
-            recalculate_fitness(conn)
+        _recalculate_if_needed(conn, ingested > 0 or deleted > 0)
+        _record_poll(conn, "rwgps", problems)
         print(f"[poll] RWGPS: {ingested} new, {deleted} deleted")
     except Exception as e:
         print(f"[poll] RWGPS error: {e}")
@@ -146,12 +225,18 @@ def poll_intervals_icu():
         if not conn:
             print("[poll] intervals.icu: skipped — no DB connection")
             return
+        problems = []
         ingested, skipped = intervals_icu.sync_activities(
-            conn, window_days=_positive_int_env("INTERVALS_ICU_SYNC_WINDOW_DAYS", 14))
+            conn, window_days=_positive_int_env("INTERVALS_ICU_SYNC_WINDOW_DAYS", 14),
+            problems=problems)
+        # Written whatever the verdict: a window of nothing but stubs is not a
+        # success, and it is the state this count exists to show. Zero is written
+        # too, or stubs that left the window would stay on the dashboard.
+        _write_health(conn, SKIPPED_STUBS_KEY, str(skipped))
         # Only new or re-analysed rides count, so an unchanged window does not
         # trigger a full recalculation every poll.
-        if ingested > 0:
-            recalculate_fitness(conn)
+        _recalculate_if_needed(conn, ingested > 0)
+        _record_poll(conn, "intervals_icu", problems)
         print(f"[poll] intervals.icu: {ingested} ingested, {skipped} unavailable")
     except Exception as e:
         print(f"[poll] intervals.icu error: {e}")
@@ -161,8 +246,21 @@ def poll_intervals_icu():
             conn.close()
 
 
+def _backfill_intervals_icu(conn, months: int) -> int:
+    """One backfill pass. Never raises: this runs at startup, where an exception
+    restarts the container into the same failure. An unfinished pass leaves its
+    pending key set, so the next start or daily sweep picks it up."""
+    try:
+        return intervals_icu.backfill(conn, months=months)
+    except Exception as e:
+        print(f"[backfill] intervals.icu error: {e}")
+        traceback.print_exc()
+        return 0
+
+
 def _reconcile_intervals_icu():
-    """Daily bidirectional sweep — mirrors deletions, reports local gaps."""
+    """Daily bidirectional sweep — mirrors deletions, ingests remote-only rides,
+    and resumes a backfill an earlier pass left unfinished."""
     conn = None
     try:
         conn = _get_healthy_conn()
@@ -170,7 +268,11 @@ def _reconcile_intervals_icu():
             deleted, recovered = intervals_icu.reconcile(
                 conn, sweep_days=_positive_int_env("INTERVALS_ICU_SWEEP_DAYS", 90))
             print(f"[daily] intervals.icu reconcile: {deleted} deleted, "
-                  f"{recovered} remote-only")
+                  f"{recovered} recovered")
+            resumed = 0
+            if get_sync_state(conn, intervals_icu.BACKFILL_PENDING_KEY):
+                resumed = _backfill_intervals_icu(conn, _backfill_months())
+            _recalculate_if_needed(conn, recovered > 0 or resumed > 0)
     except Exception as e:
         print(f"[daily] intervals.icu reconcile error: {e}")
     finally:
@@ -290,11 +392,17 @@ def run_backfill(sources: list = None):
         create_schema(conn)
         months = _backfill_months()
         total = 0
+        # Written before any source runs: their rows make the next start read as an
+        # existing install, so this is all that says intervals.icu is still owed.
+        if "intervals_icu" in sources:
+            set_sync_state(conn, intervals_icu.BACKFILL_PENDING_KEY, str(months))
         if "strava" in sources:
             total += backfill(conn, months=months)
         if "rwgps" in sources:
             total += rwgps.backfill(conn, months=months)
-        recalculate_fitness(conn)
+        if "intervals_icu" in sources:
+            total += _backfill_intervals_icu(conn, months)
+        _recalculate_at_startup(conn)
         print(f"[backfill] Complete — {total} activities ingested")
         return total
     finally:
@@ -314,7 +422,12 @@ def run():
             print("[main] Schema ready")
             strava_has_data = get_sync_state(conn, "strava_last_activity_epoch")
             rwgps_has_data = get_sync_state(conn, "rwgps_last_sync_datetime")
-            has_data = strava_has_data or rwgps_has_data
+            icu_backfill_pending = get_sync_state(conn, intervals_icu.BACKFILL_PENDING_KEY)
+            # intervals.icu has no cursor to read, so the rows themselves answer
+            # for it. Any stored ride counts, whoever delivered it: only an empty
+            # install backfills on its own, and an existing one asks for more
+            # history by extending VELOMATE_BACKFILL_MONTHS.
+            has_data = strava_has_data or rwgps_has_data or has_activities(conn)
             break
         except Exception as e:
             print(f"[main] DB not ready (attempt {attempt}/{max_attempts}): {e}")
@@ -334,23 +447,21 @@ def run():
     enabled = _enabled_sources()
     if not enabled:
         print("[main] No activity source configured — set STRAVA_CLIENT_ID/"
-              "STRAVA_CLIENT_SECRET/STRAVA_REFRESH_TOKEN and/or "
-              "RWGPS_API_KEY/RWGPS_AUTH_TOKEN")
+              "STRAVA_CLIENT_SECRET/STRAVA_REFRESH_TOKEN, "
+              "RWGPS_API_KEY/RWGPS_AUTH_TOKEN and/or "
+              "INTERVALS_ICU_ATHLETE_ID/INTERVALS_ICU_API_KEY")
         sys.exit(1)
     print(f"[main] Enabled sources: {', '.join(enabled)}")
 
     # Persist configured FTP/HR to sync_state so dashboards can read them.
     # If either value changed (added, removed, or updated), reset all derived metrics.
     try:
-        env_ftp = os.environ.get("VELOMATE_FTP", "")
-        env_hr = os.environ.get("VELOMATE_MAX_HR", "")
-        env_rhr = os.environ.get("VELOMATE_RESTING_HR", "")
         env_weight = os.environ.get("VELOMATE_WEIGHT", "")
         conn = get_connection()
         try:
-            ftp = int(env_ftp) if env_ftp else 0
-            hr = int(env_hr) if env_hr else 0
-            rhr = int(env_rhr) if env_rhr else 0
+            ftp = configured_threshold(conn, "VELOMATE_FTP", "configured_ftp")
+            hr = configured_threshold(conn, "VELOMATE_MAX_HR", "configured_max_hr")
+            rhr = configured_threshold(conn, "VELOMATE_RESTING_HR", "configured_resting_hr")
             ftp_str = str(ftp) if ftp > 0 else "0"
             hr_str = str(hr) if hr > 0 else "0"
             rhr_str = str(rhr) if rhr > 0 else "0"
@@ -411,8 +522,6 @@ def run():
             print(f"[main] Weight: {weight}kg" if weight > 0 else "[main] Weight: not configured (W/kg disabled)")
         finally:
             conn.close()
-    except (ValueError, TypeError) as e:
-        print(f"[main] Invalid FTP/HR env var (skipping): {e}")
     except Exception as e:
         print(f"[main] Could not persist FTP/HR to sync_state (skipping): {e}")
 
@@ -489,6 +598,8 @@ def run():
             sources_to_backfill.append("strava")
         if "rwgps" in enabled and not rwgps_has_data:
             sources_to_backfill.append("rwgps")
+        if "intervals_icu" in enabled and (not has_data or icu_backfill_pending):
+            sources_to_backfill.append("intervals_icu")
         if sources_to_backfill:
             print(f"[main] No previous sync for: {', '.join(sources_to_backfill)} — running backfill")
     if sources_to_backfill:
@@ -498,8 +609,8 @@ def run():
         # Recalculate fitness on startup to extend CTL/ATL/TSB decay through today
         conn = get_connection()
         try:
-            recalculate_fitness(conn)
-            print("[main] Fitness recalculated through today")
+            _backfill_speed_at_startup(conn)
+            _recalculate_at_startup(conn)
         finally:
             conn.close()
 

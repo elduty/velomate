@@ -10,6 +10,23 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    # A runner in host mode has no containers and ignores this block, so it gets
+    # no database from here: scripts/run_pg_tests.py --local-server handles that.
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: velomate
+          POSTGRES_DB: velomate_test
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U velomate -d velomate_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       - uses: actions/checkout@v4
 
@@ -17,13 +34,13 @@ jobs:
         if: env.GITEA_ACTIONS != 'true'
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.11"
 
       - name: Set up venv (Gitea)
         if: env.GITEA_ACTIONS == 'true'
         run: |
           rm -rf /tmp/velomate-ci-venv
-          python3.12 -m venv --without-pip /tmp/velomate-ci-venv
+          python3.11 -m venv --without-pip /tmp/velomate-ci-venv
           curl -sS https://bootstrap.pypa.io/get-pip.py | /tmp/velomate-ci-venv/bin/python3
           echo "/tmp/velomate-ci-venv/bin" >> $GITHUB_PATH
 
@@ -42,3 +59,24 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.xml
           fail_ci_if_error: false
+
+      # In a venv of its own, so that a dependency only the test tools happen to
+      # bring in cannot hide one missing from ingestor/requirements.txt.
+      - name: Import the ingestor on the image's dependencies
+        if: always()
+        run: |
+          python3 -m venv --clear --without-pip /tmp/velomate-image-venv
+          python3 -m pip --python /tmp/velomate-image-venv/bin/python install -r ingestor/requirements.txt
+          /tmp/velomate-image-venv/bin/python scripts/smoke_import_ingestor.py
+
+      # Last, and always, so that a failure here cannot change what the steps
+      # above report, and a failure above still shows the state of these.
+      - name: Run real-PostgreSQL tests (service container)
+        if: always() && env.GITEA_ACTIONS != 'true'
+        env:
+          VELOMATE_TEST_DATABASE_URL: postgresql://velomate@localhost:5432/velomate_test
+        run: python3 scripts/run_pg_tests.py
+
+      - name: Run real-PostgreSQL tests (host runner)
+        if: always() && env.GITEA_ACTIONS == 'true'
+        run: python3 scripts/run_pg_tests.py --local-server

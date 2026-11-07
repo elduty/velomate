@@ -53,14 +53,10 @@ class TestO3RefreshTokenMemoryUpdate:
         import sys
         mock_db = MagicMock()
         mock_db.get_connection.side_effect = Exception("DB down")
-        sys.modules["db"] = mock_db
 
-        try:
-            with patch.object(strava, "_request_with_retry", return_value=mock_resp):
-                result = strava.refresh_access_token("id", "secret", "old_token")
-        finally:
-            # restore original db module
-            del sys.modules["db"]
+        with patch.dict(sys.modules, {"db": mock_db}), \
+                patch.object(strava, "_request_with_retry", return_value=mock_resp):
+            result = strava.refresh_access_token("id", "secret", "old_token")
 
         assert result == "fresh_access"
         # Even though DB write failed, in-memory token must be updated
@@ -79,13 +75,10 @@ class TestO3RefreshTokenMemoryUpdate:
         mock_db = MagicMock()
         mock_db.get_connection.return_value = mock_conn
         mock_db.set_sync_state.side_effect = Exception("write failed")
-        sys.modules["db"] = mock_db
 
-        try:
-            with patch.object(strava, "_request_with_retry", return_value=mock_resp):
-                strava.refresh_access_token("id", "secret", "old_token")
-        finally:
-            del sys.modules["db"]
+        with patch.dict(sys.modules, {"db": mock_db}), \
+                patch.object(strava, "_request_with_retry", return_value=mock_resp):
+            strava.refresh_access_token("id", "secret", "old_token")
 
         assert strava._current_refresh_token == "rotated_v2"
 
@@ -480,6 +473,7 @@ class TestDedupGapFillN2:
         """upsert_activity calls UPDATE (not INSERT) when existing is richer."""
         conn, cursor = _make_conn()
         with _patch.object(ingestor_db, "find_duplicate", return_value=_RICH_EXISTING), \
+             _patch.object(ingestor_db, "_source_id_on_another_row", return_value=False), \
              _patch.object(ingestor_db, "_do_insert") as mock_insert, \
              _patch.object(ingestor_db, "classify_activity", side_effect=lambda d: d):
             ingestor_db.upsert_activity(conn, dict(_WEAK_NEW))
@@ -490,6 +484,7 @@ class TestDedupGapFillN2:
         """UPDATE SQL uses COALESCE so existing non-NULL values are not overwritten."""
         conn, cursor = _make_conn()
         with _patch.object(ingestor_db, "find_duplicate", return_value=_RICH_EXISTING), \
+             _patch.object(ingestor_db, "_source_id_on_another_row", return_value=False), \
              _patch.object(ingestor_db, "_do_insert"), \
              _patch.object(ingestor_db, "classify_activity", side_effect=lambda d: d):
             ingestor_db.upsert_activity(conn, dict(_WEAK_NEW))
@@ -501,6 +496,7 @@ class TestDedupGapFillN2:
         """suffer_score from incoming data is passed to the UPDATE."""
         conn, cursor = _make_conn()
         with _patch.object(ingestor_db, "find_duplicate", return_value=_RICH_EXISTING), \
+             _patch.object(ingestor_db, "_source_id_on_another_row", return_value=False), \
              _patch.object(ingestor_db, "_do_insert"), \
              _patch.object(ingestor_db, "classify_activity", side_effect=lambda d: d):
             ingestor_db.upsert_activity(conn, dict(_WEAK_NEW))

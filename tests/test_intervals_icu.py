@@ -352,7 +352,7 @@ class TestSyncActivities:
             ingested, skipped = intervals_icu.sync_activities(MagicMock(), window_days=14)
         assert (ingested, skipped) == (1, 0)
         assert db_mock.upsert_activity.call_args[0][1]["intervals_icu_id"] == "i179264457"
-        assert db_mock.upsert_streams.called
+        assert [p["power"] for p in db_mock.upsert_activity.call_args.kwargs["streams"]] == [100, 110]
 
     def test_stubs_are_skipped_and_counted_not_ingested(self):
         db_mock = self._db()
@@ -365,6 +365,57 @@ class TestSyncActivities:
             ingested, skipped = intervals_icu.sync_activities(MagicMock(), window_days=14)
         assert (ingested, skipped) == (1, 1)
         assert db_mock.upsert_activity.call_count == 1
+
+    @pytest.mark.parametrize("activity_type", [
+        "Ride", "VirtualRide", "GravelRide", "MountainBikeRide", "EBikeRide",
+        "EMountainBikeRide", "TrackRide", "Cyclocross",
+    ])
+    def test_cycling_types_are_ingested(self, activity_type):
+        assert self._ingested_types(activity_type) == 1
+
+    @pytest.mark.parametrize("activity_type", ["Run", "Walk", "Swim", "Hike", "Workout"])
+    def test_other_types_are_not_ingested(self, activity_type):
+        assert self._ingested_types(activity_type) == 0
+
+    @pytest.mark.parametrize("activity_type", [None, ""])
+    def test_an_activity_with_no_type_is_ingested(self, activity_type):
+        """The parser reads a missing type as a ride, and so does the Strava path."""
+        assert self._ingested_types(activity_type) == 1
+
+    def _ingested_types(self, activity_type):
+        db_mock = self._db()
+        with patch.dict("os.environ", _ENV), patch.dict(sys.modules, {"db": db_mock}), \
+             patch.object(intervals_icu, "list_activities",
+                          return_value=[_full_activity(type=activity_type)]), \
+             patch.object(intervals_icu, "get_streams", return_value=[]), \
+             patch.object(intervals_icu, "time"):
+            intervals_icu.sync_activities(MagicMock(), window_days=14)
+        return db_mock.upsert_activity.call_count
+
+    def test_a_filtered_activity_is_not_counted_as_a_stub(self):
+        """The second number is reported as Strava-relayed rides that cannot be
+        read, which a run is not."""
+        db_mock = self._db()
+        with patch.dict("os.environ", _ENV), patch.dict(sys.modules, {"db": db_mock}), \
+             patch.object(intervals_icu, "list_activities",
+                          return_value=[_full_activity(type="Run")]), \
+             patch.object(intervals_icu, "get_streams") as gs, \
+             patch.object(intervals_icu, "time"):
+            assert intervals_icu.sync_activities(MagicMock(), window_days=14) == (0, 0)
+        assert not gs.called
+
+    def test_filtered_activities_are_logged_by_type(self, capsys):
+        """The type names are unverified beyond Ride, so a bike type spelled
+        differently upstream has to be visible instead of silently missing."""
+        db_mock = self._db()
+        with patch.dict("os.environ", _ENV), patch.dict(sys.modules, {"db": db_mock}), \
+             patch.object(intervals_icu, "list_activities",
+                          return_value=[_full_activity(type="Run"), _full_activity(type="Run"),
+                                        _full_activity(type="Swim")]), \
+             patch.object(intervals_icu, "time"):
+            intervals_icu.sync_activities(MagicMock(), window_days=14)
+        out = capsys.readouterr().out
+        assert "'Run': 2" in out and "'Swim': 1" in out
 
     def test_max_power_derived_from_watts_stream(self):
         db_mock = self._db()
@@ -409,7 +460,7 @@ class TestSyncActivities:
              patch.object(intervals_icu, "time"):
             intervals_icu.sync_activities(MagicMock(), window_days=14)
         assert not gs.called, "streams must not be re-fetched when analyzed is unchanged"
-        assert not db_mock.upsert_streams.called
+        assert db_mock.upsert_activity.call_args.kwargs["streams"] == []
 
     def test_unchanged_activities_are_not_counted_as_ingested(self):
         """`ingested` drives recalculate_fitness. The window re-queries the same
@@ -434,7 +485,7 @@ class TestSyncActivities:
              patch.object(intervals_icu, "time"):
             intervals_icu.sync_activities(MagicMock(), window_days=14)
         assert gs.called
-        assert db_mock.upsert_streams.called
+        assert [p["power"] for p in db_mock.upsert_activity.call_args.kwargs["streams"]] == [100]
 
 
 class TestReconcile:
@@ -500,13 +551,59 @@ class TestReconcile:
             intervals_icu.reconcile(conn, sweep_days=90)
         assert "source" in la.call_args.kwargs["fields"]
 
-    def test_remote_id_absent_locally_is_reported_as_recovered(self):
+    def test_reconcile_requests_type_so_the_allow_list_has_its_input(self):
         db_mock = MagicMock()
         conn = self._conn([])
         with patch.dict("os.environ", _ENV), patch.dict(sys.modules, {"db": db_mock}), \
-             patch.object(intervals_icu, "list_activities", return_value=[_full_activity()]):
+             patch.object(intervals_icu, "list_activities", return_value=[]) as la:
+            intervals_icu.reconcile(conn, sweep_days=90)
+        assert "type" in la.call_args.kwargs["fields"]
+
+    def test_a_stored_ride_retyped_upstream_is_not_deleted(self):
+        """Here for the suite that runs without a database. The remote set keeps
+        its non-cycling ids because the deletion pass reads it."""
+        db_mock = MagicMock()
+        conn = self._conn(["i1", "i2", "i3", "i4"])
+        with patch.dict("os.environ", _ENV), patch.dict(sys.modules, {"db": db_mock}), \
+             patch.object(intervals_icu, "list_activities", return_value=[
+                 _full_activity(id="i1", type="Walk"), _full_activity(id="i2"),
+                 _full_activity(id="i3"), _full_activity(id="i4")]):
+            deleted, _ = intervals_icu.reconcile(conn, sweep_days=90)
+        assert deleted == 0
+        assert not db_mock.handle_intervals_icu_deletion.called
+
+    def test_a_non_cycling_activity_is_not_reported_as_recovered(self):
+        db_mock = MagicMock()
+        conn = self._conn([])
+        with patch.dict("os.environ", _ENV), patch.dict(sys.modules, {"db": db_mock}), \
+             patch.object(intervals_icu, "list_activities",
+                          return_value=[_full_activity(type="Run")]):
+            _, recovered = intervals_icu.reconcile(conn, sweep_days=90)
+        assert recovered == 0
+
+    def test_remote_only_ride_is_ingested_and_counted(self):
+        db_mock = MagicMock()
+        db_mock.get_intervals_icu_analyzed.return_value = db_mock.ACTIVITY_ABSENT
+        conn = self._conn([])
+        with patch.dict("os.environ", _ENV), patch.dict(sys.modules, {"db": db_mock}), \
+             patch.object(intervals_icu, "list_activities", return_value=[_full_activity()]), \
+             patch.object(intervals_icu, "get_streams", return_value=[]), \
+             patch.object(intervals_icu.time, "sleep"):
             _, recovered = intervals_icu.reconcile(conn, sweep_days=90)
         assert recovered == 1
+        assert db_mock.upsert_activity.call_count == 1
+
+    def test_a_stored_ride_is_not_remote_only(self):
+        """Nothing missing means no second listing and no download."""
+        db_mock = MagicMock()
+        conn = self._conn(["i1"])
+        with patch.dict("os.environ", _ENV), patch.dict(sys.modules, {"db": db_mock}), \
+             patch.object(intervals_icu, "list_activities",
+                          return_value=[_full_activity(id="i1")]) as la, \
+             patch.object(intervals_icu, "get_streams") as gs:
+            assert intervals_icu.reconcile(conn, sweep_days=90) == (0, 0)
+        assert la.call_count == 1
+        assert not gs.called
 
 
 class TestUnanalysedActivityIsNotReIngested:

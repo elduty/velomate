@@ -26,6 +26,12 @@
       "url": "/d/velomate-progression/all-time-progression",
       "type": "link",
       "icon": "dashboard"
+    },
+    {
+      "title": "Climbs",
+      "url": "/d/velomate-climbs/climbs",
+      "type": "link",
+      "icon": "dashboard"
     }
   ],
   "templating": {
@@ -400,7 +406,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND(AVG(avg_power)::numeric, 0) AS \"Power\" FROM activities WHERE $__timeFilter(date) AND avg_power > 0 AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}');",
+          "rawSql": "SELECT ROUND(AVG(avg_power)::numeric, 0) AS \"Power\" FROM activities WHERE $__timeFilter(date) AND avg_power > 0 AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}') HAVING AVG(avg_power) IS NOT NULL;",
           "format": "table",
           "refId": "A"
         }
@@ -452,7 +458,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND(AVG(avg_hr)::numeric, 0) AS \"HR\" FROM activities WHERE $__timeFilter(date) AND avg_hr > 0 AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}');",
+          "rawSql": "SELECT ROUND(AVG(avg_hr)::numeric, 0) AS \"HR\" FROM activities WHERE $__timeFilter(date) AND avg_hr > 0 AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}') HAVING AVG(avg_hr) IS NOT NULL;",
           "format": "table",
           "refId": "A"
         }
@@ -504,7 +510,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND((AVG(avg_speed_kmh)::numeric) * 0.621371, 1) AS \"Speed\" FROM activities WHERE $__timeFilter(date) AND avg_speed_kmh > 0 AND distance_m > 5000 AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}');",
+          "rawSql": "SELECT ROUND((AVG(avg_speed_kmh)::numeric) * 0.621371, 1) AS \"Speed\" FROM activities WHERE $__timeFilter(date) AND avg_speed_kmh > 0 AND distance_m > 5000 AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}') HAVING AVG(avg_speed_kmh) IS NOT NULL;",
           "format": "table",
           "refId": "A"
         }
@@ -556,7 +562,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND(AVG(aerobic_decoupling)::numeric, 2) AS \"Avg Decoupling\"\nFROM activities\nWHERE aerobic_decoupling IS NOT NULL\n  AND duration_s > 1800\n  AND $__timeFilter(date)\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}');",
+          "rawSql": "SELECT ROUND(AVG(aerobic_decoupling)::numeric, 2) AS \"Avg Decoupling\"\nFROM activities\nWHERE aerobic_decoupling IS NOT NULL\n  AND duration_s > 1800\n  AND $__timeFilter(date)\n  AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\nHAVING AVG(aerobic_decoupling) IS NOT NULL;",
           "format": "table",
           "refId": "A"
         }
@@ -954,7 +960,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH curr AS (\n  SELECT AVG(avg_power) AS avg FROM activities\n  WHERE avg_power > 0\n    AND $__timeFilter(date)\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n),\nprev AS (\n  SELECT AVG(avg_power) AS avg FROM activities\n  WHERE avg_power > 0\n    AND date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz)\n    AND date < $__timeFrom()::timestamptz\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n)\nSELECT ROUND((COALESCE(curr.avg, 0) - COALESCE(prev.avg, 0))::numeric, 0) AS \"Delta\"\nFROM curr, prev;",
+          "rawSql": "WITH curr AS (\n  SELECT AVG(avg_power) AS avg FROM activities\n  WHERE avg_power > 0\n    AND $__timeFilter(date)\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n),\nprev AS (\n  SELECT AVG(avg_power) AS avg FROM activities\n  WHERE avg_power > 0\n    AND date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz)\n    AND date < $__timeFrom()::timestamptz\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n)\nSELECT ROUND((curr.avg - prev.avg)::numeric, 0) AS \"Delta\"\nFROM curr, prev\nWHERE curr.avg IS NOT NULL AND prev.avg IS NOT NULL;",
           "format": "table",
           "refId": "A"
         }
@@ -1009,7 +1015,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH curr AS (\n  SELECT AVG(avg_hr) AS avg FROM activities\n  WHERE avg_hr > 0\n    AND $__timeFilter(date)\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n),\nprev AS (\n  SELECT AVG(avg_hr) AS avg FROM activities\n  WHERE avg_hr > 0\n    AND date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz)\n    AND date < $__timeFrom()::timestamptz\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n)\nSELECT ROUND((COALESCE(curr.avg, 0) - COALESCE(prev.avg, 0))::numeric, 0) AS \"Delta\"\nFROM curr, prev;",
+          "rawSql": "WITH curr AS (\n  SELECT AVG(avg_hr) AS avg FROM activities\n  WHERE avg_hr > 0\n    AND $__timeFilter(date)\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n),\nprev AS (\n  SELECT AVG(avg_hr) AS avg FROM activities\n  WHERE avg_hr > 0\n    AND date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz)\n    AND date < $__timeFrom()::timestamptz\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n)\nSELECT ROUND((curr.avg - prev.avg)::numeric, 0) AS \"Delta\"\nFROM curr, prev\nWHERE curr.avg IS NOT NULL AND prev.avg IS NOT NULL;",
           "format": "table",
           "refId": "A"
         }
@@ -1064,7 +1070,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH curr AS (\n  SELECT AVG(avg_speed_kmh) AS avg FROM activities\n  WHERE avg_speed_kmh > 0 AND distance_m > 5000\n    AND $__timeFilter(date)\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n),\nprev AS (\n  SELECT AVG(avg_speed_kmh) AS avg FROM activities\n  WHERE avg_speed_kmh > 0 AND distance_m > 5000\n    AND date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz)\n    AND date < $__timeFrom()::timestamptz\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n)\nSELECT ROUND(((COALESCE(curr.avg, 0) - COALESCE(prev.avg, 0))::numeric) * 0.621371, 1) AS \"Delta\"\nFROM curr, prev;",
+          "rawSql": "WITH curr AS (\n  SELECT AVG(avg_speed_kmh) AS avg FROM activities\n  WHERE avg_speed_kmh > 0 AND distance_m > 5000\n    AND $__timeFilter(date)\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n),\nprev AS (\n  SELECT AVG(avg_speed_kmh) AS avg FROM activities\n  WHERE avg_speed_kmh > 0 AND distance_m > 5000\n    AND date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz)\n    AND date < $__timeFrom()::timestamptz\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n)\nSELECT ROUND(((curr.avg - prev.avg)::numeric) * 0.621371, 1) AS \"Delta\"\nFROM curr, prev\nWHERE curr.avg IS NOT NULL AND prev.avg IS NOT NULL;",
           "format": "table",
           "refId": "A"
         }
@@ -1119,7 +1125,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH curr AS (\n  SELECT AVG(aerobic_decoupling) AS avg FROM activities\n  WHERE aerobic_decoupling IS NOT NULL AND duration_s > 1800\n    AND $__timeFilter(date)\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n),\nprev AS (\n  SELECT AVG(aerobic_decoupling) AS avg FROM activities\n  WHERE aerobic_decoupling IS NOT NULL AND duration_s > 1800\n    AND date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz)\n    AND date < $__timeFrom()::timestamptz\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n)\nSELECT ROUND((COALESCE(curr.avg, 0) - COALESCE(prev.avg, 0))::numeric, 2) AS \"Delta\"\nFROM curr, prev;",
+          "rawSql": "WITH curr AS (\n  SELECT AVG(aerobic_decoupling) AS avg FROM activities\n  WHERE aerobic_decoupling IS NOT NULL AND duration_s > 1800\n    AND $__timeFilter(date)\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n),\nprev AS (\n  SELECT AVG(aerobic_decoupling) AS avg FROM activities\n  WHERE aerobic_decoupling IS NOT NULL AND duration_s > 1800\n    AND date >= $__timeFrom()::timestamptz - ($__timeTo()::timestamptz - $__timeFrom()::timestamptz)\n    AND date < $__timeFrom()::timestamptz\n    AND (('${sport_type}' = 'all') OR sport_type = '${sport_type}')\n)\nSELECT ROUND((curr.avg - prev.avg)::numeric, 2) AS \"Delta\"\nFROM curr, prev\nWHERE curr.avg IS NOT NULL AND prev.avg IS NOT NULL;",
           "format": "table",
           "refId": "A"
         }
@@ -1220,8 +1226,8 @@
       "gridPos": {
         "x": 0,
         "y": 14,
-        "w": 24,
-        "h": 3
+        "w": 18,
+        "h": 6
       },
       "datasource": {
         "type": "postgres",
@@ -1323,13 +1329,127 @@
       "description": "Ride type distribution in the selected period.\n\n\ud83d\udd35 Outdoor\n\n\ud83d\udfe0 Zwift\n\n\ud83d\udfe2 E-Bike\n\n\ud83d\udfe3 Indoor"
     },
     {
+      "id": 1800,
+      "title": "Last Sync",
+      "type": "stat",
+      "gridPos": {
+        "x": 18,
+        "y": 14,
+        "w": 6,
+        "h": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT EXTRACT(EPOCH FROM NOW() - last_synced_at)::int AS \"Last Sync\"\nFROM sync_state\nWHERE key = 'last_successful_poll' AND last_synced_at IS NOT NULL;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No sync yet",
+          "unit": "dtdurations",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#2ecc71",
+                "value": null
+              },
+              {
+                "color": "#f1c40f",
+                "value": 3600
+              },
+              {
+                "color": "#e74c3c",
+                "value": 21600
+              }
+            ]
+          }
+        }
+      },
+      "description": "Time since every enabled source last polled clean. An error, a ride that failed to store, a window of nothing but Strava stubs, or an empty reply over rides we hold do not count. A quiet week with nothing new does.\n\n\ud83d\udfe2 < 1 h \u2014 Healthy\n\n\ud83d\udfe1 1 \u2013 6 h \u2014 Delayed\n\n\ud83d\udd34 > 6 h \u2014 Stalled\n\nPolls run every 10 minutes by default. Red is where the Ingestion Stalled alert fires."
+    },
+    {
+      "id": 1801,
+      "title": "Skipped Rides",
+      "type": "stat",
+      "gridPos": {
+        "x": 18,
+        "y": 17,
+        "w": 6,
+        "h": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT value::int AS \"Skipped\"\nFROM sync_state\nWHERE key = 'intervals_icu_skipped_stubs' AND value ~ '^[0-9]+$';",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#2ecc71",
+                "value": null
+              },
+              {
+                "color": "#f1c40f",
+                "value": 1
+              }
+            ]
+          }
+        }
+      },
+      "description": "Rides in the sync window that intervals.icu lists but cannot serve. They reached it through Strava, whose API terms forbid re-serving them, so they are missing here.\n\n\ud83d\udfe2 0 \u2014 Every ride readable\n\n\ud83d\udfe1 1+ \u2014 Rides missing\n\nUpload them directly to intervals.icu, or connect the device to it, to get them through."
+    },
+    {
       "id": 200,
       "type": "row",
       "title": "Fitness",
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 17,
+        "y": 20,
         "w": 24,
         "h": 1
       },
@@ -1341,7 +1461,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 18,
+        "y": 21,
         "w": 24,
         "h": 8
       },
@@ -1440,23 +1560,19 @@
                       "value": null
                     },
                     {
-                      "color": "#e67e22",
+                      "color": "#2ecc71",
                       "value": -30
                     },
                     {
-                      "color": "#f1c40f",
+                      "color": "#808080",
                       "value": -10
                     },
                     {
-                      "color": "#2ecc71",
+                      "color": "#3498db",
                       "value": 5
                     },
                     {
-                      "color": "#3498db",
-                      "value": 15
-                    },
-                    {
-                      "color": "#9333ea",
+                      "color": "#f1c40f",
                       "value": 25
                     }
                   ]
@@ -1466,7 +1582,7 @@
           }
         ]
       },
-      "description": "Fitness Curves\n\n\ud83d\udd35 CTL (Chronic Training Load) \u2014 42-day rolling fitness.\n\n\ud83d\udfe0 ATL (Acute Training Load) \u2014 7-day rolling fatigue.\n\nTSB (Form) \u2014 CTL minus ATL. Colour-filled by training zone:\n\n\ud83d\udd34 < -30 \u2014 overreached\n\n\ud83d\udfe0 -30 to -10 \u2014 fatigued\n\n\ud83d\udfe1 -10 to +5 \u2014 neutral\n\n\ud83d\udfe2 +5 to +15 \u2014 optimal\n\n\ud83d\udd35 +15 to +25 \u2014 fresh\n\n\ud83d\udfe3 > +25 \u2014 detraining risk"
+      "description": "Fitness Curves\n\n\ud83d\udd35 CTL (Chronic Training Load) \u2014 42-day rolling fitness.\n\n\ud83d\udfe0 ATL (Acute Training Load) \u2014 7-day rolling fatigue.\n\nTSB (Form) \u2014 CTL minus ATL. Form bands:\n\n\ud83d\udd34 < -30 \u2014 High risk\n\n\ud83d\udfe2 -30 to -10 \u2014 Productive\n\n\ud83d\udd18 -10 to +5 \u2014 Transitional\n\n\ud83d\udd35 +5 to +25 \u2014 Fresh\n\n\ud83d\udfe1 > +25 \u2014 Detraining"
     },
     {
       "id": 222,
@@ -1474,7 +1590,7 @@
       "type": "stat",
       "gridPos": {
         "x": 0,
-        "y": 26,
+        "y": 29,
         "w": 6,
         "h": 4
       },
@@ -1484,7 +1600,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND(tsb::numeric, 1) AS \"TSB\" FROM athlete_stats ORDER BY date DESC LIMIT 1;",
+          "rawSql": "SELECT ROUND(tsb::numeric, 1) AS \"TSB\" FROM athlete_stats WHERE tsb IS NOT NULL ORDER BY date DESC LIMIT 1;",
           "format": "table",
           "refId": "A"
         }
@@ -1508,20 +1624,24 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "red",
+                "color": "#e74c3c",
                 "value": null
               },
               {
-                "color": "orange",
+                "color": "#2ecc71",
+                "value": -30
+              },
+              {
+                "color": "#808080",
                 "value": -10
               },
               {
-                "color": "green",
-                "value": 0
+                "color": "#3498db",
+                "value": 5
               },
               {
-                "color": "blue",
-                "value": 15
+                "color": "#f1c40f",
+                "value": 25
               }
             ]
           },
@@ -1529,10 +1649,10 @@
             {
               "type": "range",
               "options": {
-                "from": 15,
+                "from": 25,
                 "to": 999,
                 "result": {
-                  "text": "Fresh",
+                  "text": "Detraining",
                   "index": 0
                 }
               }
@@ -1540,10 +1660,10 @@
             {
               "type": "range",
               "options": {
-                "from": 0,
-                "to": 15,
+                "from": 5,
+                "to": 25,
                 "result": {
-                  "text": "Optimal",
+                  "text": "Fresh",
                   "index": 1
                 }
               }
@@ -1552,9 +1672,9 @@
               "type": "range",
               "options": {
                 "from": -10,
-                "to": 0,
+                "to": 5,
                 "result": {
-                  "text": "Tired",
+                  "text": "Transitional",
                   "index": 2
                 }
               }
@@ -1562,11 +1682,22 @@
             {
               "type": "range",
               "options": {
-                "from": -999,
+                "from": -30,
                 "to": -10,
                 "result": {
-                  "text": "Overreached",
+                  "text": "Productive",
                   "index": 3
+                }
+              }
+            },
+            {
+              "type": "range",
+              "options": {
+                "from": -999,
+                "to": -30,
+                "result": {
+                  "text": "High risk",
+                  "index": 4
                 }
               }
             }
@@ -1574,7 +1705,7 @@
           "noValue": "No data"
         }
       },
-      "description": "Training Stress Balance (Form)\nCTL minus ATL \u2014 are you fresh or fatigued?\n\n\ud83d\udd34 < -10 \u2014 Overreached, need rest\n\ud83d\udfe0 -10 to 0 \u2014 Tired, normal training fatigue\n\ud83d\udfe2 0 to 15 \u2014 Optimal, good balance\n\ud83d\udd35 > 15 \u2014 Fresh, race-ready (fitness may be declining)"
+      "description": "Training Stress Balance (Form): CTL minus ATL.\n\n\ud83d\udd34 < -30 \u2014 High risk\n\n\ud83d\udfe2 -30 to -10 \u2014 Productive\n\n\ud83d\udd18 -10 to +5 \u2014 Transitional\n\n\ud83d\udd35 +5 to +25 \u2014 Fresh\n\n\ud83d\udfe1 > +25 \u2014 Detraining\n\nFriel's scale. A normal training block sits in Productive; only High risk calls for rest."
     },
     {
       "id": 225,
@@ -1583,7 +1714,7 @@
       "type": "stat",
       "gridPos": {
         "x": 6,
-        "y": 26,
+        "y": 29,
         "w": 6,
         "h": 4
       },
@@ -1645,7 +1776,7 @@
       "description": "Foster Training Monotony over the last 7 days.\n\nMonotony = mean(daily TSS) / stdev(daily TSS).\n\nMeasures how repetitive your training load is.\nHigh monotony + high strain = overreaching risk.\n\n\ud83d\udfe2 < 1.5 \u2014 varied training\n\n\ud83d\udfe1 1.5\u20132.0 \u2014 moderately repetitive\n\n\ud83d\udd34 > 2.0 \u2014 monotonous, watch for overreaching",
       "gridPos": {
         "x": 12,
-        "y": 26,
+        "y": 29,
         "w": 6,
         "h": 4
       },
@@ -1655,7 +1786,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH days AS (\n  SELECT d::date AS day\n  FROM generate_series(CURRENT_DATE - interval '6 days', CURRENT_DATE, '1 day') d\n),\ndaily AS (\n  SELECT days.day, COALESCE(SUM(a.tss), 0) AS daily_tss\n  FROM days\n  LEFT JOIN activities a ON a.date::date = days.day\n    AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')\n  GROUP BY days.day\n)\nSELECT ROUND((AVG(daily_tss) / NULLIF(STDDEV(daily_tss), 0))::numeric, 2) AS \"Monotony\"\nFROM daily;",
+          "rawSql": "WITH days AS (\n  SELECT d::date AS day\n  FROM generate_series(CURRENT_DATE - interval '6 days', CURRENT_DATE, '1 day') d\n),\ndaily AS (\n  SELECT days.day, COALESCE(SUM(a.tss), 0) AS daily_tss\n  FROM days\n  LEFT JOIN activities a ON a.date::date = days.day\n    AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')\n  GROUP BY days.day\n)\nSELECT ROUND((AVG(daily_tss) / NULLIF(STDDEV(daily_tss), 0))::numeric, 2) AS \"Monotony\"\nFROM daily\nHAVING STDDEV(daily_tss) > 0;",
           "format": "table",
           "refId": "A"
         }
@@ -1704,7 +1835,7 @@
       "description": "Foster Training Strain over the last 7 days.\n\nStrain = weekly TSS \u00d7 Monotony.\n\nCombines training volume with repetitiveness.\nHigh strain without recovery = overreaching.\n\n\ud83d\udfe2 < 200 \u2014 manageable\n\n\ud83d\udfe1 200\u2013400 \u2014 moderate, ensure recovery\n\n\ud83d\udd34 > 400 \u2014 high strain, recovery needed",
       "gridPos": {
         "x": 18,
-        "y": 26,
+        "y": 29,
         "w": 6,
         "h": 4
       },
@@ -1714,7 +1845,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH days AS (\n  SELECT d::date AS day\n  FROM generate_series(CURRENT_DATE - interval '6 days', CURRENT_DATE, '1 day') d\n),\ndaily AS (\n  SELECT days.day, COALESCE(SUM(a.tss), 0) AS daily_tss\n  FROM days\n  LEFT JOIN activities a ON a.date::date = days.day\n    AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')\n  GROUP BY days.day\n)\nSELECT ROUND((SUM(daily_tss) * AVG(daily_tss) / NULLIF(STDDEV(daily_tss), 0))::numeric, 0) AS \"Strain\"\nFROM daily;",
+          "rawSql": "WITH days AS (\n  SELECT d::date AS day\n  FROM generate_series(CURRENT_DATE - interval '6 days', CURRENT_DATE, '1 day') d\n),\ndaily AS (\n  SELECT days.day, COALESCE(SUM(a.tss), 0) AS daily_tss\n  FROM days\n  LEFT JOIN activities a ON a.date::date = days.day\n    AND (('${sport_type}' = 'all') OR a.sport_type = '${sport_type}')\n  GROUP BY days.day\n)\nSELECT ROUND((SUM(daily_tss) * AVG(daily_tss) / NULLIF(STDDEV(daily_tss), 0))::numeric, 0) AS \"Strain\"\nFROM daily\nHAVING STDDEV(daily_tss) > 0;",
           "format": "table",
           "refId": "A"
         }
@@ -1762,7 +1893,7 @@
       "type": "stat",
       "gridPos": {
         "x": 0,
-        "y": 30,
+        "y": 33,
         "w": 3,
         "h": 3
       },
@@ -1805,7 +1936,7 @@
       "type": "stat",
       "gridPos": {
         "x": 3,
-        "y": 30,
+        "y": 33,
         "w": 3,
         "h": 3
       },
@@ -1846,10 +1977,10 @@
       "id": 1701,
       "type": "stat",
       "title": "Est. VO2max",
-      "description": "Estimated VO2max from CP and body weight.\n\n\ud83d\udd18 < 50 \u2014 recreational\n\n\ud83d\udd35 50-60 \u2014 club level\n\n\ud83d\udfe2 60-70 \u2014 competitive\n\n\ud83d\udfe1 70-80 \u2014 elite\n\n\ud83d\udfe3 80+ \u2014 professional",
+      "description": "Estimated VO2max from your best 5-min power in the last 90 days and that ride's weight.\n\nFormula: 16.6 + 8.87 \u00d7 W/kg (Sitko et al. 2022).\n\n\ud83d\udd18 < 50 \u2014 recreational\n\n\ud83d\udd35 50-60 \u2014 club level\n\n\ud83d\udfe2 60-70 \u2014 competitive\n\n\ud83d\udfe1 70-80 \u2014 elite\n\n\ud83d\udfe3 80+ \u2014 professional\n\nFitted on road cyclists doing an all-out 5-min test, so it reads low when no ride held a maximal 5 minutes.",
       "gridPos": {
         "x": 6,
-        "y": 30,
+        "y": 33,
         "w": 6,
         "h": 3
       },
@@ -1859,7 +1990,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND((10.8 * (c.cp_watts::numeric / w.ride_weight::numeric) + 7)::numeric, 1) AS \"VO2max\"\nFROM cp_estimates c,\n  (SELECT ride_weight FROM activities WHERE ride_weight IS NOT NULL AND ride_weight > 0 ORDER BY date DESC LIMIT 1) w\nWHERE c.source = 'cp'\nORDER BY c.date DESC LIMIT 1;",
+          "rawSql": "WITH rolling AS (\n  SELECT s.activity_id,\n    AVG(s.power) OVER w AS watts,\n    COUNT(*) OVER w AS window_size\n  FROM activity_streams s\n  JOIN activities a ON a.id = s.activity_id\n  WHERE s.power IS NOT NULL\n    AND a.ride_weight > 0\n    AND a.date >= CURRENT_DATE - INTERVAL '90 days'\n  WINDOW w AS (\n    PARTITION BY s.activity_id\n    ORDER BY s.time_offset\n    ROWS BETWEEN 299 PRECEDING AND CURRENT ROW\n  )\n)\nSELECT ROUND((16.6 + 8.87 * r.watts / a.ride_weight)::numeric, 1) AS \"VO2max\"\nFROM rolling r\nJOIN activities a ON a.id = r.activity_id\nWHERE r.window_size >= 300\nORDER BY r.watts DESC\nLIMIT 1;",
           "format": "table",
           "refId": "A"
         }
@@ -1911,136 +2042,12 @@
       }
     },
     {
-      "id": 1600,
-      "type": "stat",
-      "title": "Athlete Type",
-      "description": "Classification from W'/CP ratio (J/W).\n\n\ud83d\udfe2 < 10 \u2014 Climber\n\n\ud83d\udd35 10\u201315 \u2014 Time Trialist\n\n\ud83d\udfe1 15\u201320 \u2014 Rouleur\n\n\ud83d\udfe0 20\u201325 \u2014 Pursuiter\n\n\ud83d\udd34 > 25 \u2014 Sprinter",
-      "gridPos": {
-        "x": 12,
-        "y": 30,
-        "w": 6,
-        "h": 3
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "velomate"
-      },
-      "targets": [
-        {
-          "rawSql": "SELECT CASE\n  WHEN source != 'cp' OR cp_watts IS NULL OR w_prime_kj IS NULL THEN NULL\n  ELSE ROUND((w_prime_kj * 1000 / cp_watts)::numeric, 1)\nEND AS \"W'/CP (J/W)\"\nFROM cp_estimates\nORDER BY date DESC LIMIT 1;",
-          "format": "table",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "noValue": "No CP fit",
-          "decimals": 1,
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#2ecc71",
-                "value": null
-              },
-              {
-                "color": "#3498db",
-                "value": 10
-              },
-              {
-                "color": "#f1c40f",
-                "value": 15
-              },
-              {
-                "color": "#e67e22",
-                "value": 20
-              },
-              {
-                "color": "#e74c3c",
-                "value": 25
-              }
-            ]
-          },
-          "mappings": [
-            {
-              "type": "range",
-              "options": {
-                "from": 0,
-                "to": 10,
-                "result": {
-                  "text": "Climber",
-                  "index": 0
-                }
-              }
-            },
-            {
-              "type": "range",
-              "options": {
-                "from": 10,
-                "to": 15,
-                "result": {
-                  "text": "Time Trialist",
-                  "index": 1
-                }
-              }
-            },
-            {
-              "type": "range",
-              "options": {
-                "from": 15,
-                "to": 20,
-                "result": {
-                  "text": "Rouleur",
-                  "index": 2
-                }
-              }
-            },
-            {
-              "type": "range",
-              "options": {
-                "from": 20,
-                "to": 25,
-                "result": {
-                  "text": "Pursuiter",
-                  "index": 3
-                }
-              }
-            },
-            {
-              "type": "range",
-              "options": {
-                "from": 25,
-                "to": 999,
-                "result": {
-                  "text": "Sprinter",
-                  "index": 4
-                }
-              }
-            }
-          ]
-        }
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "textMode": "value",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        }
-      }
-    },
-    {
       "id": 403,
       "title": "6w Fitness \u0394",
       "type": "stat",
       "gridPos": {
         "x": 18,
-        "y": 30,
+        "y": 33,
         "w": 3,
         "h": 3
       },
@@ -2095,7 +2102,7 @@
       "type": "stat",
       "gridPos": {
         "x": 21,
-        "y": 30,
+        "y": 33,
         "w": 3,
         "h": 3
       },
@@ -2137,7 +2144,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 34,
+        "y": 37,
         "w": 24,
         "h": 1
       },
@@ -2149,7 +2156,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 35,
+        "y": 38,
         "w": 24,
         "h": 8
       },
@@ -2249,7 +2256,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 39,
+        "y": 42,
         "w": 24,
         "h": 8
       },
@@ -2345,7 +2352,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 47,
+        "y": 50,
         "w": 24,
         "h": 8
       },
@@ -2437,7 +2444,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 55,
+        "y": 58,
         "w": 24,
         "h": 8
       },
@@ -2529,7 +2536,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 63,
+        "y": 66,
         "w": 24,
         "h": 8
       },
@@ -2621,7 +2628,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 71,
+        "y": 74,
         "w": 24,
         "h": 8
       },
@@ -2711,13 +2718,83 @@
       "description": "7-day rolling totals \u2014 smoother than per-ride charts.\n\n\ud83d\udd35 Weekly Distance (mi)\n\n\ud83d\udfe0 Weekly Elevation (ft)\n\nNote: always shows all sports combined."
     },
     {
+      "id": 620,
+      "title": "Weekly Work Below / Above FTP",
+      "type": "timeseries",
+      "timeFrom": "12w",
+      "gridPos": {
+        "x": 0,
+        "y": 82,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT gs AS \"time\",\n  ROUND(COALESCE(SUM(a.work_kj - a.kj_above_ftp), 0)::numeric, 1) AS \"Below FTP\",\n  ROUND(COALESCE(SUM(a.kj_above_ftp), 0)::numeric, 1) AS \"Above FTP\"\nFROM generate_series(date_trunc('week', $__timeFrom()::timestamptz), date_trunc('week', $__timeTo()::timestamptz), '1 week'::interval) gs\nLEFT JOIN activities a ON date_trunc('week', a.date) = gs\n  AND a.work_kj IS NOT NULL AND a.kj_above_ftp IS NOT NULL\n  AND (CASE WHEN '${sport_type}' = 'all' THEN TRUE ELSE a.sport_type = '${sport_type}' END)\nGROUP BY gs\nORDER BY gs;",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "kJ",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "stacking": {
+              "mode": "normal"
+            },
+            "barWidthFactor": 0.6
+          },
+          "noValue": "No data"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Below FTP"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#3498db",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Above FTP"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#e67e22",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "description": "Mechanical work per week in kJ, split at the FTP stored with each ride, not at CP.\n\n\ud83d\udd35 Power up to FTP \u2014 Below FTP\n\n\ud83d\udfe0 Power over FTP \u2014 Above FTP\n\nThe split is by watts, not by seconds: a second at 300 W with a 200 W FTP adds 200 J below and 100 J above. The two add up to total work.\n\nWork is not TSS. Work rises with power and TSS with its square, so a hard week looks smaller here than on Duration & TSS.\n\nAlways the last 12 weeks, whatever the dashboard time range, because the 7-day default would show two bars at most. Whole Monday-to-Sunday weeks, so the first week still counts in full. Rides with no power data are not counted."
+    },
+    {
       "id": 450,
       "type": "row",
       "title": "Ride Patterns",
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 79,
+        "y": 90,
         "w": 24,
         "h": 1
       },
@@ -2729,7 +2806,7 @@
       "type": "barchart",
       "gridPos": {
         "x": 0,
-        "y": 80,
+        "y": 91,
         "w": 24,
         "h": 8
       },
@@ -2772,7 +2849,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 88,
+        "y": 99,
         "w": 24,
         "h": 1
       },
@@ -2784,7 +2861,7 @@
       "type": "table",
       "gridPos": {
         "x": 0,
-        "y": 89,
+        "y": 100,
         "w": 24,
         "h": 10
       },
@@ -2865,12 +2942,75 @@
       "description": "Recent rides. Click a row to open Activity Details."
     },
     {
+      "id": 1410,
+      "title": "Load Ratio",
+      "type": "stat",
+      "gridPos": {
+        "x": 12,
+        "y": 33,
+        "w": 3,
+        "h": 3
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT ROUND((atl / ctl)::numeric, 1) AS \"Load Ratio\"\nFROM (SELECT atl, ctl FROM athlete_stats ORDER BY date DESC LIMIT 1) latest\nWHERE ctl > 0 AND atl IS NOT NULL;"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "decimals": 1,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#3498db",
+                "value": null
+              },
+              {
+                "color": "#2ecc71",
+                "value": 0.8
+              },
+              {
+                "color": "#f1c40f",
+                "value": 1.5
+              },
+              {
+                "color": "#e74c3c",
+                "value": 2.0
+              }
+            ]
+          }
+        }
+      },
+      "description": "Short-term load over long-term load: ATL / CTL, the same values as the CTL / ATL / TSB chart. Around 1.0, recent training matches your usual level.\n\n\ud83d\udd35 < 0.8 \u2014 Low\n\n\ud83d\udfe2 0.8 \u2013 1.4 \u2014 Optimal\n\n\ud83d\udfe1 1.5 \u2013 1.9 \u2014 High\n\n\ud83d\udd34 \u2265 2.0 \u2014 Very high\n\nThese are Garmin's bands, applied to the one-decimal value shown here. Garmin sets them for its own EPOC-based load and says the optimal range varies by rider, so on TSS treat them as a guide, not a limit.\n\nNoisy at low CTL: from a balanced 1.0, one ride of about 5 \u00d7 CTL in TSS reads High and about 11 \u00d7 CTL reads Very high. At CTL 6 that is 30 and 66 TSS, so an ordinary ride can turn this red. Read it with Form (TSB) and CTL Ramp Rate.\n\nAlways shows all sports combined."
+    },
+    {
       "id": 1402,
       "title": "CTL Ramp Rate",
       "type": "stat",
       "gridPos": {
-        "x": 21,
-        "y": 30,
+        "x": 15,
+        "y": 33,
         "w": 3,
         "h": 3
       },

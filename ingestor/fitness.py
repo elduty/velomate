@@ -21,7 +21,7 @@ HIGH_VI_THRESHOLD = 1.30
 
 # Bump this when NP/EF/Work calculation logic changes.
 # On startup, if the stored version differs, all values are recalculated.
-METRICS_VERSION = "15"  # v15: route identity from GPS signatures
+METRICS_VERSION = "17"  # v17: climbs exclude flat approaches, distance from GPS not speed x delta-t
 
 
 def calculate_tss(duration_s: int, avg_hr: int, threshold_hr: int) -> float:
@@ -309,7 +309,10 @@ def estimate_ftp(conn, as_of_date: str | None = None) -> int:
 
     Args:
         as_of_date: if set, compute as of this date (YYYY-MM-DD) using only
-            rides up to that date. If None, uses CURRENT_DATE.
+            rides up to the end of that date. If None, uses CURRENT_DATE.
+
+    `date` is a timestamp, so the upper bound is the start of the next day. A
+    plain `date <= day` compares against midnight and leaves that day's rides out.
     """
     # COALESCE(%s, CURRENT_DATE) — passes as_of_date when set, CURRENT_DATE when None.
     # psycopg2 sends Python None as SQL NULL, so COALESCE picks the default.
@@ -318,7 +321,7 @@ def estimate_ftp(conn, as_of_date: str | None = None) -> int:
             WITH recent_activities AS (
                 SELECT id FROM activities
                 WHERE date >= COALESCE(%s::date, CURRENT_DATE) - interval '90 days'
-                  AND date <= COALESCE(%s::date, CURRENT_DATE)
+                  AND date < COALESCE(%s::date, CURRENT_DATE) + 1
                   AND avg_power IS NOT NULL AND avg_power > 0
                 ),
             rolling AS (
@@ -352,7 +355,7 @@ def estimate_ftp(conn, as_of_date: str | None = None) -> int:
             SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY avg_power)
             FROM activities
             WHERE avg_power IS NOT NULL AND avg_power > 0
-              AND date <= COALESCE(%s::date, CURRENT_DATE)
+              AND date < COALESCE(%s::date, CURRENT_DATE) + 1
         """, (as_of_date,))
         row = cur.fetchone()
         if row and row[0]:
@@ -384,7 +387,7 @@ def fit_period(conn, days: int, as_of_date: str | None = None) -> tuple[float | 
             cur.execute("""
                 SELECT a.id FROM activities a
                 WHERE a.date >= %s::date - %s * interval '1 day'
-                  AND a.date <= %s::date
+                  AND a.date < %s::date + 1
                   AND EXISTS (
                       SELECT 1 FROM activity_streams s
                       WHERE s.activity_id = a.id AND s.power IS NOT NULL
@@ -658,6 +661,12 @@ def compute_wbal_for_rides(conn) -> int:
     the value was then frozen at whatever CP happened to be latest when it was
     first computed, never refreshed as fitness moved.
 
+    The CP and W' used are stored on the ride in the same transaction as the
+    stream. w_bal outlives the estimates it came from, so anything interpreting
+    it later has to read these rather than look the date up again. A ride with
+    W'bal but no stored W' is therefore modelled again: that is how a stream from
+    before these columns gets them, and what a merge that kept its streams leaves.
+
     Returns the number of rides processed.
     """
     from critical_power import compute_wbal
@@ -680,7 +689,7 @@ def compute_wbal_for_rides(conn) -> int:
             FROM activity_streams s
             JOIN activities a ON a.id = s.activity_id
             WHERE s.power IS NOT NULL
-              AND s.w_bal IS NULL
+              AND (s.w_bal IS NULL OR a.wbal_w_prime_j IS NULL)
             ORDER BY s.activity_id
         """)
         ride_rows = cur.fetchall()
@@ -721,11 +730,23 @@ def compute_wbal_for_rides(conn) -> int:
 
             # Batch update w_bal for each time_offset
             updates = [(wbal[i], act_id, offsets[i]) for i in range(len(wbal))]
-            with conn.cursor() as cur:
-                psycopg2.extras.execute_batch(cur, """
-                    UPDATE activity_streams SET w_bal = %s
-                    WHERE activity_id = %s AND time_offset = %s
-                """, updates, page_size=1000)
+            conn.autocommit = False
+            try:
+                with conn.cursor() as cur:
+                    psycopg2.extras.execute_batch(cur, """
+                        UPDATE activity_streams SET w_bal = %s
+                        WHERE activity_id = %s AND time_offset = %s
+                    """, updates, page_size=1000)
+                    cur.execute("""
+                        UPDATE activities SET wbal_cp = %s, wbal_w_prime_j = %s
+                        WHERE id = %s
+                    """, (cp, w_prime_j, act_id))
+                conn.commit()
+            except Exception:
+                conn.rollback()
+                raise
+            finally:
+                conn.autocommit = True
         except Exception as e:
             print(f"[fitness] W'bal failed for activity {act_id} (skipping): {e}")
             continue
@@ -743,7 +764,7 @@ def detect_climbs_for_rides(conn) -> int:
 
     Returns the number of rides processed.
     """
-    from climbs import smooth_altitude, detect_climbs
+    from climbs import cumulative_distance_m, smooth_altitude, detect_climbs
 
     # Find rides with altitude data that don't have RDP-detected climb rows yet.
     # Rides may already have Strava segments (source='strava') — that's fine,
@@ -770,9 +791,7 @@ def detect_climbs_for_rides(conn) -> int:
         try:
             with conn.cursor() as cur:
                 cur.execute("""
-                    SELECT time_offset, altitude_m,
-                        COALESCE(speed_kmh, 0) / 3600.0 *
-                          (time_offset - LAG(time_offset, 1, time_offset) OVER (ORDER BY time_offset)) AS dist_delta
+                    SELECT time_offset, altitude_m, lat, lng
                     FROM activity_streams
                     WHERE activity_id = %s AND altitude_m IS NOT NULL
                     ORDER BY time_offset
@@ -788,14 +807,9 @@ def detect_climbs_for_rides(conn) -> int:
                     """, (act_id,))
                 continue
 
-            time_offsets = []
-            altitudes_raw = []
-            cum_dist = [0.0]
-            for offset, alt, dist_d in rows:
-                time_offsets.append(offset)
-                altitudes_raw.append(alt)
-                cum_dist.append(cum_dist[-1] + (dist_d if dist_d else 0.0))
-            cum_dist_m = [d * 1000.0 for d in cum_dist[1:]]  # km to m
+            time_offsets = [row[0] for row in rows]
+            altitudes_raw = [row[1] for row in rows]
+            cum_dist_m = cumulative_distance_m([(row[2], row[3]) for row in rows])
 
             # Smooth with 20s window (matches Grade panel)
             altitudes = smooth_altitude(altitudes_raw, window=20)
@@ -895,6 +909,34 @@ def _backfill_strava_segments_safely(conn) -> None:
         print(f"[fitness] Strava segment backfill failed (non-fatal): {e}")
 
 
+def _whole_units(text: str) -> int:
+    """A number held in a string, rounded half up, with anything below 1 as 0."""
+    value = float(text)
+    if not math.isfinite(value):
+        raise ValueError(text)
+    return max(int(value + 0.5), 0)
+
+
+def configured_threshold(conn, name: str, stored_key: str) -> int:
+    """The FTP or heart rate set in env var `name`, in whole units, or 0 if none.
+
+    Startup and recalculation both read through here, so they cannot disagree. A
+    value that cannot be read keeps the last good one from sync_state: 0 would look
+    like a change and make startup reset every ride, and raising would stop the
+    ingestor over a typo.
+    """
+    raw = os.environ.get(name, "")
+    if not raw:
+        return 0
+    try:
+        return _whole_units(raw)
+    except ValueError:
+        import db as _db
+        stored = _db.get_sync_state(conn, stored_key) or "0"
+        print(f"[config] Invalid {name}={raw!r}: not a number. Keeping the last good value, {stored}.")
+        return _whole_units(stored)
+
+
 def recalculate_fitness(conn):
     """
     Walk day-by-day from earliest activity, applying EMA:
@@ -907,13 +949,7 @@ def recalculate_fitness(conn):
     from db import upsert_athlete_stats
 
     # Use configured values if set, otherwise auto-estimate from data
-    env_max_hr = os.environ.get("VELOMATE_MAX_HR", "")
-    env_ftp = os.environ.get("VELOMATE_FTP", "")
-
-    try:
-        hr_val = int(env_max_hr) if env_max_hr else 0
-    except ValueError:
-        hr_val = 0
+    hr_val = configured_threshold(conn, "VELOMATE_MAX_HR", "configured_max_hr")
     if hr_val > 0:
         threshold_hr = hr_val
         print(f"[fitness] Using configured max HR: {threshold_hr}")
@@ -921,10 +957,7 @@ def recalculate_fitness(conn):
         threshold_hr = estimate_threshold_hr(conn)
         print(f"[fitness] Auto-estimated threshold HR: {threshold_hr}")
 
-    try:
-        ftp_val = int(env_ftp) if env_ftp else 0
-    except ValueError:
-        ftp_val = 0
+    ftp_val = configured_threshold(conn, "VELOMATE_FTP", "configured_ftp")
 
     # Always compute the auto-estimate so it can be persisted as a diagnostic
     # value alongside the configured FTP, regardless of which one is in use.
@@ -936,11 +969,7 @@ def recalculate_fitness(conn):
         ftp = auto_ftp
         print(f"[fitness] Auto-estimated FTP: {ftp}W (rolling 90-day best 20min × 0.95)")
 
-    env_rhr = os.environ.get("VELOMATE_RESTING_HR", "")
-    try:
-        rhr_val = int(env_rhr) if env_rhr else 0
-    except ValueError:
-        rhr_val = 0
+    rhr_val = configured_threshold(conn, "VELOMATE_RESTING_HR", "configured_resting_hr")
     resting_hr = rhr_val if rhr_val > 0 else 50
     print(f"[fitness] Resting HR: {resting_hr} {'(configured)' if rhr_val > 0 else '(default 50 bpm)'}")
 
@@ -964,7 +993,7 @@ def recalculate_fitness(conn):
         with conn.cursor() as cur:
             # ride_weight intentionally excluded — it's user-configured, not derived.
             # Historical rides preserve their stamped weight across version bumps.
-            cur.execute("UPDATE activities SET tss = NULL, np = NULL, ef = NULL, work_kj = NULL, ride_ftp = NULL, intensity_factor = NULL, trimp = NULL, variability_index = NULL, aerobic_decoupling = NULL, coasting_time_s = NULL, kj_above_ftp = NULL, polarization_index = NULL, route_signature = NULL")
+            cur.execute("UPDATE activities SET tss = NULL, np = NULL, ef = NULL, work_kj = NULL, ride_ftp = NULL, intensity_factor = NULL, trimp = NULL, variability_index = NULL, aerobic_decoupling = NULL, coasting_time_s = NULL, kj_above_ftp = NULL, polarization_index = NULL, route_signature = NULL, wbal_cp = NULL, wbal_w_prime_j = NULL")
             cur.execute("UPDATE activity_streams SET w_bal = NULL WHERE w_bal IS NOT NULL")
             cur.execute("DELETE FROM athlete_stats")
             cur.execute("DELETE FROM ride_intervals")
@@ -1562,5 +1591,18 @@ def recalculate_fitness(conn):
             print(f"[fitness] Detected climbs for {climb_count} rides")
     except Exception as e:
         print(f"[fitness] Climb detection failed (non-fatal): {e}")
+
+    # Step 8c: Climb segments, after 8b because detected climbs seed them
+    print("[fitness] Matching climb segments...")
+    try:
+        from segments import discover_segments, match_efforts
+        created = discover_segments(conn)
+        if created:
+            print(f"[fitness] Discovered {created} new climb segments")
+        stored = match_efforts(conn)
+        if stored:
+            print(f"[fitness] Stored {stored} climb segment efforts")
+    except Exception as e:
+        print(f"[fitness] Climb segment matching failed (non-fatal): {e}")
 
     print(f"[fitness] Calculated {count} days of fitness data (CTL={ctl:.1f}, ATL={atl:.1f}, TSB={ctl-atl:.1f})")

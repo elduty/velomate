@@ -5,9 +5,26 @@ from velomate.config import load as load_config
 from velomate.units import normalize_system, format_temp, format_speed, format_distance, format_elevation, format_precip
 
 
+def form_band(tsb: float) -> str:
+    """Return the Form (TSB) band on Friel's scale, as shown on the dashboards.
+
+    A boundary value belongs to the band above it, matching Grafana's thresholds.
+    """
+    if tsb < -30:
+        return "high risk"
+    if tsb < -10:
+        return "productive"
+    if tsb < 5:
+        return "transitional"
+    if tsb < 25:
+        return "fresh"
+    return "detraining"
+
+
 def _top_routes(tours: List[Dict], n: int = 3, tsb: float = None) -> List[Dict]:
     """Return top N routes, deduplicated by distance/elevation bucket.
-    If TSB provided, prefer shorter/flatter when fatigued, longer/hillier when fresh.
+    If TSB provided, prefer shorter/flatter at high risk, longer/hillier when
+    fresh or detraining. Productive and transitional form is normal training.
     """
     seen = set()
     results = []
@@ -15,11 +32,12 @@ def _top_routes(tours: List[Dict], n: int = 3, tsb: float = None) -> List[Dict]:
     sorted_tours = sorted(tours, key=lambda x: x.get("date", ""), reverse=True)
 
     # If we have TSB, adjust preferred route difficulty
-    if tsb is not None and tsb < -10:
-        # Fatigued — prefer shorter/flatter routes (sort by distance ascending)
+    band = form_band(tsb) if tsb is not None else None
+    if band == "high risk":
+        # High risk — prefer shorter/flatter routes (sort by distance ascending)
         sorted_tours = sorted(sorted_tours, key=lambda x: x.get("distance", 0))
-    elif tsb is not None and tsb > 10:
-        # Fresh — prefer longer/hillier routes (sort by distance descending)
+    elif band in ("fresh", "detraining"):
+        # Rested — prefer longer/hillier routes (sort by distance descending)
         sorted_tours = sorted(sorted_tours, key=lambda x: x.get("distance", 0), reverse=True)
 
     for t in sorted_tours:
@@ -41,12 +59,16 @@ def _form_note(fitness: Dict) -> Optional[str]:
     if tsb is None:
         return None
     tsb = float(tsb)
-    if tsb > 10:
-        return f"🟢 You're fresh (TSB +{tsb:.0f}) — good day to push hard"
-    elif tsb > -10:
-        return f"🟡 Form is neutral (TSB {tsb:+.0f}) — normal ride day"
-    else:
-        return f"🔴 You're fatigued (TSB {tsb:.0f}) — take it easy or rest"
+    band = form_band(tsb)
+    if band == "high risk":
+        return f"🔴 High risk (TSB {tsb:.0f}) — take it easy or rest"
+    if band == "productive":
+        return f"🟢 Productive load (TSB {tsb:.0f}) — normal training, keep building"
+    if band == "transitional":
+        return f"🔘 Form is transitional (TSB {tsb:+.0f}) — normal ride day"
+    if band == "fresh":
+        return f"🔵 You're fresh (TSB {tsb:+.0f}) — good day to push hard"
+    return f"🟡 You're detraining (TSB {tsb:+.0f}) — fitness is slipping, time to ride"
 
 
 def recommend(days: List[Dict], tours: List[Dict], fitness: Dict = None) -> str:
@@ -103,10 +125,11 @@ def recommend(days: List[Dict], tours: List[Dict], fitness: Dict = None) -> str:
     # Route suggestions
     if routes:
         lines.append("*🗺 Route Suggestions*")
-        if tsb is not None and float(tsb) < -10:
-            lines.append("  _Showing easier routes (you're fatigued)_")
-        elif tsb is not None and float(tsb) > 10:
-            lines.append("  _Showing challenging routes (you're fresh!)_")
+        band = form_band(float(tsb)) if tsb is not None else None
+        if band == "high risk":
+            lines.append("  _Showing easier routes (form is high risk)_")
+        elif band in ("fresh", "detraining"):
+            lines.append(f"  _Showing challenging routes (you're {band}!)_")
         for i, r in enumerate(routes, 1):
             dist = r["distance"] / 1000
             elev = r.get("elevation_up", 0)

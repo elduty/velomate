@@ -6,6 +6,13 @@ from datetime import datetime, timezone
 import psycopg2
 import psycopg2.extras
 
+from route_match import haversine_m
+
+# Above this a GPS-derived speed is a jump in the fix, not riding
+MAX_DERIVED_SPEED_KMH = 120.0
+# One GPS step is mostly noise: 3 m of error at 1 Hz reads as 10 km/h
+SPEED_WINDOW_S = 5
+
 
 def get_connection():
     """Connect to PostgreSQL using DATABASE_URL env var."""
@@ -170,6 +177,11 @@ def create_schema(conn):
                 ON activities(komoot_tour_id) WHERE komoot_tour_id IS NOT NULL;
 
             ALTER TABLE activity_streams ADD COLUMN IF NOT EXISTS w_bal FLOAT;
+            -- The CP (watts) and W' (joules) this ride's w_bal was modelled with.
+            -- Stored by the W'bal step rather than looked up again, because
+            -- estimates change after a ride is modelled and w_bal does not.
+            ALTER TABLE activities ADD COLUMN IF NOT EXISTS wbal_cp FLOAT;
+            ALTER TABLE activities ADD COLUMN IF NOT EXISTS wbal_w_prime_j FLOAT;
 
             ALTER TABLE activities ADD COLUMN IF NOT EXISTS rwgps_id BIGINT;
             CREATE UNIQUE INDEX IF NOT EXISTS idx_activities_rwgps_id
@@ -206,6 +218,48 @@ def create_schema(conn):
             ALTER TABLE ride_climbs ADD COLUMN IF NOT EXISTS score INTEGER;
 
             CREATE INDEX IF NOT EXISTS idx_ride_climbs_activity_id ON ride_climbs(activity_id);
+
+            -- Recurring climbs matched across rides (see ingestor/segments.py).
+            -- name is set by hand (segments.py rename) and wins over auto_name.
+            CREATE TABLE IF NOT EXISTS climb_segments (
+                id          SERIAL PRIMARY KEY,
+                name        TEXT,
+                auto_name   TEXT NOT NULL,
+                start_lat   DOUBLE PRECISION NOT NULL,
+                start_lng   DOUBLE PRECISION NOT NULL,
+                end_lat     DOUBLE PRECISION NOT NULL,
+                end_lng     DOUBLE PRECISION NOT NULL,
+                start_alt   INTEGER,
+                end_alt     INTEGER,
+                length_m    INTEGER,
+                gain_m      INTEGER,
+                avg_grade   FLOAT,
+                category    TEXT,
+                created_at  TIMESTAMPTZ DEFAULT NOW()
+            );
+
+            CREATE TABLE IF NOT EXISTS climb_efforts (
+                id              SERIAL PRIMARY KEY,
+                segment_id      INTEGER NOT NULL REFERENCES climb_segments(id) ON DELETE CASCADE,
+                activity_id     INTEGER NOT NULL REFERENCES activities(id) ON DELETE CASCADE,
+                start_offset    INTEGER NOT NULL,
+                end_offset      INTEGER NOT NULL,
+                elapsed_s       INTEGER NOT NULL,
+                moving_s        INTEGER,
+                avg_speed_kmh   FLOAT,
+                vam_mh          INTEGER,
+                avg_hr          INTEGER,
+                avg_power       INTEGER,
+                UNIQUE (segment_id, activity_id, start_offset)
+            );
+            CREATE INDEX IF NOT EXISTS idx_climb_efforts_activity_id ON climb_efforts(activity_id);
+
+            -- (segment, ride) pairs already matched, so each ride is scanned once.
+            CREATE TABLE IF NOT EXISTS climb_segment_scans (
+                segment_id  INTEGER NOT NULL REFERENCES climb_segments(id) ON DELETE CASCADE,
+                activity_id INTEGER NOT NULL REFERENCES activities(id) ON DELETE CASCADE,
+                PRIMARY KEY (segment_id, activity_id)
+            );
 
             CREATE INDEX IF NOT EXISTS idx_streams_power ON activity_streams(activity_id, time_offset) WHERE power IS NOT NULL;
         """)
@@ -288,8 +342,8 @@ def _is_same_source_activity(duplicate: tuple, data: dict) -> bool:
 # Explicit source precedence. intervals.icu is VeloMate's primary source, so it
 # wins the merge base regardless of richness — otherwise primacy would be an
 # emergent property of scoring rather than an invariant that can be tested.
-# Per-column COALESCE in _do_insert still backfills sensor gaps from the loser,
-# so choosing a base by source never discards a sensor value only one source had.
+# Per-column COALESCE in _merge_in_place still backfills gaps from the loser, so
+# choosing a base by source never discards a value only one source had.
 #
 # Strava and RWGPS sit at the SAME tier deliberately. Ranking them against each
 # other was not asked for and loses data: the skip-path UPDATE carries sensor
@@ -363,15 +417,14 @@ def merge_activity_data(existing: tuple, new_data: dict) -> dict:
             merged["strava_id"] = ex_strava_id
         if not merged.get("rwgps_id") and ex_rwgps_id:
             merged["rwgps_id"] = ex_rwgps_id
-        # Both intervals.icu columns must survive: this path delete-and-
-        # reinserts, so a lost analyzed makes the sync gate fire on every poll
-        # for that ride, forever.
+        # Both intervals.icu columns must survive: a lost analyzed makes the
+        # sync gate fire on every poll for that ride, forever.
         if not merged.get("intervals_icu_id") and ex_icu_id:
             merged["intervals_icu_id"] = ex_icu_id
         if not merged.get("intervals_icu_analyzed") and ex_icu_analyzed:
             merged["intervals_icu_analyzed"] = ex_icu_analyzed
-        # Carry suffer_score — only Strava supplies it, and the merge path
-        # delete-and-reinserts the row, so an unfilled gap would lose it
+        # Carry suffer_score — only Strava supplies it, and Strava never
+        # re-fetches an old activity, so a value lost here does not come back
         if merged.get("suffer_score") is None and ex_suffer is not None:
             merged["suffer_score"] = ex_suffer
     else:
@@ -397,9 +450,17 @@ def _do_insert(conn, data: dict, now) -> int:
     'updated' event would zero a richer source's value — NULLIF maps that 0
     back to NULL so COALESCE keeps the existing value, while a real edit (any
     non-zero value) still propagates.
+
+    intervals_icu_analyzed is written as sent on the intervals.icu target, so
+    stored and incoming compare equal afterwards even when the remote value went
+    back to null. Keeping the old timestamp there would leave the sync gate open
+    on every poll. The other two targets never carry a value for it and must not
+    clear the one a dual-source row holds.
     """
     params = {"strava_id": None, "rwgps_id": None, "intervals_icu_id": None,
               "intervals_icu_analyzed": None, **data, "synced_at": now}
+    analyzed_set = ("COALESCE(EXCLUDED.intervals_icu_analyzed, "
+                    "activities.intervals_icu_analyzed)")
     if params["strava_id"] is not None:
         conflict_target = "(strava_id)"
         suffer_set = ",\n                suffer_score = EXCLUDED.suffer_score"
@@ -409,6 +470,7 @@ def _do_insert(conn, data: dict, now) -> int:
     else:
         conflict_target = "(intervals_icu_id) WHERE intervals_icu_id IS NOT NULL"
         suffer_set = ""
+        analyzed_set = "EXCLUDED.intervals_icu_analyzed"
     with conn.cursor() as cur:
         cur.execute(f"""
             INSERT INTO activities (
@@ -440,24 +502,175 @@ def _do_insert(conn, data: dict, now) -> int:
                 is_indoor = EXCLUDED.is_indoor,
                 sport_type = EXCLUDED.sport_type,
                 intervals_icu_id = COALESCE(EXCLUDED.intervals_icu_id, activities.intervals_icu_id),
-                intervals_icu_analyzed = COALESCE(EXCLUDED.intervals_icu_analyzed, activities.intervals_icu_analyzed),
+                intervals_icu_analyzed = {analyzed_set},
                 synced_at = EXCLUDED.synced_at{suffer_set}
             RETURNING id
         """, params)
         return cur.fetchone()[0]
 
 
-def upsert_activity(conn, data: dict) -> tuple[int, bool]:
+def _source_id_on_another_row(conn, ex_id: int, data: dict) -> int | None:
+    """The id of a row other than ex_id that already holds the incoming source id.
+
+    find_duplicate matches on time and takes the first row it finds, so it can
+    return a different row from the one that owns this id, for instance after a
+    ride's date is edited upstream. That is a re-sync of the owner rather than a
+    new copy of ex_id. Merging anyway violates the unique index on the source
+    id, which the Strava and RWGPS loops treat as transient, so one such ride
+    would stop every pass.
+    """
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT id FROM activities
+            WHERE id <> %(ex_id)s
+              AND (strava_id = %(strava_id)s
+                   OR rwgps_id = %(rwgps_id)s
+                   OR intervals_icu_id = %(intervals_icu_id)s)
+            LIMIT 1
+        """, {"ex_id": ex_id, "strava_id": data.get("strava_id"),
+              "rwgps_id": data.get("rwgps_id"),
+              "intervals_icu_id": data.get("intervals_icu_id")})
+        row = cur.fetchone()
+        return row[0] if row else None
+
+
+def _clear_stream_derived(cur, activity_id: int) -> None:
+    """Reset what was read from a ride's streams, for when they are replaced.
+
+    Recalculation only fills gaps, so anything left here would go on describing
+    streams that are gone: the METRICS_VERSION reset's column list minus ride_ftp,
+    plus this ride's intervals and detected climbs. Strava climbs stay. They are
+    external data that may be impossible to re-fetch, and they hold no stream
+    offsets, so replacing the stream cannot invalidate them.
+    """
+    cur.execute("""
+        UPDATE activities SET
+            tss = NULL, np = NULL, ef = NULL, work_kj = NULL,
+            intensity_factor = NULL, trimp = NULL,
+            variability_index = NULL, aerobic_decoupling = NULL,
+            coasting_time_s = NULL, kj_above_ftp = NULL,
+            polarization_index = NULL, route_signature = NULL,
+            wbal_cp = NULL, wbal_w_prime_j = NULL
+        WHERE id = %s
+    """, (activity_id,))
+    cur.execute("DELETE FROM ride_intervals WHERE activity_id = %s", (activity_id,))
+    cur.execute("DELETE FROM ride_climbs WHERE activity_id = %s AND source != 'strava'",
+                (activity_id,))
+
+
+def _merge_in_place(conn, ex_id: int, merged: dict, streams: list | None, now) -> None:
+    """Merge the winning copy into the existing row, keeping its id.
+
+    Only reached when the incoming copy won the base, so its values go first and
+    the row's own values fill the gaps. A 0 counts as a gap: RWGPS and
+    intervals.icu coerce an absent value to 0, which is never a real reading for
+    any of these columns. suffer_score is the exception, where 0 is real. So does
+    an "unknown" device, which is what every source reports when it can't tell.
+
+    The row keeps what the merge does not invalidate: its id (Grafana links and
+    ride_routes.founding_activity_id both hold it), route_id, komoot_tour_id and
+    ride_weight (a weight change never resets a historical ride). ride_ftp stays too. It comes
+    from earlier rides or the configured FTP, never from this ride's own
+    streams, and re-deriving it under a since-changed VELOMATE_FTP would rewrite
+    a historical TSS.
+
+    Everything derived from the streams is reset, see _clear_stream_derived.
+
+    Without `streams` the existing ones stay until the caller writes any. With
+    them, the whole merge is one transaction: committing the row first would let
+    a failed stream write strand the new base over the old streams, and for
+    intervals.icu that is permanent, because the committed `analyzed` tells every
+    later poll the ride is unchanged.
+    """
+    params = {"strava_id": None, "rwgps_id": None, "intervals_icu_id": None,
+              "intervals_icu_analyzed": None, **merged,
+              "synced_at": now, "ex_id": ex_id}
+    conn.autocommit = False
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE activities SET
+                    strava_id = COALESCE(%(strava_id)s, strava_id),
+                    rwgps_id = COALESCE(%(rwgps_id)s, rwgps_id),
+                    intervals_icu_id = COALESCE(%(intervals_icu_id)s, intervals_icu_id),
+                    intervals_icu_analyzed = COALESCE(%(intervals_icu_analyzed)s,
+                                                      intervals_icu_analyzed),
+                    name = COALESCE(NULLIF(%(name)s, ''), name),
+                    date = %(date)s,
+                    duration_s = %(duration_s)s,
+                    distance_m = COALESCE(NULLIF(%(distance_m)s, 0), distance_m),
+                    elevation_m = COALESCE(NULLIF(%(elevation_m)s, 0), elevation_m),
+                    avg_hr = COALESCE(NULLIF(%(avg_hr)s, 0), avg_hr),
+                    max_hr = COALESCE(NULLIF(%(max_hr)s, 0), max_hr),
+                    avg_power = COALESCE(NULLIF(%(avg_power)s, 0), avg_power),
+                    max_power = COALESCE(NULLIF(%(max_power)s, 0), max_power),
+                    avg_cadence = COALESCE(NULLIF(%(avg_cadence)s, 0), avg_cadence),
+                    avg_speed_kmh = COALESCE(NULLIF(%(avg_speed_kmh)s, 0), avg_speed_kmh),
+                    calories = COALESCE(NULLIF(%(calories)s, 0), calories),
+                    suffer_score = COALESCE(%(suffer_score)s, suffer_score),
+                    device = COALESCE(NULLIF(NULLIF(%(device)s, ''), 'unknown'),
+                                      device, %(device)s),
+                    is_indoor = %(is_indoor)s,
+                    sport_type = %(sport_type)s,
+                    synced_at = %(synced_at)s
+                WHERE id = %(ex_id)s
+            """, params)
+            _clear_stream_derived(cur, ex_id)
+            if streams:
+                _replace_streams(cur, ex_id, streams)
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.autocommit = True
+
+
+def _upsert_row(conn, data: dict, streams: list | None, now) -> tuple[int, bool]:
+    """The plain insert or re-sync path. Returns (activity_id, streams_written).
+
+    intervals.icu writes the row and its streams in one transaction. The stored
+    `analyzed` is what tells every later poll the streams are current, so
+    committing it first would let one failed stream write strand the ride for
+    good. Strava and RWGPS have a cursor that holds a failed ride back, and their
+    callers write the streams themselves.
+
+    Streams here mean the ride is new or intervals.icu re-analysed it, so what was
+    derived from the old ones is reset in the same transaction.
+    """
+    if not streams or data.get("intervals_icu_id") is None:
+        return _do_insert(conn, data, now), False
+    conn.autocommit = False
+    try:
+        activity_id = _do_insert(conn, data, now)
+        with conn.cursor() as cur:
+            _clear_stream_derived(cur, activity_id)
+            _replace_streams(cur, activity_id, streams)
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.autocommit = True
+    return activity_id, True
+
+
+def upsert_activity(conn, data: dict, streams: list | None = None) -> tuple[int, bool]:
     """Insert or update an activity. Returns (activity_id, streams_preserved).
     streams_preserved=True means the caller must NOT overwrite streams — the
     surviving row already holds the streams we want to keep.
 
+    Pass `streams` when the caller already has them, so a merge can write them
+    in its own transaction, and so can an intervals.icu insert or re-sync (see
+    _upsert_row). On a Strava or RWGPS insert or re-sync they are ignored and the
+    caller writes them with upsert_streams, as it does when this returns False.
+
     - Skip path (existing row richer): returns True. The incoming weaker copy's
       streams must not clobber the richer existing row's streams.
-    - Merge path (incoming copy richer): returns False. The merge keeps the
-      incoming record, so the caller's freshly fetched (richer) streams should
-      win. The old duplicate's streams are restored only as a fallback for when
-      the caller has none of its own.
+    - Merge path (incoming copy richer): updates the existing row in place, see
+      _merge_in_place. Returns True when `streams` were given and written.
+      Returns False without them: the existing streams stay, and a caller that
+      fetches its streams later overwrites them.
     """
     now = datetime.now(timezone.utc)
     data = classify_activity(data)
@@ -467,6 +680,11 @@ def upsert_activity(conn, data: dict) -> tuple[int, bool]:
         duplicate = find_duplicate(conn, data["date"], data["duration_s"], data.get("distance_m", 0))
         if duplicate and not _is_same_source_activity(duplicate, data):
             ex_id = duplicate[0]
+            holder = _source_id_on_another_row(conn, ex_id, data)
+            if holder:
+                print(f"  [dedup] {data['name']} matched activity {ex_id} but its source "
+                      f"id is on activity {holder} — re-syncing {holder}, keeping both")
+                return _upsert_row(conn, data, streams, now)
             merged = merge_activity_data(duplicate, data)
             if merged.get("_skip_insert"):
                 print(f"  [dedup] Skipping {data['name']} — weaker duplicate of existing activity {ex_id}")
@@ -520,48 +738,101 @@ def upsert_activity(conn, data: dict) -> tuple[int, bool]:
                     })
                 return ex_id, True
             else:
-                # Atomic merge: save streams, delete old, insert new, restore streams
                 print(f"  [dedup] Merging {data['name']} with existing activity {ex_id}")
-                conn.autocommit = False
-                try:
-                    with conn.cursor() as cur:
-                        # Save existing streams in memory before CASCADE deletes them
-                        cur.execute("""
-                            SELECT time_offset, hr, power, cadence, speed_kmh, altitude_m, lat, lng
-                            FROM activity_streams WHERE activity_id = %s
-                        """, (ex_id,))
-                        saved_streams = cur.fetchall()
-                        cur.execute("DELETE FROM activities WHERE id = %s", (ex_id,))
-                    data = merged
-                    activity_id = _do_insert(conn, data, now)
-                    # Restore the old duplicate's streams as a FALLBACK only —
-                    # if the caller has freshly fetched streams for this richer
-                    # record it will overwrite them (streams_preserved=False).
-                    # This restore just avoids leaving the merged ride with no
-                    # streams when the caller brought none of its own.
-                    if saved_streams:
-                        with conn.cursor() as cur:
-                            cur.execute("SELECT COUNT(*) FROM activity_streams WHERE activity_id = %s", (activity_id,))
-                            if cur.fetchone()[0] == 0:
-                                psycopg2.extras.execute_values(
-                                    cur,
-                                    """INSERT INTO activity_streams
-                                        (activity_id, time_offset, hr, power, cadence, speed_kmh, altitude_m, lat, lng)
-                                        VALUES %s""",
-                                    [(activity_id, *row) for row in saved_streams],
-                                )
-                    conn.commit()
-                    # False: the merged record is the incoming (richer) copy, so
-                    # the caller's freshly fetched streams should replace the
-                    # restored fallback. Returning True here would discard them.
-                    return activity_id, False
-                except Exception:
-                    conn.rollback()
-                    raise
-                finally:
-                    conn.autocommit = True
+                _merge_in_place(conn, ex_id, merged, streams, now)
+                return ex_id, bool(streams)
 
-    return _do_insert(conn, data, now), False
+    return _upsert_row(conn, data, streams, now)
+
+
+def fill_missing_speed(streams: list) -> list:
+    """Derive speed_kmh from GPS wherever a point has none, in place.
+
+    Ride with GPS phone recordings carry position but no speed. Speed is the straight
+    line back to the fix SPEED_WINDOW_S earlier, because a single step is mostly GPS
+    noise and would decide Max Speed. Recorded speed is never overwritten. A point
+    without a full window behind it, or reading above MAX_DERIVED_SPEED_KMH, stays empty.
+
+    It runs inside the stream write, and missing speed must never be what fails one,
+    so a point it can't read is skipped and left for the database to judge.
+    """
+    fixes = []
+    first = 0
+    for point in streams:
+        lat, lng, offset = point.get("lat"), point.get("lng"), point.get("time_offset")
+        if not all(isinstance(value, (int, float)) for value in (lat, lng, offset)):
+            continue
+        if fixes and offset <= fixes[-1][0]:
+            continue
+        fixes.append((offset, lat, lng))
+        if point.get("speed_kmh") is not None or len(fixes) < 2:
+            continue
+        while offset - fixes[first + 1][0] >= SPEED_WINDOW_S:
+            first += 1
+        from_offset, from_lat, from_lng = fixes[first]
+        if offset - from_offset < SPEED_WINDOW_S:
+            continue
+        kmh = haversine_m(from_lat, from_lng, lat, lng) / (offset - from_offset) * 3.6
+        if kmh <= MAX_DERIVED_SPEED_KMH:
+            point["speed_kmh"] = round(kmh, 2)
+    return streams
+
+
+def backfill_missing_speed(conn) -> int:
+    """Derive speed for stored rides with GPS and no speed at all. Returns how many.
+
+    A ride with any recorded speed is left as it was stored. One whose fixes give no
+    usable speed is looked at again on the next start, which costs one read.
+    """
+    with conn.cursor() as cur:
+        cur.execute("""SELECT activity_id FROM activity_streams GROUP BY activity_id
+                       HAVING COUNT(lat) > 0 AND COUNT(speed_kmh) = 0""")
+        activity_ids = [row[0] for row in cur.fetchall()]
+
+    filled = 0
+    for activity_id in activity_ids:
+        with conn.cursor() as cur:
+            cur.execute("""SELECT id, time_offset, lat, lng FROM activity_streams
+                           WHERE activity_id = %s ORDER BY time_offset""", (activity_id,))
+            points = [{"id": row[0], "time_offset": row[1], "lat": row[2], "lng": row[3],
+                       "speed_kmh": None} for row in cur.fetchall()]
+            derived = [(p["id"], p["speed_kmh"]) for p in fill_missing_speed(points)
+                       if p["speed_kmh"] is not None]
+            if derived:
+                psycopg2.extras.execute_values(
+                    cur,
+                    """UPDATE activity_streams AS s SET speed_kmh = v.speed
+                       FROM (VALUES %s) AS v(id, speed) WHERE s.id = v.id""",
+                    derived,
+                    template="(%s::integer, %s::double precision)",
+                )
+                filled += 1
+    return filled
+
+
+def _replace_streams(cur, activity_id: int, streams: list) -> None:
+    """DELETE then INSERT an activity's streams, in the caller's transaction.
+
+    The W' stored on the ride describes the stream going away, and if the new one
+    has no power nothing will ever come back to replace it. Segment efforts were
+    timed on it too, so the ride is matched again.
+    """
+    cur.execute("DELETE FROM activity_streams WHERE activity_id = %s", (activity_id,))
+    cur.execute("DELETE FROM climb_efforts WHERE activity_id = %s", (activity_id,))
+    cur.execute("DELETE FROM climb_segment_scans WHERE activity_id = %s", (activity_id,))
+    cur.execute("UPDATE activities SET wbal_cp = NULL, wbal_w_prime_j = NULL WHERE id = %s",
+                (activity_id,))
+    if streams:
+        fill_missing_speed(streams)
+        psycopg2.extras.execute_values(
+            cur,
+            """INSERT INTO activity_streams
+                (activity_id, time_offset, hr, power, cadence, speed_kmh, altitude_m, lat, lng)
+                VALUES %s""",
+            [(activity_id, s.get("time_offset"), s.get("hr"), s.get("power"),
+              s.get("cadence"), s.get("speed_kmh"), s.get("altitude_m"),
+              s.get("lat"), s.get("lng")) for s in streams]
+        )
 
 
 def upsert_streams(conn, activity_id: int, streams: list):
@@ -571,17 +842,7 @@ def upsert_streams(conn, activity_id: int, streams: list):
     conn.autocommit = False
     try:
         with conn.cursor() as cur:
-            cur.execute("DELETE FROM activity_streams WHERE activity_id = %s", (activity_id,))
-            if streams:
-                psycopg2.extras.execute_values(
-                    cur,
-                    """INSERT INTO activity_streams
-                        (activity_id, time_offset, hr, power, cadence, speed_kmh, altitude_m, lat, lng)
-                        VALUES %s""",
-                    [(activity_id, s.get("time_offset"), s.get("hr"), s.get("power"),
-                      s.get("cadence"), s.get("speed_kmh"), s.get("altitude_m"),
-                      s.get("lat"), s.get("lng")) for s in streams]
-                )
+            _replace_streams(cur, activity_id, streams)
         conn.commit()
     except Exception:
         conn.rollback()
@@ -648,6 +909,13 @@ def upsert_athlete_stats(conn, date, stats: dict):
         """, {"date": date, **stats})
 
 
+def has_activities(conn) -> bool:
+    """True when any ride is stored, from any source."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT EXISTS (SELECT 1 FROM activities)")
+        return cur.fetchone()[0]
+
+
 def get_sync_state(conn, key: str):
     """Get the value for a sync state key, or None."""
     with conn.cursor() as cur:
@@ -681,6 +949,14 @@ def get_intervals_icu_analyzed(conn, intervals_icu_id: str):
         if row[0] is None:
             return None
         return row[0].isoformat() if hasattr(row[0], "isoformat") else str(row[0])
+
+
+def count_intervals_icu_rides_since(conn, date: str) -> int:
+    """How many stored rides carry an intervals.icu id and start on or after `date`."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT COUNT(*) FROM activities "
+                    "WHERE intervals_icu_id IS NOT NULL AND date >= %s::date", (date,))
+        return cur.fetchone()[0]
 
 
 def set_sync_state(conn, key: str, value: str):

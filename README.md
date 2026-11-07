@@ -17,19 +17,21 @@ Inspired by [TeslaMate](https://github.com/teslamate-org/teslamate). Works with 
 
 ### Data Ingestion
 - Polls intervals.icu (primary), Strava and/or Ride with GPS every 10 minutes (configurable) for new cycling rides — run any source on its own, or several with automatic cross-source deduplication of the same ride
-- **Cycling only** — Ride, VirtualRide, and EBikeRide are ingested. Runs, swims, walks, strength, and all other Strava activity types are filtered out at sync
+- **Cycling only** — from intervals.icu: Ride, VirtualRide, GravelRide, MountainBikeRide, EBikeRide, EMountainBikeRide, TrackRide and Cyclocross; from Strava: Ride, VirtualRide, EBikeRide, Handcycle and Velomobile. Runs, swims, walks, strength and everything else are filtered out at sync
 - Classifies rides as: **Outdoor**, **Zwift**, **Indoor** (trainer), or **E-Bike** — dashboards can filter by type
 - Stores full per-second telemetry (HR, power, cadence, speed, altitude, GPS)
 - Calculates CTL/ATL/TSB fitness metrics locally (no Strava Premium needed)
 - TRIMP (Training Impulse) computed from HR stream data with HRR capped at 1.0 (no Strava Premium needed)
 - Normalized Power (NP), Intensity Factor (IF), Variability Index (VI), Efficiency Factor (EF), Work (kJ), aerobic decoupling, and W/kg pre-calculated per activity from stream data
 - VI-aware TSS: uses avg_power instead of NP when VI > 1.30 (urban stop-and-go rides) to prevent overestimation
-- Auto interval detection: Coggan-style classification (sprint / anaerobic / vo2 / threshold / sweetspot / tempo) from power streams
+- Auto interval detection: Coggan-style classification (surge / tempo / sweetspot / threshold / vo2 / anaerobic) from power streams
 - All derived metrics computed by the ingestor and stored — Grafana reads stored values (single source of truth)
 - FTP auto-estimated from rolling 90-day best 20-minute power, or configured manually via `VELOMATE_FTP`
 - Per-ride weight stored from `VELOMATE_WEIGHT` — enables W/kg tracking with historical preservation
 - Daily fitness recalculation at 00:05 (rest days show CTL/ATL decay)
+- Climb segments: a climb ridden twice becomes a fixed segment, and every ride over it is timed on GPS
 - Smart deduplication when multiple devices record the same ride
+- Ingest health: a poll only counts as successful if every enabled source really delivered, so a pipeline that looks fine while delivering nothing shows up as stalled, and a rest week doesn't
 
 **Metric availability by ride type:**
 
@@ -46,20 +48,21 @@ Inspired by [TeslaMate](https://github.com/teslamate-org/teslamate). Works with 
 
 ### Grafana Dashboards
 
-Four dashboards with 125 panels across 12 visualization types.
+Five dashboards with 139 panels across 10 visualization types.
 
-**Overview** (41 panels) — your training hub
+**Overview** (44 panels) — your training hub
 - 10 period summary stats (Rides, Distance, Elevation, Duration, TSS, Avg Power, Avg HR, Avg Speed, Avg Decoupling, Calories) with sport type filter
 - 10 delta comparison cards (vs previous period, including Δ Calories)
-- Fitness section: CTL/ATL/TSB with fill-between shading and form-zone TSB colouring (overreached/fatigued/neutral/optimal/fresh/detraining), Configured + Estimated FTP side-by-side, TSB gauge, weekly streak, days since ride, 6-week fitness delta, ride type donut
-- 6 trend charts (distance & elevation, duration & TSS, avg power & HR, avg speed & cadence, calories & rides, rolling weekly volume)
+- Fitness section: CTL/ATL/TSB with fill-between shading, Form (TSB) stat on Friel's bands (high risk/productive/transitional/fresh/detraining), Configured + Estimated FTP side-by-side, estimated VO2max, load ratio (ATL/CTL), CTL ramp rate, training monotony and strain, weekly streak, days since ride, 6-week fitness delta, ride type donut
+- Ingest health: last successful sync and rides skipped because intervals.icu can't re-serve them
+- 7 trend charts (distance & elevation, duration & TSS, avg power & HR, avg speed & cadence, calories & rides, rolling weekly volume, weekly work below/above FTP)
 - Ride frequency bar chart
 - Activities table with drill-down to Activity Details
 - Default time range: 7 days
 
 ![Activity Details](screenshots/activity.png)
 
-**Activity Details** (43 panels) — per-ride deep dive
+**Activity Details** (44 panels) — per-ride deep dive
 - 12 summary stat cards + 8 advanced metrics (NP, IF, VI, EF, Work, TRIMP, aerobic decoupling, W/kg)
 - GPS route map with speed/HR/power color overlay
 - HR and power zones by kilometer (stacked bar charts)
@@ -69,26 +72,43 @@ Four dashboards with 125 panels across 12 visualization types.
 - Power zone bands on HR & Power telemetry
 - Speed & elevation / HR & power / cadence & grade telemetry (distance-based x-axis)
 - Per-km splits table with best/worst markers
-- Power duration curve
-- Detected intervals table (Coggan-style: sprint / anaerobic / vo2 / threshold / sweetspot / tempo)
+- Power duration curve (full windows only, so a short ride shows no 60-minute best)
+- W'bal (anaerobic battery) trace, Min W'bal and Time W'bal < 25%, against the W' the ride was modelled with
+- Durability profile and index
+- Coasting time, work above FTP and polarization index
+- Detected climbs table
+- Climb segment efforts on this ride, ranked against every other time you rode them
+- Detected intervals table (Coggan-style: surge / tempo / sweetspot / threshold / vo2 / anaerobic)
+
+![Climbs](screenshots/climbs.png)
+
+**Climbs** (10 panels): the same climb compared across rides
+- Segment list with record time, record date and last ridden. Click one to open it
+- Leaderboard with elapsed and moving time, gap to the record, speed, VAM, and HR and power when recorded
+- Record effort on a map
+- Time on segment with the record at the time, and climbing pace, over the months
+- A climb detected on two or more rides becomes a segment, and every ride passing both ends is timed on GPS, so a ride where detection missed the climb still counts
+- Segments get an automatic name such as `170→263 m · 1.8 km · 5.3%`, in metric on either unit setting. Rename one with `docker exec velomate-ingestor python3 segments.py rename <id> "Name"`. `list` shows the ids, and an empty name restores the automatic one
 
 ![All Time Progression](screenshots/progression.png)
 
 **All Time Progression** (36 panels) — long-term trends
 - 6 stat cards: total distance, elevation, rides, hours, current FTP, peak CTL
 - 8 progression scatter plots with 10-ride rolling averages (speed, power, NP, EF, HR, distance, aerobic decoupling, NP/kg)
-- Athlete Type classification (sprinter/pursuiter/rouleur/time-triallist/climber from W'/CP ratio) and VO2max estimate (Storer formula from CP + weight), with a VO2max progression trend
-- FTP progression (monthly estimated from stream data)
-- Best efforts (1min/5min/20min peak power per ride)
+- VO2max progression trend (Sitko equation on best 5-minute power and that ride's weight)
+- FTP progression (daily CP and 20-minute estimates) and CP / W' progression
+- Best efforts (1min/5min/20min peak power per ride, full windows only)
 - Weekly power range (candlestick — week-over-week comparison)
 - Training zone polarization (monthly power + HR zone stacked bars + monthly interval distribution)
-- CTL/ATL/TSB fitness history with fill-between shading and form-zone TSB colouring
+- CTL/ATL/TSB fitness history with fill-between shading
 - 6 cumulative totals (distance, elevation, duration, rides, TSS, calories)
 - Monthly trends stacked by ride type
 - Year-over-year distance comparison
 - Annual totals table
 - Personal records with drill-down links
 - All-time ride map
+
+![Route Comparison](screenshots/routes.png)
 
 **Route Comparison** (5 panels) — same route, different days
 
@@ -107,6 +127,18 @@ Progress here is measured by **effort, not elapsed time**. On a stop-and-go
 route elapsed time mostly measures traffic lights, so a faster day is often a
 luckier one rather than a fitter rider.
 
+### Alerts
+
+Three rules are provisioned and evaluated hourly:
+
+| Alert | Fires when |
+|-------|------------|
+| Ingestion Stalled | No successful poll for 6+ hours |
+| Overtraining Warning | Form (TSB) is below -30 on both of the last two days |
+| Detraining Warning | No ride for more than 5 days |
+
+No contact point is provisioned, so they only show on Grafana's alert page. To be notified, add a contact point under **Alerting → Contact points**, then select it on the default policy under **Alerting → Notification policies**, because a new contact point receives nothing until a policy routes to it.
+
 ![Route Preview](screenshots/route-preview.png)
 
 ### Intelligent Route Planning
@@ -117,7 +149,12 @@ luckier one rather than a fitter rider.
 - Smart waypoint selection from 10 data sources (see below)
 - Weather-aware: best ride time, UV warnings, wind direction analysis
 - Safety control: `--safety` flag adjusts preference for bike lanes vs main roads
-- Configurable avoid zones for roads/areas you don't want to ride
+- Road safety check: the router is asked what every route rides on before you see it. Motorways, trunk roads, their links and IC/IP routes are never used: the planner excludes the stretch it hit and routes again, up to three times, then fails with `no_safe_route` and names the road rather than falling back to it
+- Roads closed to bicycles are left to the router's bicycle costing, which refuses what its map data closes to bicycles
+- Busy or fast roads are legal, so they don't fail a route. Primary roads and limits of 90 km/h or more are listed in the plan with their distance, and `--safety` is what steers away from them
+- If the check can't run the plan fails instead of giving you an unchecked route. A route over the router's limit of 16,000 shape points, roughly 360 km, is too long for it
+- Avoid zones are hard exclusions: routes stay out of them, and a plan fails with a clear message rather than ignoring one
+- Overpass can be slow, and each of its calls may wait 60 seconds, so a plan can take a few minutes. If a call fails, the plan goes ahead without that data and logs the error
 
 ## Route Intelligence — 10 Data Sources
 
@@ -151,7 +188,7 @@ When multiple devices record the same ride (e.g., a bike computer and a watch bo
 | Calories | +1 |
 | Elevation > 0 | +1 |
 
-The record with the higher total score wins. Missing fields from the losing record (e.g., HR from a watch when a bike computer wins on power) are merged into the winner. This works with any device brand — no hardcoded priorities.
+Across sources, intervals.icu takes precedence, and Strava and Ride with GPS rank equally. The score decides between records of the same rank, so it works with any device brand. Missing fields from the losing record (e.g., HR from a watch when a bike computer wins on power) are merged into the winner. The merge updates the stored ride in place, so its id, route, weight and Strava segment climbs survive.
 
 ## Architecture
 
@@ -169,7 +206,7 @@ Three Docker Compose services:
 |---------|-------|------|
 | PostgreSQL | `postgres:15` | 5423 |
 | Ingestor | custom Python 3.11 | — |
-| Grafana | `grafana/grafana:12.4` | 3021 |
+| Grafana | custom, on `grafana/grafana:12.4` | 3021 |
 
 The CLI runs locally and connects to the database over the network.
 
@@ -274,7 +311,7 @@ At least one source (intervals.icu, Strava or RWGPS) must be configured.
 docker compose up -d
 ```
 
-On first run, the ingestor backfills the last 12 months of activities from each configured source. Configure the window via `VELOMATE_BACKFILL_MONTHS` (set to `0` for full history). Increasing this value on a running deployment auto-triggers a re-backfill on the next restart.
+On first run against an empty database, the ingestor backfills the last 12 months of activities from each configured source. Configure the window via `VELOMATE_BACKFILL_MONTHS` (set to `0` for full history). Increasing this value on a running deployment auto-triggers a re-backfill on the next restart, and that is also how an install that already holds rides pulls intervals.icu history: adding intervals.icu to one does not backfill by itself. Rides intervals.icu received from Strava can't be fetched from it, so a backfill skips them.
 
 ### 4. Set up the CLI
 
@@ -321,7 +358,7 @@ python3 -m velomate.cli plan --destination Cascais --distance 50km
 | `--distance` | * | Target distance (`30`, `50km`) |
 | `--destination` | — | End point — place name or `lat,lng`. Auto-disables loop |
 | `--surface` | `road` | `road`, `gravel`, or `mtb` |
-| `--safety` | `0.5` | 0.0 = fastest, 1.0 = safest (prefers bike lanes) |
+| `--safety` | `0.5` | 0.0 = fastest, 1.0 = safest (prefers bike lanes). The road safety check runs at every setting |
 | `--preference` | `variety` | `variety` (new roads) or `comfort` (familiar) |
 | `--waypoints` | — | Semicolon-separated locations (`Cascais;38.7,-9.14;Sintra`) |
 | `--date` | `tomorrow` | When to ride (`today`, `saturday`, `2026-03-20`) |
@@ -330,7 +367,7 @@ python3 -m velomate.cli plan --destination Cascais --distance 50km
 | `--loop` | true** | Round-trip route |
 | `--output DIR` | — | Save preview HTML to directory (instead of opening browser) |
 
-\* Provide `--duration` or `--distance` (one required unless `--destination` is set, mutually exclusive). \*\* Loop defaults to false when `--destination` is set.
+\* Provide `--duration` or `--distance` (one required unless `--destination` is set, mutually exclusive). A bare `--destination` routes direct; add either flag to pad the route to that length. \*\* Loop defaults to false when `--destination` is set.
 
 ### Example output
 
@@ -345,7 +382,7 @@ python3 -m velomate.cli plan --destination Cascais --distance 50km
   🌤 Mainly clear, 10-21°C, wind 12 km/h
   🕐 Best time: 09:00 (14°C, wind 10 km/h, UV 2)
   🌅 Sunrise 06:45, sunset 18:46
-  💪 neutral (TSB -4)
+  💪 transitional (TSB -4)
   💾 GPX: /tmp/velomate_route_road_29km.gpx
 ```
 
@@ -374,22 +411,31 @@ TSB       = CTL − ATL                 (training stress balance / form)
 - **LTHR (Lactate Threshold HR)**: derived as ~89% of max HR per Friel convention. Used as the threshold value in HR-based TSS when no power stream is available
 - **W/kg**: NP / ride_weight. Uses NP (not avg_power) because it better reflects the physiological cost of variable efforts. Per-ride `ride_weight` stored from `VELOMATE_WEIGHT` — historical rides preserve their weight if the setting changes later. Shown on Activity Details and as NP/kg Trend on All Time Progression
 - **CP / W'**: Critical Power and W' modeled via Monod-Scherrer fit on mean maximal power at standard durations. Replaces rolling 20-min x 0.95 as the algorithmic FTP estimate when fit quality is good (R² >= 0.9). Graceful fallback to the old method when data is sparse. CP is the aerobic ceiling, W' is the anaerobic reservoir
-- **W'bal**: Per-second anaerobic battery gauge computed via Skiba differential model. Shows when you drained your reservoir, how close to empty you got, and where it refilled. Displayed on Activity Details alongside the power trace
-- **VO2max**: Estimated from Critical Power and weight via the Storer formula — a CP-derived aerobic ceiling. Stat card + VO2max Progression trend on All Time Progression
-- **Athlete Type**: Rider classification (sprinter / pursuiter / rouleur / time-triallist / climber) derived from your W'/CP ratio — a high W' relative to CP skews toward sprinter, a high CP toward climber/TT. Stat card on All Time Progression
-- **Auto interval detection**: Coggan-style classification (sprint / anaerobic / vo2 / threshold / sweetspot / tempo) from the power stream, stored in the `ride_intervals` table. Classification uses per-ride FTP for historical accuracy
-- **TSB interpretation**: > +10 fresh · -10 to +10 neutral · < -10 fatigued
+- **W'bal**: Per-second anaerobic battery gauge, using the CP and W' current on the ride's own date. It drains above CP and refills exponentially below it, using Skiba's 2012 recovery constant recomputed each second, so values can differ from GoldenCheetah and intervals.icu. Shows when you drained your reservoir, how close to empty you got, and where it refilled. Displayed on Activity Details alongside the power trace
+- **VO2max**: `16.6 + 8.87 × W/kg` (Sitko et al. 2022), from the best 5-minute power in the last 90 days and that ride's weight. Full 300-sample windows only. The equation was fitted on road cyclists doing an all-out 5-minute test, so it reads low unless a ride held a maximal 5 minutes. Stat card on Overview, VO2max Progression trend on All Time Progression
+- **Auto interval detection**: Efforts from 75% FTP up, classified by mean power on contiguous %FTP bands (tempo / sweetspot / threshold / vo2 / anaerobic); anything under 60 s is a surge, the stop-and-go accelerations of urban riding. Stored in the `ride_intervals` table. Classification uses per-ride FTP for historical accuracy
+- **Power zones**: Coggan 7-zone model, binned at each ride's stored FTP, the same one IF and intervals use, so a past ride isn't re-zoned at today's FTP. A ride with no stored FTP falls back to the configured or estimated value
+- **Load ratio**: ATL / CTL, on Garmin's bands (low < 0.8, optimal 0.8–1.4, high 1.5–1.9, very high ≥ 2.0). Garmin defines those for its own load model, so treat them as a guide. It's noisy at low CTL, where one ordinary ride can reach the top band
+- **Climbs**: detected from smoothed altitude over GPS distance. A segment has to rise at 1% or more on its own to join a climb, so flat approaches don't dilute it, and a climb needs at least 200 m at 2%. Rides without GPS get no detected climbs
+- **Climb segments**: a climb detected on two or more rides, with starts within 600 m and summits within 150 m, becomes a fixed segment. A ride counts if it passes within 40 m of the start, then of the end, over a path no longer than 1.3 times the segment, so riding it downhill or by a detour doesn't. The record is elapsed time, which includes stops. Moving time counts time above 2 km/h
+- **TSB interpretation** (Friel's scale): < -30 high risk · -30 to -10 productive · -10 to +5 transitional · +5 to +25 fresh · > +25 detraining
 
 ## Database Schema
 
 | Table | Contents |
 |-------|----------|
-| `activities` | Every ride — distance, duration, HR, power, cadence, elevation, calories, TSS, NP, IF, VI, EF, TRIMP, Work (kJ), aerobic decoupling, ride FTP, sport type, device |
+| `activities` | Every ride — distance, duration, HR, power, cadence, elevation, calories, TSS, NP, IF, VI, EF, TRIMP, Work (kJ), aerobic decoupling, ride FTP, the CP and W' its W'bal was modelled with, sport type, device |
 | `activity_streams` | Per-second telemetry — HR, power, cadence, speed, altitude, lat/lng |
-| `ride_intervals` | Auto-detected intervals with duration, power, classification (sprint/anaerobic/vo2/threshold/sweetspot/tempo) |
+| `ride_intervals` | Auto-detected intervals with duration, power, classification (surge/tempo/sweetspot/threshold/vo2/anaerobic) |
+| `ride_climbs` | Detected climbs, plus Strava segment climbs where they were imported |
+| `climb_segments` | Recurring climbs, fixed once found, with an optional name |
+| `climb_efforts` | Every time a ride went over a segment |
+| `climb_segment_scans` | Which rides have been matched against which segment |
+| `ride_routes` | Routes detected from GPS, with the ride that founded each |
+| `cp_estimates` | Daily CP and W' estimates |
 | `athlete_stats` | Daily fitness metrics — CTL, ATL, TSB, weekly volume |
 | `routes` | Legacy — created by schema but not actively written to |
-| `sync_state` | Ingestor bookmarks + configured/estimated FTP + metrics version |
+| `sync_state` | Ingestor bookmarks + configured/estimated FTP + metrics version + ingest health |
 
 Schema is managed in code (`ingestor/db.py:create_schema()`) using `IF NOT EXISTS` / `ADD COLUMN IF NOT EXISTS`. No migration tool.
 
@@ -405,6 +451,7 @@ Configured via `.env` file:
 | `POSTGRES_DB` | No | Database name (default `velomate`) |
 | `POSTGRES_USER` | No | Database user (default `velomate`) |
 | `POSTGRES_PORT` | No | Host port mapped to PostgreSQL 5432 (default `5423`) |
+| `POSTGRES_VERSION` | No | PostgreSQL image tag (default `15`) |
 | `STRAVA_CLIENT_ID` | One source required | From strava.com/settings/api |
 | `STRAVA_CLIENT_SECRET` | One source required | From Strava API settings |
 | `STRAVA_REFRESH_TOKEN` | One source required | OAuth refresh token (get via `python3 -m velomate.cli auth`) |
@@ -413,24 +460,31 @@ Configured via `.env` file:
 | `INTERVALS_ICU_ATHLETE_ID` | One source required | From intervals.icu → Settings → Developer Settings (`iNNNNNN`) |
 | `INTERVALS_ICU_API_KEY` | One source required | On the same Developer Settings page |
 | `INTERVALS_ICU_SYNC_WINDOW_DAYS` | No | Rolling poll window in days (default `14`) |
-| `INTERVALS_ICU_SWEEP_DAYS` | No | Daily reconciliation window for deletions, in days (default `90`) |
+| `INTERVALS_ICU_SWEEP_DAYS` | No | Daily reconciliation window, in days (default `90`). The sweep mirrors deletions and ingests up to 25 rides a day that exist on intervals.icu but not locally |
 | `GRAFANA_PASSWORD` | Yes | Grafana admin password |
 | `GRAFANA_PORT` | No | Host port for the Grafana UI (default `3021`) |
 | `GRAFANA_ROOT_URL` | No | Public URL if served behind a reverse proxy (default `http://localhost:3021/`) |
+| `GRAFANA_VERSION` | No | Base image tag for the Grafana build (default `12.4.0`). Changing it needs `docker compose up -d --build` |
+| `VELOMATE_MAP_BASELAYER` | No | Basemap for the map panels, as Grafana layer JSON (default OpenStreetMap, no key). For a keyed Carto or your own tile server: `{"type":"xyz","config":{"url":"https://your.tiles/{z}/{x}/{y}.png","attribution":"Your tiles"}}` |
+| `GF_AUTH_ANONYMOUS_ENABLED` | No | Set `true` to allow anonymous Grafana viewing. **Trusted networks only, never on a reachable Grafana:** a viewer can send any query to the data source, and VeloMate's connects as the database superuser, so anonymous access can read or destroy everything |
+| `GF_SERVER_SERVE_FROM_SUB_PATH` | No | Set `true` when serving Grafana under a sub-path |
 | `POLL_INTERVAL_MINUTES` | No | How often to poll each activity source, in minutes (default `10`) |
-| `VELOMATE_MAX_HR` | No | Your max heart rate (0 = auto-estimate) |
+| `VELOMATE_MAX_HR` | No | Your max heart rate (0 = auto-estimate). A decimal is rounded; a value that can't be read is logged and the last good one kept, for this and the next two settings |
 | `VELOMATE_FTP` | No | Your FTP in watts (0 = auto-estimate) |
 | `VELOMATE_RESTING_HR` | No | Resting heart rate in bpm (default 50) |
 | `VELOMATE_WEIGHT` | No | Your weight in kg (0 = disabled). Enables W/kg on Activity Details and NP/kg Trend on All Time Progression. Stored per ride — historical rides preserve their weight if you change it later |
 | `VELOMATE_RESET_RIDE_FTP` | No | Set to `1` to reset all per-ride FTP values on next restart (one-shot) |
+| `VELOMATE_TOKEN_FALLBACK` | No | Where a rotated Strava refresh token is written (default `/app/data/.strava_refresh_token`) |
 | `VELOMATE_BACKFILL_MONTHS` | No | How far back to fetch activities. Default `12`. Set to `0` for full history (slow — can take hours and span multiple days due to rate limits). **Increasing this value on a running deployment** triggers an auto-backfill on the next restart to pull the extended window. Decreasing it logs a note but leaves existing older activities in the DB (this controls the backfill horizon, not data retention). |
-| `VELOMATE_UNITS` | No | Display units for dashboards and CLI: `metric` (default) or `imperial` (USA: mi/ft/mph/°F). Storage stays metric; this only changes what's displayed. Dashboard set is selected at deploy time — no runtime switching. |
+| `VELOMATE_UNITS` | No | Display units for dashboards and CLI: `metric` (default) or `imperial` (USA: mi/ft/mph/°F). Storage stays metric; this only changes what's displayed. The dashboard set is built into the Grafana image — no runtime switching. |
 
 ### Units
 
-The `VELOMATE_UNITS` flag controls whether dashboards and CLI output show metric or imperial units. **Storage is always metric** — the conversion is display-only. Set to `metric` (default) for km, m, km/h, °C, or `imperial` for mi, ft, mph, °F. W/kg always stays metric. This is a deploy-time setting — changing it requires restarting the stack; there's no runtime unit switcher.
+The `VELOMATE_UNITS` flag controls whether dashboards and CLI output show metric or imperial units. **Storage is always metric** — the conversion is display-only. Set to `metric` (default) for km, m, km/h, °C, or `imperial` for mi, ft, mph, °F. W/kg always stays metric. This is a build-time setting — changing it requires `docker compose up -d --build`; there's no runtime unit switcher.
 
-Dashboards are not converted at query time: `scripts/gen_imperial_dashboards.py` generates a full imperial variant into `grafana/dashboards/imperial/`, and Compose mounts whichever set the flag names. **Re-run that script after editing any dashboard under `grafana/dashboards/metric/`**, or the imperial set silently drifts from the metric one. Use exactly `metric` or `imperial` — any other value resolves to a nonexistent directory and Grafana provisions no dashboards at all.
+Dashboards are not converted at query time: `scripts/gen_imperial_dashboards.py` generates a full imperial variant into `grafana/dashboards/imperial/`, and the Grafana image is built with whichever set the flag names. **Re-run that script after editing any dashboard under `grafana/dashboards/metric/`**, or the imperial set silently drifts from the metric one. Use exactly `metric` or `imperial` — any other value fails the build.
+
+Dashboards and provisioning live in the image, so after changing either, run `docker compose up -d --build` to see it.
 
 ### CLI (local)
 
@@ -439,7 +493,21 @@ Configured via `~/.config/velomate/config.yaml` (see `config.example.yaml`):
 - Home coordinates (required for route planning)
 - Database connection
 - Strava credentials (optional — enables popular segment data in route intelligence)
-- Avoid zones (lat/lng areas to exclude from routes)
+- Avoid zones (lat/lng areas to exclude from routes; zones out of the route's reach are left out, and the public Valhalla server refuses more than 10 km of perimeter across the rest, where a 500 m zone is about 3.2 km)
+
+## Development
+
+```bash
+python3 -m pytest tests/ -q
+```
+
+Modules that need a real PostgreSQL skip in that run. Run each in its own process against a throwaway database, which they wipe, so its name must have `test` starting a word:
+
+```bash
+VELOMATE_TEST_DATABASE_URL=postgresql://user@localhost/velomate_test python3 scripts/run_pg_tests.py
+```
+
+CI runs on the ingestor image's Python, 3.11. After changing any dashboard SQL, also run `tests/test_every_dashboard_query.py` against that database.
 
 ## Requirements
 

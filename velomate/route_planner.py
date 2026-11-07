@@ -3,10 +3,21 @@
 import re
 import sys
 from datetime import datetime, timedelta
+from pathlib import Path
 
 
 # Default avg speeds (km/h) when no ride history available
 DEFAULT_SPEEDS = {"road": 27, "gravel": 22, "mtb": 17}
+
+# Attempts to route around forbidden roads, after the first route
+MAX_ROAD_RETRIES = 3
+# The routing server's limit on the total perimeter of exclude_polygons
+EXCLUDE_PERIMETER_LIMIT_M = 10000
+
+
+class NoSafeRoute(Exception):
+    """The plan can't be routed without a road cycling must not go on."""
+
 
 # Surface multipliers against overall outdoor avg speed
 
@@ -103,15 +114,17 @@ def adjust_for_fitness(distance_km: float, tsb: float | None, system: str = "met
     """Adjust distance based on TSB. Returns (adjusted_distance, note)."""
     if tsb is None:
         return distance_km, None
+    from velomate.planner import form_band
     tsb = float(tsb)
-    if tsb > 10:
-        return distance_km, "fresh (TSB +{:.0f}) — good day to push".format(tsb)
-    elif tsb > -10:
-        return distance_km, "neutral (TSB {:+.0f})".format(tsb)
-    else:
+    band = form_band(tsb)
+    if band in ("fresh", "detraining"):
+        return distance_km, "{} (TSB {:+.0f}) — good day to push".format(band, tsb)
+    elif band == "high risk":
         from velomate.units import format_distance
         adjusted = round(distance_km * 0.8, 1)
-        return adjusted, "fatigued (TSB {:.0f}) — reduced to {}".format(tsb, format_distance(adjusted, system))
+        return adjusted, "high risk (TSB {:.0f}) — reduced to {}".format(tsb, format_distance(adjusted, system))
+    else:
+        return distance_km, "{} (TSB {:+.0f})".format(band, tsb)
 
 
 def _analyze_wind(coords: list, wind_dir: float, wind_speed: float, system: str = "metric") -> str | None:
@@ -225,6 +238,116 @@ def parse_distance(distance_str: str) -> float | None:
         return None
 
 
+def _zones_in_reach(zones: list, points: list, route_km: float) -> list:
+    """Return the avoid zones a route of route_km through these points could touch.
+
+    Every point of a leg lies within half its length of one of its ends, so a zone
+    further from all of them than the leg is long can't be reached. Sending it
+    would only spend the server's perimeter limit. The reach is the length asked
+    for, or the longest hop between the points when a far waypoint makes the legs
+    longer than that. It is an estimate: plan() checks the route it gets back.
+    """
+    from itertools import combinations
+    from velomate.route_intelligence import _haversine_km
+    hops = [_haversine_km(*a, *b) for a, b in combinations(points, 2)]
+    reach_km = max([route_km] + hops)
+    return [zone for zone in zones
+            if min(_haversine_km(zone["lat"], zone["lng"], lat, lng) for lat, lng in points)
+            <= reach_km + zone.get("radius", 500) / 1000]
+
+
+def _outside_zones(points: list, rings: list) -> list:
+    """Drop the points (lat/lng dicts) inside an avoid zone, saying which."""
+    from velomate.route_generator import in_rings
+    kept = []
+    for point in points:
+        if in_rings(point["lat"], point["lng"], rings):
+            print(f"  [avoid] Dropped waypoint inside an avoid zone: {point.get('name', 'corridor padding')}", file=sys.stderr)
+        else:
+            kept.append(point)
+    return kept
+
+
+def _router_refused(failed: dict) -> bool:
+    """Whether the router turned this request down, which the exclusions can cause. A
+    timeout, a 429 or a 5xx says nothing about the roads, and may work on another try."""
+    status = failed.get("status") or 0
+    return 400 <= status < 500 and status != 429
+
+
+def _why_no_route(failed: dict, roads: str, zones: list) -> str:
+    """Explain why routing around these roads failed."""
+    if failed.get("error_code") == 442:
+        blocked = f"{roads} and your avoid zones" if zones else roads
+        return f"no route avoids {blocked}. Change the waypoints or the destination"
+    if failed.get("error_code") == 167:
+        return (f"routing around {roads} takes more excluded area than the router allows. "
+                "Remove or shrink avoid zones, or change the waypoints")
+    return f"routing around {roads} failed: {failed['error']}"
+
+
+def _safe_route(route_args: dict, reachable_rings: list, zone_rings: list) -> tuple:
+    """Route, and let the route that comes back decide. Returns it and what the check found.
+
+    Avoid zones and forbidden roads share one loop so neither retry undoes the other,
+    and exclusions only grow: zones go from the reachable ones to all of them, once,
+    and road polygons add up, so no attempt brings back what an earlier one removed.
+    At most 2 + MAX_ROAD_RETRIES attempts.
+
+    Raises NoSafeRoute, or RoadSafetyUnavailable when a route can't be checked. A
+    refused attempt leaves no GPX behind, where it could be loaded by mistake.
+    """
+    from velomate.road_safety import check_route, exclusion_polygons, perimeter_m
+    from velomate.route_generator import generate, in_rings
+
+    zones = reachable_rings
+    all_zones_sent = False
+    road_polygons = []
+    avoided = {}
+    road_retries = 0
+    unchecked_gpx = None
+    try:
+        while True:
+            exclusions = zones + road_polygons
+            perimeter = perimeter_m(exclusions)
+            if road_polygons and perimeter > EXCLUDE_PERIMETER_LIMIT_M:
+                advice = (f"{perimeter_m(zones) / 1000:.1f} km of that is your avoid zones: remove or shrink them, "
+                          "or change the waypoints" if zones else "Change the waypoints or the destination")
+                raise NoSafeRoute(f"this route uses {', '.join(avoided)}, and keeping off it takes {perimeter / 1000:.1f} km "
+                                  f"of excluded perimeter, over the router's {EXCLUDE_PERIMETER_LIMIT_M / 1000:.0f} km limit. {advice}")
+
+            result = generate(**route_args, exclude_polygons=exclusions)
+            if "error" in result:
+                if road_polygons and _router_refused(result):
+                    raise NoSafeRoute(_why_no_route(result, ", ".join(avoided), zones))
+                return result, {}
+            unchecked_gpx = result["gpx_path"]
+
+            # The reach is only an estimate. Every zone goes in on the retry: it routes
+            # around them or fails on the server's limit, never through one in silence.
+            if not all_zones_sent and any(in_rings(lat, lng, zone_rings) for lat, lng in result["coords"]):
+                zones = zone_rings
+                all_zones_sent = True
+                continue
+
+            report = check_route(result["coords"], route_args["surface"], result.get("route_km"))
+            if not report["hard"]:
+                unchecked_gpx = None
+                return result, {"penalty": report["penalty"], "avoided": list(avoided)}
+
+            found = dict.fromkeys(road for stretch in report["hard"] for road in stretch["roads"])
+            avoided.update(found)
+            if road_retries == MAX_ROAD_RETRIES:
+                raise NoSafeRoute(f"every route tried uses a road cycling can't go on: {', '.join(avoided)}. "
+                                  f"Gave up after {MAX_ROAD_RETRIES} re-routes. Change the waypoints or the destination")
+            road_retries += 1
+            road_polygons += exclusion_polygons(report["hard"])
+            print(f"  [road safety] Route uses {', '.join(found)}, routing around it", file=sys.stderr)
+    finally:
+        if unchecked_gpx:
+            Path(unchecked_gpx).unlink(missing_ok=True)
+
+
 def plan(duration_str: str = None, distance_str: str = None,
          surface: str = "road", loop: bool = None,
          waypoints_str: str = None, date_str: str = "tomorrow",
@@ -240,7 +363,8 @@ def plan(duration_str: str = None, distance_str: str = None,
     # Resolve display units once for all output (CLI + map preview)
     from velomate.config import load as load_config
     from velomate.units import normalize_system, format_distance, format_elevation, format_speed, format_temp
-    system = normalize_system(load_config().get("display", {}).get("units", "metric"))
+    cfg = load_config()
+    system = normalize_system(cfg.get("display", {}).get("units", "metric"))
 
     # Resolve loop default: False when destination set, True otherwise
     if loop is None:
@@ -257,6 +381,18 @@ def plan(duration_str: str = None, distance_str: str = None,
 
     if not duration_min and not target_distance and not destination:
         return "Error: provide --duration (e.g. 2h), --distance (e.g. 30km), or --destination"
+    pad_to_target = bool(duration_min or target_distance)  # the estimates for a bare --destination don't count
+
+    # Avoid zones are hard exclusions: a route can't reach a point inside one
+    from velomate.route_generator import avoid_zone_ring, in_rings
+    zones = cfg.get("avoid", [])
+    zone_rings = [avoid_zone_ring(zone) for zone in zones]
+    ends = [("Start", home_lat, home_lng)]
+    if destination:
+        ends.append((destination["name"], destination["lat"], destination["lng"]))
+    for label, lat, lng in ends:
+        if in_rings(lat, lng, zone_rings):
+            return f"Error: {label} is inside an avoid zone, so no route can reach it. Change it, or edit 'avoid' in your config."
 
     ride_date = resolve_date(date_str)
     ride_time = parse_time(time_str)
@@ -322,15 +458,17 @@ def plan(duration_str: str = None, distance_str: str = None,
         places = [p.strip() for p in waypoints_str.split(";")]
         geocoded = [parse_location(p, home_lat, home_lng) for p in places if p]
         geocoded = [g for g in geocoded if g]  # filter failed lookups
+        geocoded = _outside_zones(geocoded, zone_rings)
         waypoint_names = [g["name"] for g in geocoded]
         valhalla_waypoints = [{"lat": g["lat"], "lon": g["lng"]} for g in geocoded]
         preview_waypoints = [{"lat": g["lat"], "lng": g["lng"], "name": g["name"], "reason": "user waypoint"} for g in geocoded]
-    else:
-        # No explicit waypoints — use route intelligence for smart placement
+    elif not destination:
+        # No explicit waypoints or destination — use route intelligence for smart placement
         try:
             from velomate.route_intelligence import smart_waypoints
             strava_token = _get_strava_token()
             smart = smart_waypoints(home_lat, home_lng, distance_km, surface, max_waypoints=3, strava_token=strava_token, preference=preference)
+            smart = _outside_zones(smart, zone_rings)
             if smart:
                 waypoint_names = [w["name"] for w in smart]
                 valhalla_waypoints = [{"lat": w["lat"], "lon": w["lng"]} for w in smart]
@@ -341,13 +479,13 @@ def plan(duration_str: str = None, distance_str: str = None,
             print(f"  [intelligence] Skipped: {e}", file=sys.stderr)
 
     # Distance padding for destination routes
-    if destination and (target_distance or duration_min) and not waypoints_str:
+    if destination and pad_to_target and not waypoints_str:
         import math
         dlat = destination["lat"] - home_lat
         dlng = destination["lng"] - home_lng
         mid_lat = (home_lat + destination["lat"]) / 2
         straight_km = math.sqrt((dlat * 111) ** 2 + (dlng * 111 * math.cos(math.radians(mid_lat))) ** 2)
-        baseline_km = straight_km * 1.3  # road factor
+        baseline_km = straight_km * 1.3 * (2 if loop else 1)  # road factor, both ways on a round trip
 
         if baseline_km >= distance_km:
             import logging
@@ -365,12 +503,13 @@ def plan(duration_str: str = None, distance_str: str = None,
                     destination["lat"], destination["lng"],
                     target_km=distance_km, baseline_km=baseline_km,
                 )
+                corridor = _outside_zones(corridor, zone_rings)
                 if corridor:
                     valhalla_waypoints = [{"lat": w["lat"], "lon": w["lng"]} for w in corridor]
                     print(f"  Added {len(corridor)} corridor waypoints for distance padding", file=sys.stderr)
             except Exception as e:
                 print(f"  [corridor] Skipped: {e}", file=sys.stderr)
-    elif destination and waypoints_str and (target_distance or duration_min):
+    elif destination and waypoints_str and pad_to_target:
         import logging
         logging.warning("Explicit waypoints provided — ignoring --%s for padding",
                         "distance" if target_distance else "duration")
@@ -385,10 +524,14 @@ def plan(duration_str: str = None, distance_str: str = None,
     if waypoint_names:
         route_name += " via " + ", ".join(waypoint_names)
 
+    route_points = [(lat, lng) for _, lat, lng in ends]
+    route_points += [(w["lat"], w["lon"]) for w in valhalla_waypoints]
+    reachable_rings = [avoid_zone_ring(zone)
+                       for zone in _zones_in_reach(zones, route_points, distance_km)]
+
     print(f"  Generating {distance_km:.0f}km {surface} route via Valhalla...", file=sys.stderr)
 
-    from velomate.route_generator import generate
-    result = generate(
+    route_args = dict(
         start_lat=home_lat,
         start_lng=home_lng,
         target_km=distance_km,
@@ -399,6 +542,15 @@ def plan(duration_str: str = None, distance_str: str = None,
         destination=destination,
         loop=loop,
     )
+    from velomate.road_safety import RoadSafetyUnavailable
+    try:
+        result, roads = _safe_route(route_args, reachable_rings, zone_rings)
+    except NoSafeRoute as e:
+        return f"no_safe_route: {e}"
+    except RoadSafetyUnavailable as e:
+        return (f"Road safety check unavailable ({e}). No route produced, because it can't be "
+                "shown to stay off dangerous roads. Try again later, or plan a shorter route "
+                "if this one is too long for the check.")
 
     if "error" in result:
         return f"Route generation failed: {result['error']}"
@@ -485,6 +637,7 @@ def plan(duration_str: str = None, distance_str: str = None,
             "scenic": scenic_info,
             "surface": surface_check,
             "safety": safety_info,
+            "busy_roads": roads["penalty"],
             "weather": weather_day,
             "fitness": fitness_note,
             "best_time": best_time_info,
@@ -526,6 +679,13 @@ def plan(duration_str: str = None, distance_str: str = None,
     if safety_info.get("details"):
         lines.append(f"  🛡 Safety: {safety_info['details']} ({safety_info['safety_score']}/100)")
 
+    if roads["avoided"]:
+        lines.append(f"  🚧 Rerouted off: {', '.join(roads['avoided'])}")
+    if roads["penalty"]:
+        busy = ", ".join(f"{road['road']} {format_distance(road['km'], system)}" for road in roads["penalty"])
+        hint = " (--safety 1.0 prefers quieter roads)" if safety < 1.0 else ""
+        lines.append(f"  ⚠️ Busy or fast roads: {busy}{hint}")
+
     if trails:
         lines.append(f"  🚲 Trails: {', '.join(trails)}")
 
@@ -536,9 +696,12 @@ def plan(duration_str: str = None, distance_str: str = None,
         if weather_day.get("gusts", 0) > 40:
             lines.append(f"  ⚠️ Strong gusts ({format_speed(weather_day['gusts'], system)}) — watch for sudden pushes, especially on crosswinds and descents")
 
-        # Wind direction analysis against route
-        if best_hours and result.get("coords"):
-            wind_warning = _analyze_wind(result["coords"], best_hours[0]["wind_dir"], best_hours[0]["wind"], system)
+        # Wind direction analysis against route, at --time when given, else at the best hour
+        wind_hour = best_hours[0] if best_hours else None
+        if ride_time:
+            wind_hour = next((h for h in weather_day.get("hourly", []) if h["time"][11:13] == ride_time[:2]), wind_hour)
+        if wind_hour and result.get("coords"):
+            wind_warning = _analyze_wind(result["coords"], wind_hour["wind_dir"], wind_hour["wind"], system)
             if wind_warning:
                 lines.append(f"  💨 {wind_warning}")
 

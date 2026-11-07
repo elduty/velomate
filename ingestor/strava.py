@@ -498,8 +498,11 @@ def _parse_streams(raw_streams: dict) -> list:
     return points
 
 
-def sync_activities(conn, after_epoch: int = None):
+def sync_activities(conn, after_epoch: int = None, problems: list = None):
     """Fetch recent activities from Strava, store with streams.
+
+    `problems`, when given, collects a transient stop, which otherwise returns
+    like a pass with nothing new.
 
     Activities are processed oldest-first and the cursor
     (strava_last_activity_epoch) is checkpointed after each one completes, so a
@@ -613,6 +616,8 @@ def sync_activities(conn, after_epoch: int = None):
             # JSONDecodeError is a ValueError subclass and is retryable.)
             print(f"  [strava] Transient failure on activity {raw.get('id')} "
                   f"({raw.get('name', '?')}): {e} — stopping pass, retrying next cycle")
+            if problems is not None:
+                problems.append(f"{raw.get('id')} failed ({type(e).__name__})")
             break
 
         ingested += 1

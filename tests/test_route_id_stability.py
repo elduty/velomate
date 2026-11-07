@@ -19,6 +19,8 @@ import os
 
 import pytest
 
+from pg_reset import reset_schema
+
 TEST_DB = os.environ.get("VELOMATE_TEST_DATABASE_URL")
 
 pytestmark = pytest.mark.skipif(
@@ -93,10 +95,9 @@ def conn():
     # partway through, which psycopg2 refuses inside an open transaction. A
     # fixture that left one open would fail on plumbing rather than on routes.
     connection.autocommit = True
-    with connection.cursor() as cur:
-        # A clean slate per test: the whole point is comparing ids across runs,
-        # so leftovers from a previous test would poison the comparison.
-        cur.execute("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
+    # A clean slate per test: the whole point is comparing ids across runs,
+    # so leftovers from a previous test would poison the comparison.
+    reset_schema(connection)
     velomate_db.create_schema(connection)
     yield connection
     connection.close()

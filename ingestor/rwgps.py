@@ -260,7 +260,7 @@ def _process_trip_item(conn, item: dict, departed_after: datetime = None) -> boo
 
     data = _parse_trip(trip)
     streams = _parse_track_points(trip.get("track_points") or [])
-    activity_id, streams_preserved = upsert_activity(conn, data)
+    activity_id, streams_preserved = upsert_activity(conn, data, streams=streams)
     if streams and not streams_preserved:
         upsert_streams(conn, activity_id, streams)
     print(f"  → {data['name']} ({(data.get('date') or '')[:10]}) — {(data.get('distance_m') or 0)/1000:.1f}km")
@@ -286,12 +286,15 @@ def _handle_sync_item(conn, item: dict, departed_after, handle_rwgps_deletion) -
     return "ingested" if _process_trip_item(conn, item, departed_after) else "skipped"
 
 
-def sync_activities(conn, since: str = None, departed_after: datetime = None) -> tuple[int, int]:
+def sync_activities(conn, since: str = None, departed_after: datetime = None,
+                    problems: list = None) -> tuple[int, int]:
     """Process the RWGPS sync feed. Returns (ingested, deleted) counts.
 
     since: explicit ISO cursor; defaults to the persisted sync_state cursor.
     departed_after: backfill cutoff — trips that departed earlier are skipped
     (sync.json keys on interaction time, not ride time).
+    problems: when given, collects a transient stop, which otherwise returns
+    like a pass with nothing new.
 
     Items are processed in chronological order and the cursor is checkpointed
     after each fully-completed timestamp group. A *transient* failure
@@ -343,6 +346,8 @@ def sync_activities(conn, since: str = None, departed_after: datetime = None) ->
             except Exception as e:
                 # Transient — stop the pass; the cursor keeps the last completed group.
                 print(f"  [rwgps] Failed to process item {item.get('item_id')}: {e}")
+                if problems is not None:
+                    problems.append(f"{item.get('item_id')} failed ({type(e).__name__})")
                 transient = True
                 group_done = False
                 break
@@ -361,7 +366,7 @@ def sync_activities(conn, since: str = None, departed_after: datetime = None) ->
     return ingested, deleted
 
 
-def backfill(conn, months: int = 12) -> int:
+def backfill(conn, months: int = 12, problems: list = None) -> int:
     """Initial RWGPS import. months=0 = full history.
 
     Uses the same sync feed as polling: since=1970 replays the entire library
@@ -370,10 +375,10 @@ def backfill(conn, months: int = 12) -> int:
     """
     if months == 0:
         print("[rwgps] Backfilling FULL history")
-        ingested, _ = sync_activities(conn, since="1970-01-01T00:00:00Z")
+        ingested, _ = sync_activities(conn, since="1970-01-01T00:00:00Z", problems=problems)
         return ingested
     cutoff = datetime.now(timezone.utc) - timedelta(days=months * 30)
     since = cutoff.strftime("%Y-%m-%dT%H:%M:%SZ")
     print(f"[rwgps] Backfilling {months} months (since {cutoff.date()})")
-    ingested, _ = sync_activities(conn, since=since, departed_after=cutoff)
+    ingested, _ = sync_activities(conn, since=since, departed_after=cutoff, problems=problems)
     return ingested

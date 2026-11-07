@@ -16,9 +16,14 @@ def _haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
 
 
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
+# overpass-api.de answers the default python-requests User-Agent with a 406
+OVERPASS_HEADERS = {"User-Agent": "VeloMate route planner (https://github.com/elduty/velomate)"}
 
 # Rate limiting for Overpass API (max ~2 heavy queries/min)
 _last_overpass_call = 0.0
+# Answers took 33-35 s from a home connection. Below that every call times out, and
+# the callers swallow it, so a plan loses its POIs and scoring with no sign of it.
+OVERPASS_TIMEOUT_S = 60
 _OVERPASS_MIN_INTERVAL = 2.0  # seconds between calls
 KOMOOT_TILE_URL = "https://api.main.komoot.net/v007/tiles/discover/highlights/{sport}/{z}/{x}/{y}.vector.pbf"
 
@@ -64,7 +69,7 @@ def get_pois(lat: float, lng: float, radius_km: float, poi_types: list | None = 
 
     try:
         _overpass_throttle()
-        resp = requests.post(OVERPASS_URL, data={"data": query}, timeout=15)
+        resp = requests.post(OVERPASS_URL, data={"data": query}, headers=OVERPASS_HEADERS, timeout=OVERPASS_TIMEOUT_S)
         resp.raise_for_status()
         data = resp.json()
     except (requests.RequestException, ValueError) as e:
@@ -217,7 +222,7 @@ def verify_surface(coords: list, expected_surface: str) -> dict:
 
     try:
         _overpass_throttle()
-        resp = requests.post(OVERPASS_URL, data={"data": query}, timeout=20)
+        resp = requests.post(OVERPASS_URL, data={"data": query}, headers=OVERPASS_HEADERS, timeout=OVERPASS_TIMEOUT_S)
         resp.raise_for_status()
         data = resp.json()
     except (requests.RequestException, ValueError) as e:
@@ -303,7 +308,7 @@ def score_scenic(coords: list) -> dict:
 
     try:
         _overpass_throttle()
-        resp = requests.post(OVERPASS_URL, data={"data": query}, timeout=20)
+        resp = requests.post(OVERPASS_URL, data={"data": query}, headers=OVERPASS_HEADERS, timeout=OVERPASS_TIMEOUT_S)
         resp.raise_for_status()
         data = resp.json()
     except (requests.RequestException, ValueError) as e:
@@ -422,7 +427,7 @@ def find_cycling_trails(coords: list) -> list[str]:
 
     try:
         _overpass_throttle()
-        resp = requests.post(OVERPASS_URL, data={"data": query}, timeout=15)
+        resp = requests.post(OVERPASS_URL, data={"data": query}, headers=OVERPASS_HEADERS, timeout=OVERPASS_TIMEOUT_S)
         resp.raise_for_status()
         data = resp.json()
     except (requests.RequestException, ValueError):
@@ -472,7 +477,7 @@ def score_cycling_safety(coords: list) -> dict:
 
     try:
         _overpass_throttle()
-        resp = requests.post(OVERPASS_URL, data={"data": query}, timeout=20)
+        resp = requests.post(OVERPASS_URL, data={"data": query}, headers=OVERPASS_HEADERS, timeout=OVERPASS_TIMEOUT_S)
         resp.raise_for_status()
         data = resp.json()
     except (requests.RequestException, ValueError) as e:
@@ -614,7 +619,7 @@ def corridor_waypoints(
     offset_lat = offset_km / 111
     offset_lng = offset_km / (111 * math.cos(math.radians(mid_lat)))
 
-    bearing = math.atan2(dlng, dlat)
+    bearing = math.atan2(dlng * math.cos(math.radians(mid_lat)), dlat)
     perp = bearing + math.pi / 2
 
     waypoints = []
@@ -623,8 +628,8 @@ def corridor_waypoints(
         base_lat = start_lat + dlat * t
         base_lng = start_lng + dlng * t
         sign = 1 if i % 2 == 0 else -1
-        wp_lat = base_lat + sign * offset_lat * math.sin(perp)
-        wp_lng = base_lng + sign * offset_lng * math.cos(perp)
+        wp_lat = base_lat + sign * offset_lat * math.cos(perp)
+        wp_lng = base_lng + sign * offset_lng * math.sin(perp)
         waypoints.append({
             "lat": round(wp_lat, 5),
             "lng": round(wp_lng, 5),

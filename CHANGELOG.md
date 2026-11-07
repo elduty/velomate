@@ -1,5 +1,66 @@
 # Changelog
 
+## v1.9.0 — 2026-11-06
+
+Climb segments and a road safety check for planned routes, on top of a long run of correctness fixes. Power bests, Form, intervals, climbs, power zones and VO2max all change, some of them visibly, and a stalled pipeline can no longer look healthy.
+
+### New Features
+
+- **Climb segments.** A climb detected on two or more rides becomes a fixed segment, and every ride that passes both ends is timed over the same two points. A new Climbs dashboard has a leaderboard, the record effort on a map, and time and pace over the months. Activity Details ranks a ride's efforts against your others. Contributed by lparolari.
+- **Road safety check for planned routes.** The router is asked what every route rides on. A route on a motorway, trunk road, their links or an IC/IP route is sent around that stretch, and a plan with no way around fails with `no_safe_route` and names the road. Primary roads and limits of 90 km/h or more are listed in the plan, not excluded. If the check can't run, a plan fails rather than giving an unchecked route.
+- **intervals.icu backfill.** `VELOMATE_BACKFILL_MONTHS` now applies to the primary source, so a new install gets its history instead of two weeks. A pass is resumable, one failing ride doesn't stop the rest, and an unfinished one continues on the next start or daily sweep.
+- **Rides missed by an outage come back on their own.** The daily sweep used to report rides present on intervals.icu but missing locally. It now ingests up to 25 per sweep.
+- **Ingest health.** Overview gains Last Sync and Skipped Rides, and a new Ingestion Stalled alert fires after 6 hours without a successful poll. A poll only counts if every enabled source really delivered, so a failed ride, a window of nothing but Strava stubs or a failed recalculation all hold it back, while a rest week does not.
+- **Load Ratio and Weekly Work Below / Above FTP** on Overview. Work is split at each ride's stored FTP, in kJ, and the chart always shows the last 12 weeks.
+
+### Fixes
+
+- **FTP and CP estimates missed the day's own rides.** Each ride's timestamp was compared with midnight, so a ride today didn't count until tomorrow, and a backfilled CP estimate left out the rides on its own date. Both now count the whole day. A ride's own FTP still comes from the rides before it.
+- **A ride re-analysed on intervals.icu kept its old numbers.** Its streams were replaced, but NP, TSS, intervals and climbs went on describing the old ones, because recalculation only fills gaps. They are now reset with the streams and rebuilt.
+- **Map panels use OpenStreetMap by default.** Grafana's built-in basemap is Carto, whose tiles now read "API KEY REQUIRED" without a key. Set `VELOMATE_MAP_BASELAYER` to use another one. Reported, with a first fix, by lparolari.
+- **Power bests counted partial windows.** A 5-minute ride reported a 60-minute best, because a ride's opening seconds counted as an N-minute average. Power Duration Curve and Best Efforts now use full windows only, so short rides show fewer durations, and long rides can show a lower 60-minute best.
+- **The Form stat told riders to rest during normal training.** It coloured TSB below -10 red. The stat, the chart, the alert and the route planner now share one set of bands on Friel's scale: high risk below -30, productive -30 to -10, transitional -10 to +5, fresh +5 to +25, detraining above +25. The overtraining alert moves from -25 to -30.
+- **Interval classes had holes.** Each class needed a duration band and an intensity band, so an 8-minute effort at 106% FTP or a 20-minute test was discarded. Classes are now contiguous %FTP bands, detected from 75% FTP. Efforts under a minute are a new `surge` class, the stop-and-go accelerations of urban riding, and tempo and sweetspot now appear.
+- **Ride with GPS phone recordings had no speed.** They carry position only, so Max Speed, the speed chart and the by-kilometre zones stayed empty. A ride with no speed now gets it from GPS, measured over 5 seconds so noise doesn't set Max Speed, and stored rides pick it up on the next start. Based on a fix by lparolari.
+- **Climb detection absorbed flat approaches.** A segment counted as uphill if it rose at all, which diluted a climb's grade and could lose it altogether. Each segment must now rise at 1% on its own, and distance comes from GPS, so a stop no longer adds phantom distance.
+- **Power zones used today's FTP for every ride.** Zone panels and the monthly chart now use each ride's stored FTP, the same one IF and intervals use. Time in zone can shift a lot if your FTP has changed since a ride.
+- **VO2max read low.** It applied a sub-maximal equation to CP. It now uses Sitko's equation on the best 5-minute power of the last 90 days and that ride's weight.
+- **Δ Avg cards invented changes.** With an empty period they showed the whole average as the change. They now show no value.
+- **Time W'bal < 25% used the latest W'**, not the one the ride was modelled with. Each ride now stores its own. The W'bal tooltips also stop naming a model the code doesn't implement. The numbers don't change.
+- **A cross-source merge deleted and re-inserted the ride**, which changed its id and lost Strava segment climbs and values only the losing copy had. It now updates the row in place.
+- **One failed stream write could leave an intervals.icu ride without streams for good.** The row and its streams are now written in one transaction, and the next poll retries.
+- **Runs and walks from intervals.icu were stored as rides** and counted in CTL. The sync now keeps cycling types only, and a stored ride retyped upstream is left alone.
+- **A non-integer `VELOMATE_FTP` split the thresholds.** Startup and recalculation disagreed on the value. A decimal is now rounded, and a value that can't be read is logged and the last good one kept.
+- **A failed recalculation at startup no longer crashes the container**, and it's retried on the next poll instead of waiting for the next ride.
+- **15 stat panels emitted a NULL row** on an empty database or a GPS-only ride. They now show no value.
+- **Activity Details showed an error on every panel before the first ride.** With no rides the Activity picker is empty, which made all 43 queries invalid SQL. They now show no value until a ride arrives.
+- **Route planner.** `--surface mtb` always failed, and avoid zones never reached the router. Routes now stay out of avoid zones, and corridor padding no longer sits on the route line. A bare `--destination` routes direct, and wind is read at `--time` when given.
+- **The Ride Types donut on Overview was a dot**, squeezed by the ingest health stats beside it. It has its own height now, with the two stats stacked next to it.
+- **The route planner names itself to Overpass.** overpass-api.de can answer Python's default User-Agent with a 406, and the planner swallowed the error, so a plan lost its POIs, surface checks and scenic and safety scoring without saying so. Its calls also gave up after 15 to 20 seconds when answers were taking over 30, so they now wait 60. A plan can take a few minutes when Overpass is slow.
+
+### Changed
+
+- **Grafana's dashboards and provisioning are built into its image**, instead of bind-mounted. A deploy that replaced the checkout could leave Grafana on deleted directories, and a change didn't reach it until it was recreated. After editing either, run `docker compose up -d --build`. An invalid `VELOMATE_UNITS` now fails the build instead of leaving Grafana with no dashboards.
+- **Athlete Type is removed.** Its cut-offs had no published source, and every rider mapped to Sprinter.
+- **There is no `sprint` interval class.** The detector's 30-second minimum sits where sprints end, so it could never appear.
+- **The route planner no longer shortens a ride for productive form.** It used to cut 20% and pick shorter routes below TSB -10, and now does so only below -30.
+- **A plan now fails if a start or destination is inside an avoid zone**, or if the zones within reach exceed the public Valhalla server's 10 km perimeter limit.
+
+### Upgrading
+
+```bash
+git pull && docker compose up -d --build
+```
+
+- **`METRICS_VERSION` 15 → 17** recalculates on the first start, and new columns add themselves. Expect the changes above in your numbers.
+- An install that already holds rides doesn't backfill on upgrade. Raise `VELOMATE_BACKFILL_MONTHS` to pull history. A backfilled ride older than a route's first ride can renumber that route, so saved `var-route` links may need updating.
+- A backfill doesn't change rides you already hold. To recompute their FTP, TSS, IF and fitness history against the new rides, set `VELOMATE_RESET_RIDE_FTP=1` for one restart, then remove it. That doesn't rebuild detected intervals or stored CP estimates.
+- Runs and walks an earlier version stored aren't removed, and they keep counting in CTL. They're stored as outdoor rides, so find them by name and delete them with `DELETE FROM activities WHERE id = <id>;`.
+- Climb segments build themselves on the first start from the rides you hold. A climb needs two rides to become one.
+- Alerts still need a contact point and a notification policy to reach you, see the README.
+
+3,710 tests. CI now runs on the ingestor image's Python, 3.11, and every dashboard query runs in both unit sets against an empty database, a GPS-only ride and a normal ride.
+
 ## v1.8.0 — 2026-09-01
 
 Rides are grouped onto the routes they were ridden on, with a dashboard for comparing attempts.

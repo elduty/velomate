@@ -26,6 +26,12 @@
       "url": "/d/velomate-progression/all-time-progression",
       "type": "link",
       "icon": "dashboard"
+    },
+    {
+      "title": "Climbs",
+      "url": "/d/velomate-climbs/climbs",
+      "type": "link",
+      "icon": "dashboard"
     }
   ],
   "templating": {
@@ -90,7 +96,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND((distance_m / 1000.0)::numeric, 1) AS \"Distance\" FROM activities WHERE id = ${activity_id};",
+          "rawSql": "SELECT ROUND((distance_m / 1000.0)::numeric, 1) AS \"Distance\" FROM activities WHERE id = NULLIF('${activity_id}', '')::integer;",
           "format": "table",
           "refId": "A"
         }
@@ -146,7 +152,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND(elevation_m::numeric, 0) AS \"Elevation\" FROM activities WHERE id = ${activity_id};",
+          "rawSql": "SELECT ROUND(elevation_m::numeric, 0) AS \"Elevation\" FROM activities WHERE id = NULLIF('${activity_id}', '')::integer;",
           "format": "table",
           "refId": "A"
         }
@@ -202,7 +208,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT duration_s AS \"Duration\" FROM activities WHERE id = ${activity_id};",
+          "rawSql": "SELECT duration_s AS \"Duration\" FROM activities WHERE id = NULLIF('${activity_id}', '')::integer;",
           "format": "table",
           "refId": "A"
         }
@@ -258,7 +264,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND(avg_speed_kmh::numeric, 1) AS \"Speed\" FROM activities WHERE id = ${activity_id};",
+          "rawSql": "SELECT ROUND(avg_speed_kmh::numeric, 1) AS \"Speed\" FROM activities WHERE id = NULLIF('${activity_id}', '')::integer;",
           "format": "table",
           "refId": "A"
         }
@@ -314,7 +320,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND((SELECT MAX(speed_kmh) FROM activity_streams WHERE activity_id = ${activity_id} AND speed_kmh IS NOT NULL)::numeric, 1) AS \"Max Speed\";",
+          "rawSql": "SELECT ROUND(MAX(speed_kmh)::numeric, 1) AS \"Max Speed\" FROM activity_streams WHERE activity_id = NULLIF('${activity_id}', '')::integer HAVING MAX(speed_kmh) IS NOT NULL;",
           "format": "table",
           "refId": "A"
         }
@@ -370,7 +376,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT calories AS \"Calories\" FROM activities WHERE id = ${activity_id};",
+          "rawSql": "SELECT calories AS \"Calories\" FROM activities WHERE id = NULLIF('${activity_id}', '')::integer AND calories IS NOT NULL;",
           "format": "table",
           "refId": "A"
         }
@@ -426,7 +432,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND(tss::numeric, 0) AS \"TSS\" FROM activities WHERE id = ${activity_id};",
+          "rawSql": "SELECT ROUND(tss::numeric, 0) AS \"TSS\" FROM activities WHERE id = NULLIF('${activity_id}', '')::integer;",
           "format": "table",
           "refId": "A"
         }
@@ -482,7 +488,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT avg_power AS \"Power\" FROM activities WHERE id = ${activity_id};",
+          "rawSql": "SELECT avg_power AS \"Power\" FROM activities WHERE id = NULLIF('${activity_id}', '')::integer AND avg_power IS NOT NULL;",
           "format": "table",
           "refId": "A"
         }
@@ -538,7 +544,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT max_power AS \"Max Power\" FROM activities WHERE id = ${activity_id};",
+          "rawSql": "SELECT max_power AS \"Max Power\" FROM activities WHERE id = NULLIF('${activity_id}', '')::integer AND max_power IS NOT NULL;",
           "format": "table",
           "refId": "A"
         }
@@ -594,7 +600,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT avg_hr AS \"HR\" FROM activities WHERE id = ${activity_id};",
+          "rawSql": "SELECT avg_hr AS \"HR\" FROM activities WHERE id = NULLIF('${activity_id}', '')::integer AND avg_hr IS NOT NULL;",
           "format": "table",
           "refId": "A"
         }
@@ -650,7 +656,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT max_hr AS \"Max HR\" FROM activities WHERE id = ${activity_id};",
+          "rawSql": "SELECT max_hr AS \"Max HR\" FROM activities WHERE id = NULLIF('${activity_id}', '')::integer AND max_hr IS NOT NULL;",
           "format": "table",
           "refId": "A"
         }
@@ -706,7 +712,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT avg_cadence AS \"Cadence\" FROM activities WHERE id = ${activity_id};",
+          "rawSql": "SELECT avg_cadence AS \"Cadence\" FROM activities WHERE id = NULLIF('${activity_id}', '')::integer AND avg_cadence IS NOT NULL;",
           "format": "table",
           "refId": "A"
         }
@@ -775,7 +781,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT lat AS \"latitude\", lng AS \"longitude\", CASE '${map_metric}' WHEN 'speed_kmh' THEN speed_kmh WHEN 'hr' THEN hr WHEN 'power' THEN power END AS \"metric\", time_offset FROM activity_streams WHERE activity_id = ${activity_id} AND lat IS NOT NULL AND lng IS NOT NULL ORDER BY time_offset;",
+          "rawSql": "SELECT lat AS \"latitude\", lng AS \"longitude\", CASE '${map_metric}' WHEN 'speed_kmh' THEN speed_kmh WHEN 'hr' THEN hr WHEN 'power' THEN power END AS \"metric\", time_offset FROM activity_streams WHERE activity_id = NULLIF('${activity_id}', '')::integer AND lat IS NOT NULL AND lng IS NOT NULL ORDER BY time_offset;",
           "format": "table",
           "refId": "A"
         }
@@ -852,7 +858,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT\n  COALESCE(segment_name, category) AS \"Name\",\n  gain_m AS \"Gain (m)\",\n  length_m AS \"Length (m)\",\n  avg_grade AS \"Avg Grade (%)\",\n  start_alt AS \"Start (m)\",\n  peak_alt AS \"Peak (m)\",\n  TO_CHAR(duration_s * interval '1 second', 'HH24:MI:SS') AS \"Duration\",\n  source AS \"Source\"\nFROM ride_climbs\nWHERE activity_id = ${activity_id}\n  AND category != 'none'\nORDER BY gain_m DESC;",
+          "rawSql": "SELECT\n  COALESCE(segment_name, category) AS \"Name\",\n  gain_m AS \"Gain (m)\",\n  length_m AS \"Length (m)\",\n  avg_grade AS \"Avg Grade (%)\",\n  start_alt AS \"Start (m)\",\n  peak_alt AS \"Peak (m)\",\n  TO_CHAR(duration_s * interval '1 second', 'HH24:MI:SS') AS \"Duration\",\n  source AS \"Source\"\nFROM ride_climbs\nWHERE activity_id = NULLIF('${activity_id}', '')::integer\n  AND category != 'none'\nORDER BY gain_m DESC;",
           "format": "table",
           "refId": "A"
         }
@@ -899,6 +905,126 @@
       }
     },
     {
+      "id": 1501,
+      "type": "table",
+      "title": "Climb Segment Efforts",
+      "description": "Climb segments on this ride, ranked against every other time you rode them.\n\nSegments are recurring climbs matched by GPS. The Climbs dashboard has their leaderboards and trends.",
+      "gridPos": {
+        "x": 0,
+        "y": 23,
+        "w": 24,
+        "h": 7
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "WITH ranked AS (\n  SELECT e.*,\n    RANK() OVER (PARTITION BY e.segment_id ORDER BY e.elapsed_s) AS rnk,\n    COUNT(*) OVER (PARTITION BY e.segment_id) AS n,\n    MIN(e.elapsed_s) OVER (PARTITION BY e.segment_id) AS best\n  FROM climb_efforts e\n)\nSELECT r.segment_id AS \"_sid\",\n  COALESCE(s.name, s.auto_name) AS \"Segment\",\n  s.category AS \"Category\",\n  r.elapsed_s AS \"Elapsed\",\n  r.moving_s AS \"Moving\",\n  CASE WHEN r.rnk = 1 THEN '\ud83c\udfc6 Record' ELSE r.rnk || ' of ' || r.n END AS \"Rank\",\n  r.elapsed_s - r.best AS \"Gap to Record\",\n  r.vam_mh AS \"VAM\"\nFROM ranked r\nJOIN climb_segments s ON s.id = r.segment_id\nWHERE r.activity_id = NULLIF('${activity_id}', '')::integer\nORDER BY r.start_offset;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No climb segments on this ride",
+          "custom": {
+            "align": "center"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "_sid"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Segment"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open leaderboard",
+                    "url": "/d/velomate-climbs/climbs?var-segment=${__data.fields._sid}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Segment"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 280
+              },
+              {
+                "id": "custom.align",
+                "value": "left"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Elapsed"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dthms"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Moving"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dthms"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Gap to Record"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dthms"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
       "id": 901,
       "type": "row",
       "title": "Power Quality",
@@ -907,7 +1033,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 23
+        "y": 30
       },
       "panels": []
     },
@@ -919,7 +1045,7 @@
         "h": 3,
         "w": 6,
         "x": 0,
-        "y": 24
+        "y": 31
       },
       "datasource": {
         "type": "postgres",
@@ -927,7 +1053,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND(np::numeric, 0) AS \"NP (W)\" FROM activities WHERE id = ${activity_id} AND np IS NOT NULL;",
+          "rawSql": "SELECT ROUND(np::numeric, 0) AS \"NP (W)\" FROM activities WHERE id = NULLIF('${activity_id}', '')::integer AND np IS NOT NULL;",
           "format": "table",
           "refId": "A"
         }
@@ -963,7 +1089,7 @@
         "h": 3,
         "w": 6,
         "x": 6,
-        "y": 24
+        "y": 31
       },
       "datasource": {
         "type": "postgres",
@@ -971,7 +1097,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND(intensity_factor::numeric, 2) AS \"IF\" FROM activities WHERE id = ${activity_id} AND intensity_factor IS NOT NULL;",
+          "rawSql": "SELECT ROUND(intensity_factor::numeric, 2) AS \"IF\" FROM activities WHERE id = NULLIF('${activity_id}', '')::integer AND intensity_factor IS NOT NULL;",
           "format": "table",
           "refId": "A"
         }
@@ -1034,7 +1160,7 @@
         "h": 3,
         "w": 6,
         "x": 12,
-        "y": 24
+        "y": 31
       },
       "datasource": {
         "type": "postgres",
@@ -1042,7 +1168,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND(variability_index::numeric, 2) AS \"VI\" FROM activities WHERE id = ${activity_id} AND variability_index IS NOT NULL;",
+          "rawSql": "SELECT ROUND(variability_index::numeric, 2) AS \"VI\" FROM activities WHERE id = NULLIF('${activity_id}', '')::integer AND variability_index IS NOT NULL;",
           "format": "table",
           "refId": "A"
         }
@@ -1093,7 +1219,7 @@
         "h": 3,
         "w": 6,
         "x": 18,
-        "y": 24
+        "y": 31
       },
       "datasource": {
         "type": "postgres",
@@ -1101,7 +1227,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND(ef::numeric, 2) AS \"EF\" FROM activities WHERE id = ${activity_id} AND ef IS NOT NULL;",
+          "rawSql": "SELECT ROUND(ef::numeric, 2) AS \"EF\" FROM activities WHERE id = NULLIF('${activity_id}', '')::integer AND ef IS NOT NULL;",
           "format": "table",
           "refId": "A"
         }
@@ -1133,7 +1259,7 @@
       "type": "stat",
       "gridPos": {
         "x": 0,
-        "y": 27,
+        "y": 34,
         "w": 6,
         "h": 3
       },
@@ -1143,7 +1269,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND(COALESCE(work_kj, avg_power * duration_s / 1000.0)::numeric, 1) AS \"Work\" FROM activities WHERE id = ${activity_id} AND COALESCE(work_kj, avg_power) IS NOT NULL;",
+          "rawSql": "SELECT ROUND(COALESCE(work_kj, avg_power * duration_s / 1000.0)::numeric, 1) AS \"Work\" FROM activities WHERE id = NULLIF('${activity_id}', '')::integer AND COALESCE(work_kj, avg_power) IS NOT NULL;",
           "format": "table",
           "refId": "A"
         }
@@ -1176,7 +1302,7 @@
       "type": "stat",
       "gridPos": {
         "x": 6,
-        "y": 27,
+        "y": 34,
         "w": 6,
         "h": 3
       },
@@ -1186,7 +1312,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND(trimp::numeric, 0) AS \"TRIMP\" FROM activities WHERE id = ${activity_id} AND trimp IS NOT NULL;",
+          "rawSql": "SELECT ROUND(trimp::numeric, 0) AS \"TRIMP\" FROM activities WHERE id = NULLIF('${activity_id}', '')::integer AND trimp IS NOT NULL;",
           "format": "table",
           "refId": "A"
         }
@@ -1246,7 +1372,7 @@
       "type": "stat",
       "gridPos": {
         "x": 12,
-        "y": 27,
+        "y": 34,
         "w": 6,
         "h": 3
       },
@@ -1256,7 +1382,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND(aerobic_decoupling::numeric, 1) AS \"Decoupling %\" FROM activities WHERE id = ${activity_id} AND aerobic_decoupling IS NOT NULL;",
+          "rawSql": "SELECT ROUND(aerobic_decoupling::numeric, 1) AS \"Decoupling %\" FROM activities WHERE id = NULLIF('${activity_id}', '')::integer AND aerobic_decoupling IS NOT NULL;",
           "format": "table",
           "refId": "A"
         }
@@ -1306,7 +1432,7 @@
       "type": "stat",
       "gridPos": {
         "x": 18,
-        "y": 27,
+        "y": 34,
         "w": 6,
         "h": 3
       },
@@ -1316,7 +1442,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND((a.np / a.ride_weight)::numeric, 2) AS \"W/kg\" FROM activities a WHERE a.id = ${activity_id} AND a.np IS NOT NULL AND a.np > 0 AND a.ride_weight IS NOT NULL AND a.ride_weight > 0;",
+          "rawSql": "SELECT ROUND((a.np / a.ride_weight)::numeric, 2) AS \"W/kg\" FROM activities a WHERE a.id = NULLIF('${activity_id}', '')::integer AND a.np IS NOT NULL AND a.np > 0 AND a.ride_weight IS NOT NULL AND a.ride_weight > 0;",
           "format": "table",
           "refId": "A"
         }
@@ -1359,16 +1485,16 @@
         "uid": "velomate"
       },
       "title": "Min W'bal",
-      "description": "Lowest W'bal during the ride \u2014 how close to empty your\nanaerobic battery got.\n\nComputed via Skiba differential model using the latest CP/W'\nestimate. Requires power data.",
+      "description": "Lowest W'bal during the ride \u2014 how close to empty your\nanaerobic battery got.\n\nComputed second by second using the CP/W' estimate\ncurrent on the ride's date. Requires power data.",
       "gridPos": {
         "x": 0,
-        "y": 30,
+        "y": 37,
         "w": 6,
         "h": 3
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND((MIN(s.w_bal) / 1000.0)::numeric, 1) AS \"Min W'bal (kJ)\" FROM activity_streams s WHERE s.activity_id = ${activity_id} AND s.w_bal IS NOT NULL;",
+          "rawSql": "SELECT ROUND((MIN(s.w_bal) / 1000.0)::numeric, 1) AS \"Min W'bal (kJ)\" FROM activity_streams s WHERE s.activity_id = NULLIF('${activity_id}', '')::integer AND s.w_bal IS NOT NULL GROUP BY s.activity_id;",
           "format": "table",
           "refId": "A"
         }
@@ -1411,16 +1537,16 @@
         "uid": "velomate"
       },
       "title": "Time W'bal < 25%",
-      "description": "Percentage of ride time where W'bal was below 25% of W'.\nShows how much of the ride was 'in the red.'\n\nNote: uses the latest W' estimate for the 25% threshold \u2014\na known approximation (see spec).",
+      "description": "Percentage of ride time where W'bal was below 25% of W'.\nShows how much of the ride was 'in the red.'\n\nThe 25% line is the W' this ride's W'bal was modelled with:\nthe estimate current on the ride's date, or 20 kJ when the\nCP fit failed.",
       "gridPos": {
         "x": 6,
-        "y": 30,
+        "y": 37,
         "w": 6,
         "h": 3
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND(\n  (COUNT(*) FILTER (WHERE s.w_bal < (\n    SELECT COALESCE(w_prime_kj, 20.0) * 1000.0 * 0.25\n    FROM cp_estimates ORDER BY date DESC LIMIT 1\n  )) * 100.0 / NULLIF(COUNT(*), 0))::numeric, 1\n) AS \"Time < 25% (%)\"\nFROM activity_streams s\nWHERE s.activity_id = ${activity_id}\n  AND s.w_bal IS NOT NULL;",
+          "rawSql": "SELECT ROUND(\n  (COUNT(*) FILTER (WHERE s.w_bal < a.wbal_w_prime_j * 0.25)\n    * 100.0 / COUNT(*))::numeric, 1\n) AS \"Time < 25% (%)\"\nFROM activity_streams s\nJOIN activities a ON a.id = s.activity_id\nWHERE s.activity_id = NULLIF('${activity_id}', '')::integer\n  AND s.w_bal IS NOT NULL\n  AND a.wbal_w_prime_j IS NOT NULL\nGROUP BY a.id;",
           "format": "table",
           "refId": "A"
         }
@@ -1464,7 +1590,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 33
+        "y": 40
       },
       "datasource": {
         "type": "postgres",
@@ -1472,7 +1598,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT\n  ROW_NUMBER() OVER (ORDER BY start_offset_s) AS \"#\",\n  TO_CHAR((start_offset_s || ' seconds')::interval, 'HH24:MI:SS') AS \"Start\",\n  LPAD((duration_s / 60)::text, 2, '0') || ':' || LPAD((duration_s % 60)::text, 2, '0') AS \"Duration\",\n  ROUND(avg_power::numeric, 0) AS \"Avg W\",\n  ROUND(np::numeric, 0) AS \"NP\",\n  ROUND(max_power::numeric, 0) AS \"Max W\",\n  classification AS \"Type\"\nFROM ride_intervals\nWHERE activity_id = ${activity_id}\nORDER BY start_offset_s;",
+          "rawSql": "SELECT\n  ROW_NUMBER() OVER (ORDER BY start_offset_s) AS \"#\",\n  TO_CHAR((start_offset_s || ' seconds')::interval, 'HH24:MI:SS') AS \"Start\",\n  LPAD((duration_s / 60)::text, 2, '0') || ':' || LPAD((duration_s % 60)::text, 2, '0') AS \"Duration\",\n  ROUND(avg_power::numeric, 0) AS \"Avg W\",\n  ROUND(np::numeric, 0) AS \"NP\",\n  ROUND(max_power::numeric, 0) AS \"Max W\",\n  classification AS \"Type\"\nFROM ride_intervals\nWHERE activity_id = NULLIF('${activity_id}', '')::integer\n  AND classification <> 'surge'\nORDER BY start_offset_s;",
           "format": "table",
           "refId": "A"
         }
@@ -1500,8 +1626,8 @@
                   {
                     "type": "value",
                     "options": {
-                      "sprint": {
-                        "color": "purple",
+                      "surge": {
+                        "color": "#808080",
                         "index": 0
                       },
                       "anaerobic": {
@@ -1532,7 +1658,7 @@
           }
         ]
       },
-      "description": "Automatically detected sustained efforts in this ride, classified by duration and intensity (% of ride FTP).\n\n\ud83d\udfe3 Sprint \u2014 > 150% FTP, < 30s\n\n\ud83d\udd34 Anaerobic \u2014 120\u2013150% FTP, 30s \u2013 2 min\n\n\ud83d\udfe0 VO2 \u2014 105\u2013120% FTP, 2 \u2013 5 min\n\n\ud83d\udfe1 Threshold \u2014 95\u2013105% FTP, 5 \u2013 20 min\n\n\ud83d\udfe2 Sweet spot \u2014 83\u201394% FTP, 15 \u2013 60 min\n\n\ud83d\udd35 Tempo \u2014 75\u201385% FTP, > 20 min"
+      "description": "Sustained efforts detected in this ride, classified by mean power as % of ride FTP. An effort of a minute or more takes its band. Anything shorter is a surge: a traffic acceleration or a brief rise in power, not a training interval, so surges aren't listed here. They still count in Monthly Interval Distribution.\n\n\ud83d\udd18 Under 60 s, any intensity \u2014 Surge\n\n\ud83d\udd35 75\u201388% FTP \u2014 Tempo\n\n\ud83d\udfe2 88\u201395% FTP \u2014 Sweet spot\n\n\ud83d\udfe1 95\u2013105% FTP \u2014 Threshold\n\n\ud83d\udfe0 105\u2013120% FTP \u2014 VO2\n\n\ud83d\udd34 \u2265 120% FTP \u2014 Anaerobic"
     },
     {
       "id": 902,
@@ -1543,7 +1669,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 41
+        "y": 48
       },
       "panels": []
     },
@@ -1555,7 +1681,7 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 42
+        "y": 49
       },
       "datasource": {
         "type": "postgres",
@@ -1563,7 +1689,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH dist AS (\n  SELECT s.time_offset, s.hr,\n    SUM(s.speed_kmh / 3600.0) OVER (ORDER BY s.time_offset) AS km\n  FROM activity_streams s\n  WHERE s.activity_id = ${activity_id}\n    AND s.speed_kmh IS NOT NULL\n),\nzoned AS (\n  SELECT FLOOR(km)::int + 1 AS km,\n    CASE\n      WHEN d.hr < mhr.val * 0.60 THEN 'Z1 Recovery'\n      WHEN d.hr < mhr.val * 0.70 THEN 'Z2 Endurance'\n      WHEN d.hr < mhr.val * 0.80 THEN 'Z3 Tempo'\n      WHEN d.hr < mhr.val * 0.90 THEN 'Z4 Threshold'\n      ELSE 'Z5 VO2max'\n    END AS zone\n  FROM dist d\n  CROSS JOIN (\n    SELECT COALESCE(\n      NULLIF((SELECT value::numeric FROM sync_state WHERE key = 'configured_max_hr'), 0),\n      (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY max_hr) FROM activities WHERE max_hr IS NOT NULL AND max_hr > 0),\n      185\n    ) AS val\n  ) mhr\n  WHERE d.hr IS NOT NULL AND d.hr > 0\n)\nSELECT km || ' km' AS \"Kilometer\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z1 Recovery' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z1 Recovery\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z2 Endurance' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z2 Endurance\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z3 Tempo' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z3 Tempo\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z4 Threshold' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z4 Threshold\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z5 VO2max' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z5 VO2max\"\nFROM zoned\nGROUP BY km\nORDER BY km;",
+          "rawSql": "WITH dist AS (\n  SELECT s.time_offset, s.hr,\n    SUM(s.speed_kmh / 3600.0) OVER (ORDER BY s.time_offset) AS km\n  FROM activity_streams s\n  WHERE s.activity_id = NULLIF('${activity_id}', '')::integer\n    AND s.speed_kmh IS NOT NULL\n),\nzoned AS (\n  SELECT FLOOR(km)::int + 1 AS km,\n    CASE\n      WHEN d.hr < mhr.val * 0.60 THEN 'Z1 Recovery'\n      WHEN d.hr < mhr.val * 0.70 THEN 'Z2 Endurance'\n      WHEN d.hr < mhr.val * 0.80 THEN 'Z3 Tempo'\n      WHEN d.hr < mhr.val * 0.90 THEN 'Z4 Threshold'\n      ELSE 'Z5 VO2max'\n    END AS zone\n  FROM dist d\n  CROSS JOIN (\n    SELECT COALESCE(\n      NULLIF((SELECT value::numeric FROM sync_state WHERE key = 'configured_max_hr'), 0),\n      (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY max_hr) FROM activities WHERE max_hr IS NOT NULL AND max_hr > 0),\n      185\n    ) AS val\n  ) mhr\n  WHERE d.hr IS NOT NULL AND d.hr > 0\n)\nSELECT km || ' km' AS \"Kilometer\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z1 Recovery' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z1 Recovery\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z2 Endurance' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z2 Endurance\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z3 Tempo' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z3 Tempo\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z4 Threshold' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z4 Threshold\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z5 VO2max' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z5 VO2max\"\nFROM zoned\nGROUP BY km\nORDER BY km;",
           "format": "table",
           "refId": "A"
         }
@@ -1675,7 +1801,7 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 48
+        "y": 55
       },
       "datasource": {
         "type": "postgres",
@@ -1683,7 +1809,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH dist AS (\n  SELECT s.time_offset, s.power,\n    SUM(s.speed_kmh / 3600.0) OVER (ORDER BY s.time_offset) AS km\n  FROM activity_streams s\n  WHERE s.activity_id = ${activity_id}\n    AND s.speed_kmh IS NOT NULL\n),\nzoned AS (\n  SELECT FLOOR(km)::int + 1 AS km,\n    CASE\n      WHEN d.power < ftp.val * 0.55 THEN 'Z1 Recovery'\n      WHEN d.power < ftp.val * 0.75 THEN 'Z2 Endurance'\n      WHEN d.power < ftp.val * 0.90 THEN 'Z3 Tempo'\n      WHEN d.power < ftp.val * 1.05 THEN 'Z4 Threshold'\n      WHEN d.power < ftp.val * 1.20 THEN 'Z5 VO2max'\n      WHEN d.power < ftp.val * 1.50 THEN 'Z6 Anaerobic'\n      ELSE 'Z7 Neuromuscular'\n    END AS zone\n  FROM dist d\n  CROSS JOIN (\n    SELECT COALESCE(\n      (SELECT value::numeric FROM sync_state WHERE key = 'configured_ftp' AND value::numeric > 0),\n      (SELECT value::numeric FROM sync_state WHERE key = 'estimated_ftp' AND value::numeric > 0),\n      150\n    ) AS val\n  ) ftp\n  WHERE d.power IS NOT NULL AND d.power > 0\n)\nSELECT km || ' km' AS \"Kilometer\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z1 Recovery' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z1 Recovery\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z2 Endurance' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z2 Endurance\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z3 Tempo' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z3 Tempo\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z4 Threshold' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z4 Threshold\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z5 VO2max' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z5 VO2max\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z6 Anaerobic' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z6 Anaerobic\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z7 Neuromuscular' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z7 Neuromuscular\"\nFROM zoned\nGROUP BY km\nORDER BY km;",
+          "rawSql": "WITH dist AS (\n  SELECT s.time_offset, s.power,\n    SUM(s.speed_kmh / 3600.0) OVER (ORDER BY s.time_offset) AS km\n  FROM activity_streams s\n  WHERE s.activity_id = NULLIF('${activity_id}', '')::integer\n    AND s.speed_kmh IS NOT NULL\n),\nzoned AS (\n  SELECT FLOOR(km)::int + 1 AS km,\n    CASE\n      WHEN d.power < ftp.val * 0.55 THEN 'Z1 Recovery'\n      WHEN d.power < ftp.val * 0.75 THEN 'Z2 Endurance'\n      WHEN d.power < ftp.val * 0.90 THEN 'Z3 Tempo'\n      WHEN d.power < ftp.val * 1.05 THEN 'Z4 Threshold'\n      WHEN d.power < ftp.val * 1.20 THEN 'Z5 VO2max'\n      WHEN d.power < ftp.val * 1.50 THEN 'Z6 Anaerobic'\n      ELSE 'Z7 Neuromuscular'\n    END AS zone\n  FROM dist d\n  CROSS JOIN (\n    SELECT COALESCE(\n      (SELECT NULLIF(a.ride_ftp, 0)::numeric FROM activities a WHERE a.id = NULLIF('${activity_id}', '')::integer),\n      (SELECT value::numeric FROM sync_state WHERE key = 'configured_ftp' AND value::numeric > 0),\n      (SELECT value::numeric FROM sync_state WHERE key = 'estimated_ftp' AND value::numeric > 0),\n      150\n    ) AS val\n  ) ftp\n  WHERE d.power IS NOT NULL AND d.power > 0\n)\nSELECT km || ' km' AS \"Kilometer\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z1 Recovery' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z1 Recovery\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z2 Endurance' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z2 Endurance\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z3 Tempo' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z3 Tempo\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z4 Threshold' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z4 Threshold\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z5 VO2max' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z5 VO2max\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z6 Anaerobic' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z6 Anaerobic\",\n  ROUND((100.0 * SUM(CASE WHEN zone = 'Z7 Neuromuscular' THEN 1 ELSE 0 END) / COUNT(*))::numeric, 0) AS \"Z7 Neuromuscular\"\nFROM zoned\nGROUP BY km\nORDER BY km;",
           "format": "table",
           "refId": "A"
         }
@@ -1815,7 +1941,7 @@
           }
         ]
       },
-      "description": "Power zone distribution per kilometer.\n\nShows where on the route you produced the most power. 7 Coggan zones based on FTP.\n\n\ud83d\udd18 Z1 < 55% FTP \u2014 Recovery\n\n\ud83d\udd35 Z2 55-75% FTP \u2014 Endurance\n\n\ud83d\udfe2 Z3 75-90% FTP \u2014 Tempo\n\n\ud83d\udfe1 Z4 90-105% FTP \u2014 Threshold\n\n\ud83d\udfe0 Z5 105-120% FTP \u2014 VO2max\n\n\ud83d\udd34 Z6 120-150% FTP \u2014 Anaerobic\n\n\ud83d\udfe3 Z7 > 150% FTP \u2014 Neuromuscular"
+      "description": "Power zone distribution per kilometer.\n\nShows where on the route you produced the most power. 7 Coggan zones based on the FTP stored with this ride.\n\n\ud83d\udd18 Z1 < 55% FTP \u2014 Recovery\n\n\ud83d\udd35 Z2 55-75% FTP \u2014 Endurance\n\n\ud83d\udfe2 Z3 75-90% FTP \u2014 Tempo\n\n\ud83d\udfe1 Z4 90-105% FTP \u2014 Threshold\n\n\ud83d\udfe0 Z5 105-120% FTP \u2014 VO2max\n\n\ud83d\udd34 Z6 120-150% FTP \u2014 Anaerobic\n\n\ud83d\udfe3 Z7 > 150% FTP \u2014 Neuromuscular"
     },
     {
       "id": 31,
@@ -1825,7 +1951,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 54
+        "y": 61
       },
       "datasource": {
         "type": "postgres",
@@ -1833,7 +1959,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH lthr AS (SELECT COALESCE((SELECT value::numeric FROM sync_state WHERE key = 'configured_max_hr' AND value::numeric > 0), (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY max_hr) FROM activities WHERE max_hr IS NOT NULL AND max_hr > 0), 185) AS thr), data AS (SELECT CASE WHEN s.hr < lthr.thr * 0.60 THEN 'z1' WHEN s.hr < lthr.thr * 0.70 THEN 'z2' WHEN s.hr < lthr.thr * 0.80 THEN 'z3' WHEN s.hr < lthr.thr * 0.90 THEN 'z4' ELSE 'z5' END AS z FROM activity_streams s, lthr WHERE s.activity_id = ${activity_id} AND s.hr IS NOT NULL AND s.hr > 0) SELECT 'HR' AS \"x\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z1'), 0) AS \"Z1 Recovery\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z2'), 0) AS \"Z2 Endurance\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z3'), 0) AS \"Z3 Tempo\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z4'), 0) AS \"Z4 Threshold\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z5'), 0) AS \"Z5 VO2max\";",
+          "rawSql": "WITH lthr AS (SELECT COALESCE((SELECT value::numeric FROM sync_state WHERE key = 'configured_max_hr' AND value::numeric > 0), (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY max_hr) FROM activities WHERE max_hr IS NOT NULL AND max_hr > 0), 185) AS thr), data AS (SELECT CASE WHEN s.hr < lthr.thr * 0.60 THEN 'z1' WHEN s.hr < lthr.thr * 0.70 THEN 'z2' WHEN s.hr < lthr.thr * 0.80 THEN 'z3' WHEN s.hr < lthr.thr * 0.90 THEN 'z4' ELSE 'z5' END AS z FROM activity_streams s, lthr WHERE s.activity_id = NULLIF('${activity_id}', '')::integer AND s.hr IS NOT NULL AND s.hr > 0) SELECT 'HR' AS \"x\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z1'), 0) AS \"Z1 Recovery\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z2'), 0) AS \"Z2 Endurance\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z3'), 0) AS \"Z3 Tempo\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z4'), 0) AS \"Z4 Threshold\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z5'), 0) AS \"Z5 VO2max\";",
           "format": "table",
           "refId": "A"
         }
@@ -1947,7 +2073,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 54
+        "y": 61
       },
       "datasource": {
         "type": "postgres",
@@ -1955,7 +2081,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH ftp AS (\n  SELECT COALESCE(\n    (SELECT value::numeric FROM sync_state WHERE key = 'configured_ftp' AND value::numeric > 0),\n    (SELECT value::numeric FROM sync_state WHERE key = 'estimated_ftp' AND value::numeric > 0),\n    150\n  ) AS ftp_val\n), data AS (SELECT CASE WHEN s.power < ftp.ftp_val * 0.55 THEN 'z1' WHEN s.power < ftp.ftp_val * 0.75 THEN 'z2' WHEN s.power < ftp.ftp_val * 0.90 THEN 'z3' WHEN s.power < ftp.ftp_val * 1.05 THEN 'z4' WHEN s.power < ftp.ftp_val * 1.20 THEN 'z5' WHEN s.power < ftp.ftp_val * 1.50 THEN 'z6' ELSE 'z7' END AS z FROM activity_streams s, ftp WHERE s.activity_id = ${activity_id} AND s.power IS NOT NULL AND s.power > 0) SELECT 'Power' AS \"x\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z1'), 0) AS \"Z1 Recovery\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z2'), 0) AS \"Z2 Endurance\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z3'), 0) AS \"Z3 Tempo\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z4'), 0) AS \"Z4 Threshold\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z5'), 0) AS \"Z5 VO2max\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z6'), 0) AS \"Z6 Anaerobic\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z7'), 0) AS \"Z7 Neuromuscular\";",
+          "rawSql": "WITH ftp AS (\n  SELECT COALESCE(\n    (SELECT NULLIF(a.ride_ftp, 0)::numeric FROM activities a WHERE a.id = NULLIF('${activity_id}', '')::integer),\n    (SELECT value::numeric FROM sync_state WHERE key = 'configured_ftp' AND value::numeric > 0),\n    (SELECT value::numeric FROM sync_state WHERE key = 'estimated_ftp' AND value::numeric > 0),\n    150\n  ) AS ftp_val\n), data AS (SELECT CASE WHEN s.power < ftp.ftp_val * 0.55 THEN 'z1' WHEN s.power < ftp.ftp_val * 0.75 THEN 'z2' WHEN s.power < ftp.ftp_val * 0.90 THEN 'z3' WHEN s.power < ftp.ftp_val * 1.05 THEN 'z4' WHEN s.power < ftp.ftp_val * 1.20 THEN 'z5' WHEN s.power < ftp.ftp_val * 1.50 THEN 'z6' ELSE 'z7' END AS z FROM activity_streams s, ftp WHERE s.activity_id = NULLIF('${activity_id}', '')::integer AND s.power IS NOT NULL AND s.power > 0) SELECT 'Power' AS \"x\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z1'), 0) AS \"Z1 Recovery\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z2'), 0) AS \"Z2 Endurance\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z3'), 0) AS \"Z3 Tempo\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z4'), 0) AS \"Z4 Threshold\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z5'), 0) AS \"Z5 VO2max\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z6'), 0) AS \"Z6 Anaerobic\", COALESCE((SELECT COUNT(*) FROM data WHERE z='z7'), 0) AS \"Z7 Neuromuscular\";",
           "format": "table",
           "refId": "A"
         }
@@ -2089,7 +2215,7 @@
           }
         ]
       },
-      "description": "Time in each power zone.\n\nZones based on FTP, estimated from best 20-min power \u00d7 0.95 or configured via VELOMATE_FTP.\n\n\ud83d\udd18 Z1 < 55% \u2014 Recovery\n\n\ud83d\udd35 Z2 55-75% \u2014 Endurance\n\n\ud83d\udfe2 Z3 75-90% \u2014 Tempo\n\n\ud83d\udfe1 Z4 90-105% \u2014 Threshold\n\n\ud83d\udfe0 Z5 105-120% \u2014 VO2max\n\n\ud83d\udd34 Z6 120-150% \u2014 Anaerobic\n\n\ud83d\udfe3 Z7 > 150% \u2014 Neuromuscular"
+      "description": "Time in each power zone.\n\nZones use the FTP stored with this ride, the same one IF and intervals use. A ride with no stored FTP uses the configured or estimated FTP.\n\n\ud83d\udd18 Z1 < 55% \u2014 Recovery\n\n\ud83d\udd35 Z2 55-75% \u2014 Endurance\n\n\ud83d\udfe2 Z3 75-90% \u2014 Tempo\n\n\ud83d\udfe1 Z4 90-105% \u2014 Threshold\n\n\ud83d\udfe0 Z5 105-120% \u2014 VO2max\n\n\ud83d\udd34 Z6 120-150% \u2014 Anaerobic\n\n\ud83d\udfe3 Z7 > 150% \u2014 Neuromuscular"
     },
     {
       "id": 42,
@@ -2099,7 +2225,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 62
+        "y": 69
       },
       "datasource": {
         "type": "postgres",
@@ -2107,7 +2233,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH lthr AS (SELECT COALESCE((SELECT value::numeric FROM sync_state WHERE key = 'configured_max_hr' AND value::numeric > 0), (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY max_hr) FROM activities WHERE max_hr IS NOT NULL AND max_hr > 0), 185) AS thr), buckets AS (SELECT FLOOR(hr / 5) * 5 AS bucket, COUNT(*) / 60.0 AS mins, CASE WHEN hr < lthr.thr * 0.60 THEN 'Z1 Recovery' WHEN hr < lthr.thr * 0.70 THEN 'Z2 Endurance' WHEN hr < lthr.thr * 0.80 THEN 'Z3 Tempo' WHEN hr < lthr.thr * 0.90 THEN 'Z4 Threshold' ELSE 'Z5 VO2max' END AS zone FROM activity_streams, lthr WHERE activity_id = ${activity_id} AND hr IS NOT NULL AND hr > 0 GROUP BY bucket, zone) SELECT bucket::int AS \"HR (bpm)\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z1 Recovery'), 0) AS \"Z1 Recovery\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z2 Endurance'), 0) AS \"Z2 Endurance\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z3 Tempo'), 0) AS \"Z3 Tempo\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z4 Threshold'), 0) AS \"Z4 Threshold\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z5 VO2max'), 0) AS \"Z5 VO2max\" FROM buckets GROUP BY bucket ORDER BY bucket;",
+          "rawSql": "WITH lthr AS (SELECT COALESCE((SELECT value::numeric FROM sync_state WHERE key = 'configured_max_hr' AND value::numeric > 0), (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY max_hr) FROM activities WHERE max_hr IS NOT NULL AND max_hr > 0), 185) AS thr), buckets AS (SELECT FLOOR(hr / 5) * 5 AS bucket, COUNT(*) / 60.0 AS mins, CASE WHEN hr < lthr.thr * 0.60 THEN 'Z1 Recovery' WHEN hr < lthr.thr * 0.70 THEN 'Z2 Endurance' WHEN hr < lthr.thr * 0.80 THEN 'Z3 Tempo' WHEN hr < lthr.thr * 0.90 THEN 'Z4 Threshold' ELSE 'Z5 VO2max' END AS zone FROM activity_streams, lthr WHERE activity_id = NULLIF('${activity_id}', '')::integer AND hr IS NOT NULL AND hr > 0 GROUP BY bucket, zone) SELECT bucket::int AS \"HR (bpm)\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z1 Recovery'), 0) AS \"Z1 Recovery\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z2 Endurance'), 0) AS \"Z2 Endurance\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z3 Tempo'), 0) AS \"Z3 Tempo\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z4 Threshold'), 0) AS \"Z4 Threshold\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z5 VO2max'), 0) AS \"Z5 VO2max\" FROM buckets GROUP BY bucket ORDER BY bucket;",
           "format": "table",
           "refId": "A"
         }
@@ -2230,7 +2356,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 62
+        "y": 69
       },
       "datasource": {
         "type": "postgres",
@@ -2238,7 +2364,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH ftp AS (\n  SELECT COALESCE(\n    (SELECT value::numeric FROM sync_state WHERE key = 'configured_ftp' AND value::numeric > 0),\n    (SELECT value::numeric FROM sync_state WHERE key = 'estimated_ftp' AND value::numeric > 0),\n    150\n  ) AS ftp_val\n), buckets AS (SELECT FLOOR(power / 25) * 25 AS bucket, COUNT(*) / 60.0 AS mins, CASE WHEN power < ftp.ftp_val * 0.55 THEN 'Z1 Recovery' WHEN power < ftp.ftp_val * 0.75 THEN 'Z2 Endurance' WHEN power < ftp.ftp_val * 0.90 THEN 'Z3 Tempo' WHEN power < ftp.ftp_val * 1.05 THEN 'Z4 Threshold' WHEN power < ftp.ftp_val * 1.20 THEN 'Z5 VO2max' WHEN power < ftp.ftp_val * 1.50 THEN 'Z6 Anaerobic' ELSE 'Z7 Neuromuscular' END AS zone FROM activity_streams, ftp WHERE activity_id = ${activity_id} AND power IS NOT NULL AND power > 0 GROUP BY bucket, zone) SELECT bucket::int AS \"Power (W)\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z1 Recovery'), 0) AS \"Z1 Recovery\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z2 Endurance'), 0) AS \"Z2 Endurance\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z3 Tempo'), 0) AS \"Z3 Tempo\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z4 Threshold'), 0) AS \"Z4 Threshold\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z5 VO2max'), 0) AS \"Z5 VO2max\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z6 Anaerobic'), 0) AS \"Z6 Anaerobic\",\n  COALESCE(SUM(mins) FILTER (WHERE zone = 'Z7 Neuromuscular'), 0) AS \"Z7 Neuromuscular\" FROM buckets GROUP BY bucket ORDER BY bucket;",
+          "rawSql": "WITH ftp AS (\n  SELECT COALESCE(\n    (SELECT NULLIF(a.ride_ftp, 0)::numeric FROM activities a WHERE a.id = NULLIF('${activity_id}', '')::integer),\n    (SELECT value::numeric FROM sync_state WHERE key = 'configured_ftp' AND value::numeric > 0),\n    (SELECT value::numeric FROM sync_state WHERE key = 'estimated_ftp' AND value::numeric > 0),\n    150\n  ) AS ftp_val\n), buckets AS (SELECT FLOOR(power / 25) * 25 AS bucket, COUNT(*) / 60.0 AS mins, CASE WHEN power < ftp.ftp_val * 0.55 THEN 'Z1 Recovery' WHEN power < ftp.ftp_val * 0.75 THEN 'Z2 Endurance' WHEN power < ftp.ftp_val * 0.90 THEN 'Z3 Tempo' WHEN power < ftp.ftp_val * 1.05 THEN 'Z4 Threshold' WHEN power < ftp.ftp_val * 1.20 THEN 'Z5 VO2max' WHEN power < ftp.ftp_val * 1.50 THEN 'Z6 Anaerobic' ELSE 'Z7 Neuromuscular' END AS zone FROM activity_streams, ftp WHERE activity_id = NULLIF('${activity_id}', '')::integer AND power IS NOT NULL AND power > 0 GROUP BY bucket, zone) SELECT bucket::int AS \"Power (W)\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z1 Recovery'), 0) AS \"Z1 Recovery\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z2 Endurance'), 0) AS \"Z2 Endurance\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z3 Tempo'), 0) AS \"Z3 Tempo\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z4 Threshold'), 0) AS \"Z4 Threshold\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z5 VO2max'), 0) AS \"Z5 VO2max\", COALESCE(SUM(mins) FILTER (WHERE zone = 'Z6 Anaerobic'), 0) AS \"Z6 Anaerobic\",\n  COALESCE(SUM(mins) FILTER (WHERE zone = 'Z7 Neuromuscular'), 0) AS \"Z7 Neuromuscular\" FROM buckets GROUP BY bucket ORDER BY bucket;",
           "format": "table",
           "refId": "A"
         }
@@ -2400,7 +2526,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 70
+        "y": 77
       },
       "panels": []
     },
@@ -2412,7 +2538,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 71
+        "y": 78
       },
       "datasource": {
         "type": "postgres",
@@ -2420,7 +2546,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT d.label AS \"Duration\", d.best_power AS \"This Ride (W)\" FROM (\nSELECT 1 AS ord, '5s' AS label, ROUND(MAX(avg_p)::numeric, 0) AS best_power FROM (SELECT AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 4 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 2, '10s', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 9 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 3, '30s', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 29 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 4, '1min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 59 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 5, '2min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 119 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 6, '5min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 299 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 7, '10min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 599 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 8, '20min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 1199 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL) s WHERE avg_p IS NOT NULL\nUNION ALL SELECT 9, '60min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 3599 PRECEDING AND CURRENT ROW) AS avg_p FROM activity_streams WHERE activity_id = ${activity_id} AND power IS NOT NULL) s WHERE avg_p IS NOT NULL\n) d WHERE d.best_power IS NOT NULL ORDER BY d.ord;",
+          "rawSql": "SELECT d.label AS \"Duration\", d.best_power AS \"This Ride (W)\" FROM (\nSELECT 1 AS ord, '5s' AS label, ROUND(MAX(avg_p)::numeric, 0) AS best_power FROM (SELECT AVG(power) OVER w AS avg_p, COUNT(*) OVER w AS window_size FROM activity_streams WHERE activity_id = NULLIF('${activity_id}', '')::integer AND power IS NOT NULL WINDOW w AS (ORDER BY time_offset ROWS BETWEEN 4 PRECEDING AND CURRENT ROW)) s WHERE window_size >= 5\nUNION ALL SELECT 2, '10s', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER w AS avg_p, COUNT(*) OVER w AS window_size FROM activity_streams WHERE activity_id = NULLIF('${activity_id}', '')::integer AND power IS NOT NULL WINDOW w AS (ORDER BY time_offset ROWS BETWEEN 9 PRECEDING AND CURRENT ROW)) s WHERE window_size >= 10\nUNION ALL SELECT 3, '30s', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER w AS avg_p, COUNT(*) OVER w AS window_size FROM activity_streams WHERE activity_id = NULLIF('${activity_id}', '')::integer AND power IS NOT NULL WINDOW w AS (ORDER BY time_offset ROWS BETWEEN 29 PRECEDING AND CURRENT ROW)) s WHERE window_size >= 30\nUNION ALL SELECT 4, '1min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER w AS avg_p, COUNT(*) OVER w AS window_size FROM activity_streams WHERE activity_id = NULLIF('${activity_id}', '')::integer AND power IS NOT NULL WINDOW w AS (ORDER BY time_offset ROWS BETWEEN 59 PRECEDING AND CURRENT ROW)) s WHERE window_size >= 60\nUNION ALL SELECT 5, '2min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER w AS avg_p, COUNT(*) OVER w AS window_size FROM activity_streams WHERE activity_id = NULLIF('${activity_id}', '')::integer AND power IS NOT NULL WINDOW w AS (ORDER BY time_offset ROWS BETWEEN 119 PRECEDING AND CURRENT ROW)) s WHERE window_size >= 120\nUNION ALL SELECT 6, '5min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER w AS avg_p, COUNT(*) OVER w AS window_size FROM activity_streams WHERE activity_id = NULLIF('${activity_id}', '')::integer AND power IS NOT NULL WINDOW w AS (ORDER BY time_offset ROWS BETWEEN 299 PRECEDING AND CURRENT ROW)) s WHERE window_size >= 300\nUNION ALL SELECT 7, '10min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER w AS avg_p, COUNT(*) OVER w AS window_size FROM activity_streams WHERE activity_id = NULLIF('${activity_id}', '')::integer AND power IS NOT NULL WINDOW w AS (ORDER BY time_offset ROWS BETWEEN 599 PRECEDING AND CURRENT ROW)) s WHERE window_size >= 600\nUNION ALL SELECT 8, '20min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER w AS avg_p, COUNT(*) OVER w AS window_size FROM activity_streams WHERE activity_id = NULLIF('${activity_id}', '')::integer AND power IS NOT NULL WINDOW w AS (ORDER BY time_offset ROWS BETWEEN 1199 PRECEDING AND CURRENT ROW)) s WHERE window_size >= 1200\nUNION ALL SELECT 9, '60min', ROUND(MAX(avg_p)::numeric, 0) FROM (SELECT AVG(power) OVER w AS avg_p, COUNT(*) OVER w AS window_size FROM activity_streams WHERE activity_id = NULLIF('${activity_id}', '')::integer AND power IS NOT NULL WINDOW w AS (ORDER BY time_offset ROWS BETWEEN 3599 PRECEDING AND CURRENT ROW)) s WHERE window_size >= 3600\n) d WHERE d.best_power IS NOT NULL ORDER BY d.ord;",
           "format": "table",
           "refId": "A"
         }
@@ -2466,7 +2592,7 @@
       "description": "How much power you retained in the second half vs the first half.\n\n100% = no fade. 90% = lost 10% of your power.\n> 100% = negative split (went harder in the back half).\n\nShows at which durations you fade most \u2014 short efforts\n(anaerobic) vs long efforts (aerobic) may differ.",
       "gridPos": {
         "x": 0,
-        "y": 79,
+        "y": 86,
         "w": 18,
         "h": 6
       },
@@ -2476,7 +2602,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH stream AS (\n  SELECT time_offset, COALESCE(power, 0) AS power,\n    MAX(time_offset) OVER () AS max_offset\n  FROM activity_streams\n  WHERE activity_id = ${activity_id}\n),\nfirst_half AS (\n  SELECT ROW_NUMBER() OVER (ORDER BY time_offset) AS rn,\n    AVG(power) OVER w60 AS p60, AVG(power) OVER w120 AS p120,\n    AVG(power) OVER w300 AS p300, AVG(power) OVER w600 AS p600,\n    AVG(power) OVER w1200 AS p1200\n  FROM stream WHERE time_offset <= max_offset / 2\n  WINDOW w60   AS (ORDER BY time_offset ROWS BETWEEN 59   PRECEDING AND CURRENT ROW),\n         w120  AS (ORDER BY time_offset ROWS BETWEEN 119  PRECEDING AND CURRENT ROW),\n         w300  AS (ORDER BY time_offset ROWS BETWEEN 299  PRECEDING AND CURRENT ROW),\n         w600  AS (ORDER BY time_offset ROWS BETWEEN 599  PRECEDING AND CURRENT ROW),\n         w1200 AS (ORDER BY time_offset ROWS BETWEEN 1199 PRECEDING AND CURRENT ROW)\n),\nsecond_half AS (\n  SELECT ROW_NUMBER() OVER (ORDER BY time_offset) AS rn,\n    AVG(power) OVER w60 AS p60, AVG(power) OVER w120 AS p120,\n    AVG(power) OVER w300 AS p300, AVG(power) OVER w600 AS p600,\n    AVG(power) OVER w1200 AS p1200\n  FROM stream WHERE time_offset > max_offset / 2\n  WINDOW w60   AS (ORDER BY time_offset ROWS BETWEEN 59   PRECEDING AND CURRENT ROW),\n         w120  AS (ORDER BY time_offset ROWS BETWEEN 119  PRECEDING AND CURRENT ROW),\n         w300  AS (ORDER BY time_offset ROWS BETWEEN 299  PRECEDING AND CURRENT ROW),\n         w600  AS (ORDER BY time_offset ROWS BETWEEN 599  PRECEDING AND CURRENT ROW),\n         w1200 AS (ORDER BY time_offset ROWS BETWEEN 1199 PRECEDING AND CURRENT ROW)\n)\nSELECT '1 min' AS \"Duration\",\n  ROUND(((SELECT MAX(p60) FROM second_half WHERE rn >= 60) /\n    NULLIF((SELECT MAX(p60) FROM first_half WHERE rn >= 60), 0) * 100)::numeric) AS \"2nd Half / 1st Half (%)\"\nUNION ALL SELECT '2 min',\n  ROUND(((SELECT MAX(p120) FROM second_half WHERE rn >= 120) /\n    NULLIF((SELECT MAX(p120) FROM first_half WHERE rn >= 120), 0) * 100)::numeric)\nUNION ALL SELECT '5 min',\n  ROUND(((SELECT MAX(p300) FROM second_half WHERE rn >= 300) /\n    NULLIF((SELECT MAX(p300) FROM first_half WHERE rn >= 300), 0) * 100)::numeric)\nUNION ALL SELECT '10 min',\n  ROUND(((SELECT MAX(p600) FROM second_half WHERE rn >= 600) /\n    NULLIF((SELECT MAX(p600) FROM first_half WHERE rn >= 600), 0) * 100)::numeric)\nUNION ALL SELECT '20 min',\n  ROUND(((SELECT MAX(p1200) FROM second_half WHERE rn >= 1200) /\n    NULLIF((SELECT MAX(p1200) FROM first_half WHERE rn >= 1200), 0) * 100)::numeric);",
+          "rawSql": "WITH stream AS (\n  SELECT time_offset, COALESCE(power, 0) AS power,\n    MAX(time_offset) OVER () AS max_offset\n  FROM activity_streams\n  WHERE activity_id = NULLIF('${activity_id}', '')::integer\n),\nfirst_half AS (\n  SELECT ROW_NUMBER() OVER (ORDER BY time_offset) AS rn,\n    AVG(power) OVER w60 AS p60, AVG(power) OVER w120 AS p120,\n    AVG(power) OVER w300 AS p300, AVG(power) OVER w600 AS p600,\n    AVG(power) OVER w1200 AS p1200\n  FROM stream WHERE time_offset <= max_offset / 2\n  WINDOW w60   AS (ORDER BY time_offset ROWS BETWEEN 59   PRECEDING AND CURRENT ROW),\n         w120  AS (ORDER BY time_offset ROWS BETWEEN 119  PRECEDING AND CURRENT ROW),\n         w300  AS (ORDER BY time_offset ROWS BETWEEN 299  PRECEDING AND CURRENT ROW),\n         w600  AS (ORDER BY time_offset ROWS BETWEEN 599  PRECEDING AND CURRENT ROW),\n         w1200 AS (ORDER BY time_offset ROWS BETWEEN 1199 PRECEDING AND CURRENT ROW)\n),\nsecond_half AS (\n  SELECT ROW_NUMBER() OVER (ORDER BY time_offset) AS rn,\n    AVG(power) OVER w60 AS p60, AVG(power) OVER w120 AS p120,\n    AVG(power) OVER w300 AS p300, AVG(power) OVER w600 AS p600,\n    AVG(power) OVER w1200 AS p1200\n  FROM stream WHERE time_offset > max_offset / 2\n  WINDOW w60   AS (ORDER BY time_offset ROWS BETWEEN 59   PRECEDING AND CURRENT ROW),\n         w120  AS (ORDER BY time_offset ROWS BETWEEN 119  PRECEDING AND CURRENT ROW),\n         w300  AS (ORDER BY time_offset ROWS BETWEEN 299  PRECEDING AND CURRENT ROW),\n         w600  AS (ORDER BY time_offset ROWS BETWEEN 599  PRECEDING AND CURRENT ROW),\n         w1200 AS (ORDER BY time_offset ROWS BETWEEN 1199 PRECEDING AND CURRENT ROW)\n)\nSELECT '1 min' AS \"Duration\",\n  ROUND(((SELECT MAX(p60) FROM second_half WHERE rn >= 60) /\n    NULLIF((SELECT MAX(p60) FROM first_half WHERE rn >= 60), 0) * 100)::numeric) AS \"2nd Half / 1st Half (%)\"\nUNION ALL SELECT '2 min',\n  ROUND(((SELECT MAX(p120) FROM second_half WHERE rn >= 120) /\n    NULLIF((SELECT MAX(p120) FROM first_half WHERE rn >= 120), 0) * 100)::numeric)\nUNION ALL SELECT '5 min',\n  ROUND(((SELECT MAX(p300) FROM second_half WHERE rn >= 300) /\n    NULLIF((SELECT MAX(p300) FROM first_half WHERE rn >= 300), 0) * 100)::numeric)\nUNION ALL SELECT '10 min',\n  ROUND(((SELECT MAX(p600) FROM second_half WHERE rn >= 600) /\n    NULLIF((SELECT MAX(p600) FROM first_half WHERE rn >= 600), 0) * 100)::numeric)\nUNION ALL SELECT '20 min',\n  ROUND(((SELECT MAX(p1200) FROM second_half WHERE rn >= 1200) /\n    NULLIF((SELECT MAX(p1200) FROM first_half WHERE rn >= 1200), 0) * 100)::numeric);",
           "format": "table",
           "refId": "A"
         }
@@ -2526,7 +2652,7 @@
       "description": "2nd-half best 5-min power / 1st-half best 5-min power.\n\n1.0 = no fade. 0.9 = 10% power drop in the back half.\n\n\ud83d\udfe2 >= 0.95 \u2014 good durability\n\n\ud83d\udfe1 0.90-0.95 \u2014 moderate fade\n\n\ud83d\udd34 < 0.90 \u2014 significant durability deficit",
       "gridPos": {
         "x": 18,
-        "y": 79,
+        "y": 86,
         "w": 6,
         "h": 6
       },
@@ -2536,7 +2662,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH stream AS (\n  SELECT time_offset, COALESCE(power, 0) AS power,\n    MAX(time_offset) OVER () AS max_offset\n  FROM activity_streams\n  WHERE activity_id = ${activity_id}\n),\nfirst_half AS (\n  SELECT ROW_NUMBER() OVER (ORDER BY time_offset) AS rn,\n    AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 299 PRECEDING AND CURRENT ROW) AS p300\n  FROM stream WHERE time_offset <= max_offset / 2\n),\nsecond_half AS (\n  SELECT ROW_NUMBER() OVER (ORDER BY time_offset) AS rn,\n    AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 299 PRECEDING AND CURRENT ROW) AS p300\n  FROM stream WHERE time_offset > max_offset / 2\n)\nSELECT ROUND(\n  (SELECT MAX(p300) FROM second_half WHERE rn >= 300)::numeric /\n  NULLIF((SELECT MAX(p300) FROM first_half WHERE rn >= 300)::numeric, 0)\n, 2) AS \"Durability\";",
+          "rawSql": "WITH stream AS (\n  SELECT time_offset, COALESCE(power, 0) AS power,\n    MAX(time_offset) OVER () AS max_offset\n  FROM activity_streams\n  WHERE activity_id = NULLIF('${activity_id}', '')::integer\n),\nfirst_half AS (\n  SELECT ROW_NUMBER() OVER (ORDER BY time_offset) AS rn,\n    AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 299 PRECEDING AND CURRENT ROW) AS p300\n  FROM stream WHERE time_offset <= max_offset / 2\n),\nsecond_half AS (\n  SELECT ROW_NUMBER() OVER (ORDER BY time_offset) AS rn,\n    AVG(power) OVER (ORDER BY time_offset ROWS BETWEEN 299 PRECEDING AND CURRENT ROW) AS p300\n  FROM stream WHERE time_offset > max_offset / 2\n),\ndurability AS (\n  SELECT ROUND(\n    (SELECT MAX(p300) FROM second_half WHERE rn >= 300)::numeric /\n    NULLIF((SELECT MAX(p300) FROM first_half WHERE rn >= 300)::numeric, 0)\n  , 2) AS value\n)\nSELECT value AS \"Durability\" FROM durability WHERE value IS NOT NULL;",
           "format": "table",
           "refId": "A"
         }
@@ -2587,7 +2713,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 85
+        "y": 92
       },
       "panels": []
     },
@@ -2599,7 +2725,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 86
+        "y": 93
       },
       "datasource": {
         "type": "postgres",
@@ -2607,7 +2733,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH deltas AS (SELECT time_offset, hr, power, speed_kmh, altitude_m, cadence, COALESCE(speed_kmh, 0) / 3600.0 * (time_offset - LAG(time_offset, 1, time_offset) OVER (ORDER BY time_offset)) AS dist_delta, altitude_m - LAG(altitude_m) OVER (ORDER BY time_offset) AS alt_delta FROM activity_streams WHERE activity_id = ${activity_id}), cumulative AS (SELECT time_offset, hr, power, speed_kmh, altitude_m, cadence, alt_delta, SUM(dist_delta) OVER (ORDER BY time_offset ROWS UNBOUNDED PRECEDING) AS dist_km FROM deltas), splits AS (SELECT FLOOR(dist_km)::int + 1 AS km, COUNT(*) AS seconds, ROUND(AVG(speed_kmh)::numeric, 1) AS avg_speed, ROUND(AVG(hr)::numeric, 0) AS avg_hr, ROUND(AVG(NULLIF(power, 0))::numeric, 0) AS avg_power, ROUND(AVG(NULLIF(cadence, 0))::numeric, 0) AS avg_cadence, ROUND(COALESCE(SUM(CASE WHEN alt_delta > 0 THEN alt_delta ELSE 0 END), 0)::numeric, 0) AS elev_gain FROM cumulative WHERE dist_km >= 0 GROUP BY FLOOR(dist_km)::int) SELECT km AS \"KM\", CASE WHEN seconds = MIN(seconds) OVER () THEN '\ud83d\udfe2 ' WHEN seconds = MAX(seconds) OVER () THEN '\ud83d\udd34 ' ELSE '' END || TO_CHAR(seconds * interval '1 second', 'MI:SS') AS \"Pace\", CASE WHEN avg_speed = MAX(avg_speed) OVER () THEN '\ud83d\udfe2 ' WHEN avg_speed = MIN(avg_speed) OVER () THEN '\ud83d\udd34 ' ELSE '' END || avg_speed::text AS \"Avg Speed\", CASE WHEN avg_hr IS NULL THEN '\u2014' WHEN avg_hr = MIN(avg_hr) OVER () THEN '\ud83d\udfe2 ' || avg_hr::text WHEN avg_hr = MAX(avg_hr) OVER () THEN '\ud83d\udd34 ' || avg_hr::text ELSE avg_hr::text END AS \"Avg HR\", CASE WHEN avg_power IS NULL THEN '\u2014' WHEN avg_power = MAX(avg_power) OVER () THEN '\ud83d\udfe2 ' || avg_power::text WHEN avg_power = MIN(avg_power) OVER () THEN '\ud83d\udd34 ' || avg_power::text ELSE avg_power::text END AS \"Avg Power\", CASE WHEN avg_cadence IS NULL THEN '\u2014' WHEN avg_cadence = MAX(avg_cadence) OVER () THEN '\ud83d\udfe2 ' || avg_cadence::text WHEN avg_cadence = MIN(avg_cadence) OVER () THEN '\ud83d\udd34 ' || avg_cadence::text ELSE avg_cadence::text END AS \"Cadence\", elev_gain AS \"Elev Gain (m)\" FROM splits WHERE km < (SELECT MAX(km) FROM splits) ORDER BY km;",
+          "rawSql": "WITH deltas AS (SELECT time_offset, hr, power, speed_kmh, altitude_m, cadence, COALESCE(speed_kmh, 0) / 3600.0 * (time_offset - LAG(time_offset, 1, time_offset) OVER (ORDER BY time_offset)) AS dist_delta, altitude_m - LAG(altitude_m) OVER (ORDER BY time_offset) AS alt_delta FROM activity_streams WHERE activity_id = NULLIF('${activity_id}', '')::integer), cumulative AS (SELECT time_offset, hr, power, speed_kmh, altitude_m, cadence, alt_delta, SUM(dist_delta) OVER (ORDER BY time_offset ROWS UNBOUNDED PRECEDING) AS dist_km FROM deltas), splits AS (SELECT FLOOR(dist_km)::int + 1 AS km, COUNT(*) AS seconds, ROUND(AVG(speed_kmh)::numeric, 1) AS avg_speed, ROUND(AVG(hr)::numeric, 0) AS avg_hr, ROUND(AVG(NULLIF(power, 0))::numeric, 0) AS avg_power, ROUND(AVG(NULLIF(cadence, 0))::numeric, 0) AS avg_cadence, ROUND(COALESCE(SUM(CASE WHEN alt_delta > 0 THEN alt_delta ELSE 0 END), 0)::numeric, 0) AS elev_gain FROM cumulative WHERE dist_km >= 0 GROUP BY FLOOR(dist_km)::int) SELECT km AS \"KM\", CASE WHEN seconds = MIN(seconds) OVER () THEN '\ud83d\udfe2 ' WHEN seconds = MAX(seconds) OVER () THEN '\ud83d\udd34 ' ELSE '' END || TO_CHAR(seconds * interval '1 second', 'MI:SS') AS \"Pace\", CASE WHEN avg_speed = MAX(avg_speed) OVER () THEN '\ud83d\udfe2 ' WHEN avg_speed = MIN(avg_speed) OVER () THEN '\ud83d\udd34 ' ELSE '' END || avg_speed::text AS \"Avg Speed\", CASE WHEN avg_hr IS NULL THEN '\u2014' WHEN avg_hr = MIN(avg_hr) OVER () THEN '\ud83d\udfe2 ' || avg_hr::text WHEN avg_hr = MAX(avg_hr) OVER () THEN '\ud83d\udd34 ' || avg_hr::text ELSE avg_hr::text END AS \"Avg HR\", CASE WHEN avg_power IS NULL THEN '\u2014' WHEN avg_power = MAX(avg_power) OVER () THEN '\ud83d\udfe2 ' || avg_power::text WHEN avg_power = MIN(avg_power) OVER () THEN '\ud83d\udd34 ' || avg_power::text ELSE avg_power::text END AS \"Avg Power\", CASE WHEN avg_cadence IS NULL THEN '\u2014' WHEN avg_cadence = MAX(avg_cadence) OVER () THEN '\ud83d\udfe2 ' || avg_cadence::text WHEN avg_cadence = MIN(avg_cadence) OVER () THEN '\ud83d\udd34 ' || avg_cadence::text ELSE avg_cadence::text END AS \"Cadence\", elev_gain AS \"Elev Gain (m)\" FROM splits WHERE km < (SELECT MAX(km) FROM splits) ORDER BY km;",
           "format": "table",
           "refId": "A"
         }
@@ -2632,7 +2758,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 94
+        "y": 101
       },
       "panels": []
     },
@@ -2644,7 +2770,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 95
+        "y": 102
       },
       "datasource": {
         "type": "postgres",
@@ -2652,7 +2778,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT DISTINCT ON (time_offset)\n  ROUND(time_offset / 60.0, 2) AS \"Elapsed (min)\",\n  speed_kmh AS \"Speed (km/h)\",\n  altitude_m AS \"Elevation (m)\"\nFROM activity_streams\nWHERE activity_id = ${activity_id}\nORDER BY time_offset;",
+          "rawSql": "SELECT DISTINCT ON (time_offset)\n  ROUND(time_offset / 60.0, 2) AS \"Elapsed (min)\",\n  speed_kmh AS \"Speed (km/h)\",\n  altitude_m AS \"Elevation (m)\"\nFROM activity_streams\nWHERE activity_id = NULLIF('${activity_id}', '')::integer\nORDER BY time_offset;",
           "format": "table",
           "refId": "A",
           "datasource": {
@@ -2771,7 +2897,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 105
+        "y": 112
       },
       "datasource": {
         "type": "postgres",
@@ -2779,7 +2905,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT DISTINCT ON (time_offset)\n  ROUND(time_offset / 60.0, 2) AS \"Elapsed (min)\",\n  hr AS \"HR (bpm)\",\n  power AS \"Power (W)\"\nFROM activity_streams\nWHERE activity_id = ${activity_id}\nORDER BY time_offset;",
+          "rawSql": "SELECT DISTINCT ON (time_offset)\n  ROUND(time_offset / 60.0, 2) AS \"Elapsed (min)\",\n  hr AS \"HR (bpm)\",\n  power AS \"Power (W)\"\nFROM activity_streams\nWHERE activity_id = NULLIF('${activity_id}', '')::integer\nORDER BY time_offset;",
           "format": "table",
           "refId": "A",
           "datasource": {
@@ -2924,7 +3050,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 115
+        "y": 122
       },
       "datasource": {
         "type": "postgres",
@@ -2932,7 +3058,7 @@
       },
       "targets": [
         {
-          "rawSql": "WITH pts AS (\n  SELECT DISTINCT ON (time_offset) time_offset, cadence, altitude_m, speed_kmh\n  FROM activity_streams\n  WHERE activity_id = ${activity_id}\n  ORDER BY time_offset\n),\ncumul AS (\n  SELECT\n    time_offset, cadence, altitude_m,\n    COALESCE(speed_kmh, 0) / 3600.0 *\n      (time_offset - LAG(time_offset, 1, time_offset) OVER (ORDER BY time_offset)) AS dist_delta\n  FROM pts\n),\nwith_dist AS (\n  SELECT *,\n    SUM(dist_delta) OVER (ORDER BY time_offset ROWS UNBOUNDED PRECEDING) AS cum_dist\n  FROM cumul\n),\nsmoothed AS (\n  SELECT\n    time_offset, cadence, cum_dist,\n    altitude_m,\n    altitude_m - LAG(altitude_m, 20) OVER (ORDER BY time_offset) AS alt_window,\n    cum_dist - LAG(cum_dist, 20) OVER (ORDER BY time_offset) AS dist_window\n  FROM with_dist\n)\nSELECT\n  ROUND(time_offset / 60.0, 2) AS \"Elapsed (min)\",\n  cadence AS \"Cadence (rpm)\",\n  CASE WHEN dist_window > 0.005 THEN ROUND((alt_window / (dist_window * 1000) * 100)::numeric, 1) ELSE 0 END AS \"Grade (%)\"\nFROM smoothed\nORDER BY time_offset;",
+          "rawSql": "WITH pts AS (\n  SELECT DISTINCT ON (time_offset) time_offset, cadence, altitude_m, speed_kmh\n  FROM activity_streams\n  WHERE activity_id = NULLIF('${activity_id}', '')::integer\n  ORDER BY time_offset\n),\ncumul AS (\n  SELECT\n    time_offset, cadence, altitude_m,\n    COALESCE(speed_kmh, 0) / 3600.0 *\n      (time_offset - LAG(time_offset, 1, time_offset) OVER (ORDER BY time_offset)) AS dist_delta\n  FROM pts\n),\nwith_dist AS (\n  SELECT *,\n    SUM(dist_delta) OVER (ORDER BY time_offset ROWS UNBOUNDED PRECEDING) AS cum_dist\n  FROM cumul\n),\nsmoothed AS (\n  SELECT\n    time_offset, cadence, cum_dist,\n    altitude_m,\n    altitude_m - LAG(altitude_m, 20) OVER (ORDER BY time_offset) AS alt_window,\n    cum_dist - LAG(cum_dist, 20) OVER (ORDER BY time_offset) AS dist_window\n  FROM with_dist\n)\nSELECT\n  ROUND(time_offset / 60.0, 2) AS \"Elapsed (min)\",\n  cadence AS \"Cadence (rpm)\",\n  CASE WHEN dist_window > 0.005 THEN ROUND((alt_window / (dist_window * 1000) * 100)::numeric, 1) ELSE 0 END AS \"Grade (%)\"\nFROM smoothed\nORDER BY time_offset;",
           "format": "table",
           "refId": "A",
           "datasource": {
@@ -3037,11 +3163,11 @@
     {
       "id": 1202,
       "title": "W'bal (Anaerobic Battery)",
-      "description": "Per-second remaining anaerobic work capacity.\n\nStarts at W' (full battery). Drains when power exceeds CP.\nRefills exponentially when power is below CP.\n\nSkiba differential model with GoldenCheetah tau.\nComputed from the latest CP/W' estimate.",
+      "description": "Per-second remaining anaerobic work capacity.\n\nStarts at W' (full battery). Drains when power exceeds CP.\nRefills exponentially when power is below CP.\n\nRefill uses Skiba's 2012 recovery constant, recomputed each second, so values can differ from GoldenCheetah and intervals.icu.\nComputed from the CP/W' estimate current on the ride's date.",
       "type": "trend",
       "gridPos": {
         "x": 0,
-        "y": 125,
+        "y": 132,
         "w": 24,
         "h": 10
       },
@@ -3051,7 +3177,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT DISTINCT ON (time_offset)\n  ROUND(time_offset / 60.0, 2) AS \"Elapsed (min)\",\n  ROUND((w_bal / 1000.0)::numeric, 1) AS \"W'bal (kJ)\",\n  power AS \"Power (W)\"\nFROM activity_streams\nWHERE activity_id = ${activity_id} AND w_bal IS NOT NULL\nORDER BY time_offset;",
+          "rawSql": "SELECT DISTINCT ON (time_offset)\n  ROUND(time_offset / 60.0, 2) AS \"Elapsed (min)\",\n  ROUND((w_bal / 1000.0)::numeric, 1) AS \"W'bal (kJ)\",\n  power AS \"Power (W)\"\nFROM activity_streams\nWHERE activity_id = NULLIF('${activity_id}', '')::integer AND w_bal IS NOT NULL\nORDER BY time_offset;",
           "format": "table",
           "refId": "A"
         }
@@ -3125,7 +3251,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 135
+        "y": 142
       },
       "panels": []
     },
@@ -3137,7 +3263,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 136
+        "y": 143
       },
       "datasource": {
         "type": "postgres",
@@ -3145,7 +3271,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT\n  s.hr AS \"Heart Rate\",\n  s.power AS \"Power (W)\"\nFROM activity_streams s\nWHERE s.activity_id = ${activity_id}\n  AND s.hr IS NOT NULL AND s.hr > 0\n  AND s.power IS NOT NULL AND s.power > 0\n  AND s.time_offset % 5 = 0\nORDER BY s.time_offset;",
+          "rawSql": "SELECT\n  s.hr AS \"Heart Rate\",\n  s.power AS \"Power (W)\"\nFROM activity_streams s\nWHERE s.activity_id = NULLIF('${activity_id}', '')::integer\n  AND s.hr IS NOT NULL AND s.hr > 0\n  AND s.power IS NOT NULL AND s.power > 0\n  AND s.time_offset % 5 = 0\nORDER BY s.time_offset;",
           "format": "table",
           "refId": "A"
         }
@@ -3192,7 +3318,7 @@
       "type": "stat",
       "gridPos": {
         "x": 12,
-        "y": 30,
+        "y": 37,
         "w": 6,
         "h": 3
       },
@@ -3202,7 +3328,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND((coasting_time_s * 100.0 / NULLIF(duration_s, 0))::numeric, 0) AS \"Coasting %\" FROM activities WHERE id = ${activity_id} AND coasting_time_s IS NOT NULL AND duration_s > 0;",
+          "rawSql": "SELECT ROUND((coasting_time_s * 100.0 / NULLIF(duration_s, 0))::numeric, 0) AS \"Coasting %\" FROM activities WHERE id = NULLIF('${activity_id}', '')::integer AND coasting_time_s IS NOT NULL AND duration_s > 0;",
           "format": "table",
           "refId": "A"
         }
@@ -3251,7 +3377,7 @@
       "type": "stat",
       "gridPos": {
         "x": 18,
-        "y": 30,
+        "y": 37,
         "w": 6,
         "h": 3
       },
@@ -3261,7 +3387,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND(kj_above_ftp::numeric, 0) AS \"kJ > FTP\" FROM activities WHERE id = ${activity_id} AND kj_above_ftp IS NOT NULL;",
+          "rawSql": "SELECT ROUND(kj_above_ftp::numeric, 0) AS \"kJ > FTP\" FROM activities WHERE id = NULLIF('${activity_id}', '')::integer AND kj_above_ftp IS NOT NULL;",
           "format": "table",
           "refId": "A"
         }
@@ -3321,7 +3447,7 @@
       "type": "stat",
       "gridPos": {
         "x": 0,
-        "y": 33,
+        "y": 40,
         "w": 6,
         "h": 3
       },
@@ -3331,7 +3457,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND(polarization_index::numeric, 2) AS \"PI\" FROM activities WHERE id = ${activity_id} AND polarization_index IS NOT NULL;",
+          "rawSql": "SELECT ROUND(polarization_index::numeric, 2) AS \"PI\" FROM activities WHERE id = NULLIF('${activity_id}', '')::integer AND polarization_index IS NOT NULL;",
           "format": "table",
           "refId": "A"
         }

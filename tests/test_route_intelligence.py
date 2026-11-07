@@ -129,6 +129,58 @@ class TestCorridorWaypoints:
             assert "lng" in wp
 
 
+def _offsets_km(start, dest, wp):
+    """(along, sideways) km of a waypoint from start, relative to the start->dest line."""
+    mid_lat = (start[0] + dest[0]) / 2
+    km_lng = 111 * math.cos(math.radians(mid_lat))
+    route_y, route_x = (dest[0] - start[0]) * 111, (dest[1] - start[1]) * km_lng
+    length = math.hypot(route_x, route_y)
+    wp_y, wp_x = (wp["lat"] - start[0]) * 111, (wp["lng"] - start[1]) * km_lng
+    along = (wp_x * route_x + wp_y * route_y) / length
+    sideways = (wp_x * route_y - wp_y * route_x) / length
+    return along, sideways
+
+
+class TestCorridorSidewaysOffset:
+    """Padding only adds distance if the waypoints leave the direct line."""
+
+    TRIPS = {
+        "north": ((38.0, -9.0), (39.0, -9.0)),
+        "south": ((39.0, -9.0), (38.0, -9.0)),
+        "east": ((38.5, -9.0), (38.5, -7.7)),
+        "west": ((38.5, -7.7), (38.5, -9.0)),
+        "north-east at 60N": ((60.0, 10.0), (60.7, 12.0)),
+    }
+    TARGET_KM, BASELINE_KM = 200.0, 144.0
+    # (200 - 144) / (2 * 3) * 1.2
+    INTENDED_KM = 11.2
+
+    @pytest.mark.parametrize("start, dest", TRIPS.values(), ids=TRIPS.keys())
+    def test_each_waypoint_sits_the_intended_km_off_the_line(self, start, dest):
+        waypoints = corridor_waypoints(*start, *dest, target_km=self.TARGET_KM, baseline_km=self.BASELINE_KM)
+
+        assert len(waypoints) == 3
+        for wp in waypoints:
+            _, sideways = _offsets_km(start, dest, wp)
+            assert abs(sideways) == pytest.approx(self.INTENDED_KM, abs=0.01)
+
+    @pytest.mark.parametrize("start, dest", TRIPS.values(), ids=TRIPS.keys())
+    def test_waypoints_stay_evenly_spaced_along_the_line(self, start, dest):
+        waypoints = corridor_waypoints(*start, *dest, target_km=self.TARGET_KM, baseline_km=self.BASELINE_KM)
+        length, _ = _offsets_km(start, dest, {"lat": dest[0], "lng": dest[1]})
+
+        for i, wp in enumerate(waypoints, start=1):
+            along, _ = _offsets_km(start, dest, wp)
+            assert along == pytest.approx(length * i / 4, abs=0.01)
+
+    @pytest.mark.parametrize("start, dest", TRIPS.values(), ids=TRIPS.keys())
+    def test_waypoints_alternate_sides(self, start, dest):
+        waypoints = corridor_waypoints(*start, *dest, target_km=self.TARGET_KM, baseline_km=self.BASELINE_KM)
+
+        sides = [math.copysign(1, _offsets_km(start, dest, wp)[1]) for wp in waypoints]
+        assert sides[0] == -sides[1] == sides[2]
+
+
 class TestCorridorWaypointsEdgeCases:
     def test_very_close_start_and_dest(self):
         result = corridor_waypoints(

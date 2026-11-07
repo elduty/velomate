@@ -93,10 +93,14 @@ def assess_fit_quality(
 def compute_wbal(
     powers: list[float], cp: float, w_prime_j: float
 ) -> list[float]:
-    """Compute per-second W'bal using Skiba differential model.
+    """Compute per-second W'bal.
 
-    Uses the GoldenCheetah tau formulation:
+    Drains by P - CP above CP, and refills exponentially below it using Skiba's
+    2012 recovery constant, recomputed each second from that second's power:
         tau = 546 * exp(-0.01 * (CP - P)) + 316
+
+    That makes it a hybrid rather than a published model: Skiba 2012 uses one tau
+    per ride, and Skiba 2015 has no tau at all.
 
     Args:
         powers: per-second power values (watts).

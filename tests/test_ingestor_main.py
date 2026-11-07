@@ -210,7 +210,7 @@ class TestPollRwgps:
             patch("main.recalculate_fitness"),
         ):
             ingestor_main.poll_rwgps()
-        mock_rwgps.sync_activities.assert_called_once_with(conn)
+        mock_rwgps.sync_activities.assert_called_once_with(conn, problems=[])
         mock_rwgps.backfill.assert_not_called()
 
     def test_bounded_backfill_when_cursor_absent(self):
@@ -230,7 +230,7 @@ class TestPollRwgps:
             patch("main.recalculate_fitness"),
         ):
             ingestor_main.poll_rwgps()
-        mock_rwgps.backfill.assert_called_once_with(conn, months=12)
+        mock_rwgps.backfill.assert_called_once_with(conn, months=12, problems=[])
         mock_rwgps.sync_activities.assert_not_called()
 
 
@@ -540,10 +540,117 @@ class TestIntervalsIcuSource:
 
     def test_reconcile_closes_the_connection(self):
         with patch.object(ingestor_main, "_get_healthy_conn") as gc, \
+             patch.object(ingestor_main, "get_sync_state", return_value=None), \
              patch.object(ingestor_main.intervals_icu, "reconcile", return_value=(1, 0)):
             conn = gc.return_value
             ingestor_main._reconcile_intervals_icu()
         conn.close.assert_called_once()
+
+    def test_reconcile_recalculates_after_ingesting_a_ride(self):
+        with patch.object(ingestor_main, "_get_healthy_conn"), \
+             patch.object(ingestor_main, "get_sync_state", return_value=None), \
+             patch.object(ingestor_main.intervals_icu, "reconcile", return_value=(0, 1)), \
+             patch.object(ingestor_main, "recalculate_fitness") as recalc:
+            ingestor_main._reconcile_intervals_icu()
+        assert recalc.called
+
+    def test_reconcile_leaves_a_deletion_to_the_next_daily_recalculation(self):
+        with patch.object(ingestor_main, "_get_healthy_conn"), \
+             patch.object(ingestor_main, "get_sync_state", return_value=None), \
+             patch.object(ingestor_main.intervals_icu, "reconcile", return_value=(1, 0)), \
+             patch.object(ingestor_main, "recalculate_fitness") as recalc:
+            ingestor_main._reconcile_intervals_icu()
+        assert not recalc.called
+
+    def test_reconcile_resumes_only_a_pending_backfill(self):
+        for pending, expected in (("12", 1), ("", 0), (None, 0)):
+            with patch.object(ingestor_main, "_get_healthy_conn"), \
+                 patch.object(ingestor_main, "get_sync_state", return_value=pending), \
+                 patch.object(ingestor_main.intervals_icu, "reconcile", return_value=(0, 0)), \
+                 patch.object(ingestor_main.intervals_icu, "backfill", return_value=0) as bf:
+                ingestor_main._reconcile_intervals_icu()
+            assert bf.call_count == expected
+
+    def test_run_backfill_passes_the_window_to_intervals_icu(self, monkeypatch):
+        monkeypatch.setenv("VELOMATE_BACKFILL_MONTHS", "24")
+        mock_conn = MagicMock()
+        with patch("main.get_connection", return_value=mock_conn), \
+             patch("main.create_schema"), \
+             patch("main.recalculate_fitness") as recalc, \
+             patch.object(ingestor_main.intervals_icu, "backfill", return_value=7) as bf:
+            assert ingestor_main.run_backfill(sources=["intervals_icu"]) == 7
+        bf.assert_called_once_with(mock_conn, months=24)
+        assert recalc.called
+
+    def test_run_backfill_outlives_an_intervals_icu_failure(self):
+        """A raise here reaches run(), and Docker restarts a dead ingestor, so a
+        down API would become a crash loop."""
+        with patch("main.get_connection", return_value=MagicMock()), \
+             patch("main.create_schema"), \
+             patch("main.recalculate_fitness"), \
+             patch.object(ingestor_main.intervals_icu, "backfill",
+                          side_effect=ConnectionError("down")):
+            assert ingestor_main.run_backfill(sources=["intervals_icu"]) == 0
+
+    def test_run_backfill_leaves_a_failed_recalculation_for_the_next_poll(self):
+        """Not raised, because that restarts the container into the same failure,
+        and not dropped: the rides are stored, so no later poll sees a change."""
+        with patch("main.get_connection", return_value=MagicMock()), \
+             patch("main.create_schema"), \
+             patch("main.recalculate_fitness", side_effect=ValueError("bad ride")), \
+             patch.object(ingestor_main, "_recalc_pending", False), \
+             patch.object(ingestor_main.intervals_icu, "backfill", return_value=1):
+            assert ingestor_main.run_backfill(sources=["intervals_icu"]) == 1
+            assert ingestor_main._recalc_pending is True
+
+    def test_startup_names_the_intervals_icu_credentials_when_none_are_set(self, capsys):
+        with patch.dict(os.environ, {}, clear=True), \
+             patch("main.get_connection", return_value=MagicMock()), \
+             patch("main.create_schema"), \
+             patch("main.get_sync_state", return_value=None), \
+             patch("main.has_activities", return_value=False):
+            with pytest.raises(SystemExit):
+                ingestor_main.run()
+        out = capsys.readouterr().out
+        assert "INTERVALS_ICU_ATHLETE_ID" in out and "INTERVALS_ICU_API_KEY" in out
+
+    @pytest.mark.parametrize("sync_state, rows, months, expected", [
+        # sync_state is what the install has persisted; rows is has_activities.
+        pytest.param({"strava_last_activity_epoch": "1", "configured_backfill_months": "12"},
+                     True, "12", None, id="populated_install_as_deployed"),
+        pytest.param({"configured_backfill_months": "12"}, True, "12", None,
+                     id="only_rows_say_there_is_data"),
+        pytest.param({"strava_last_activity_epoch": "1", "configured_backfill_months": "12"},
+                     False, "12", None, id="strava_cursor_but_no_rows"),
+        pytest.param({}, False, "12", ["intervals_icu"], id="empty_install"),
+        pytest.param({"configured_backfill_months": "12"}, True, "24", ["intervals_icu"],
+                     id="window_extended"),
+        pytest.param({"configured_backfill_months": "12",
+                      "intervals_icu_backfill_pending": "12"}, True, "12", ["intervals_icu"],
+                     id="unfinished_backfill"),
+    ])
+    def test_startup_backfills_only_when_it_should(self, monkeypatch, sync_state, rows,
+                                                   months, expected):
+        """Pinned here too because this suite runs without a database. The real
+        state is exercised against PostgreSQL in test_icu_ingest.py."""
+        for name in ("STRAVA_CLIENT_ID", "RWGPS_API_KEY", "VELOMATE_RESET_RIDE_FTP"):
+            monkeypatch.delenv(name, raising=False)
+        monkeypatch.setenv("INTERVALS_ICU_ATHLETE_ID", "i1")
+        monkeypatch.setenv("INTERVALS_ICU_API_KEY", "k")
+        monkeypatch.setenv("VELOMATE_BACKFILL_MONTHS", months)
+        with patch("main.get_connection", return_value=MagicMock()), \
+             patch("main.create_schema"), \
+             patch("main.get_sync_state", side_effect=lambda _c, key: sync_state.get(key)), \
+             patch("main.set_sync_state"), \
+             patch("main.has_activities", return_value=rows), \
+             patch("main.recalculate_fitness"), \
+             patch("main.poll_intervals_icu"), \
+             patch("main.run_backfill") as run_backfill, \
+             patch("main.schedule.every", return_value=MagicMock()), \
+             patch("main.schedule.run_pending", side_effect=KeyboardInterrupt):
+            with pytest.raises(KeyboardInterrupt):
+                ingestor_main.run()
+        assert run_backfill.call_args == (call(expected) if expected else None)
 
     def test_reconcile_survives_an_error(self):
         with patch.object(ingestor_main, "_get_healthy_conn") as gc, \
@@ -552,6 +659,38 @@ class TestIntervalsIcuSource:
             conn = gc.return_value
             ingestor_main._reconcile_intervals_icu()   # must not raise
         conn.close.assert_called_once()
+
+
+class TestSpeedBackfillAtStartup:
+    def _start(self, monkeypatch, backfill, recalculate):
+        for name in ("STRAVA_CLIENT_ID", "RWGPS_API_KEY", "VELOMATE_RESET_RIDE_FTP"):
+            monkeypatch.delenv(name, raising=False)
+        monkeypatch.setenv("INTERVALS_ICU_ATHLETE_ID", "i1")
+        monkeypatch.setenv("INTERVALS_ICU_API_KEY", "k")
+        monkeypatch.setenv("VELOMATE_BACKFILL_MONTHS", "12")
+        state = {"configured_backfill_months": "12"}
+        with patch("main.get_connection", return_value=MagicMock()), \
+             patch("main.create_schema"), \
+             patch("main.get_sync_state", side_effect=lambda _c, key: state.get(key)), \
+             patch("main.set_sync_state"), \
+             patch("main.has_activities", return_value=True), \
+             patch("main.backfill_missing_speed", backfill), \
+             patch("main.recalculate_fitness", recalculate), \
+             patch("main.poll_intervals_icu"), \
+             patch("main.schedule.every", return_value=MagicMock()), \
+             patch("main.schedule.run_pending", side_effect=KeyboardInterrupt):
+            with pytest.raises(KeyboardInterrupt):
+                ingestor_main.run()
+
+    def test_stored_rides_get_speed_on_start(self, monkeypatch):
+        backfill = MagicMock(return_value=0)
+        self._start(monkeypatch, backfill, MagicMock())
+        backfill.assert_called_once()
+
+    def test_a_failure_still_reaches_the_poll_loop(self, monkeypatch):
+        recalculate = MagicMock()
+        self._start(monkeypatch, MagicMock(side_effect=RuntimeError("bad ride")), recalculate)
+        recalculate.assert_called_once()
 
 
 class TestPositiveIntEnv:

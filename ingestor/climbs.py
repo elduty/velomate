@@ -17,6 +17,34 @@ from __future__ import annotations
 
 import math
 
+from route_match import haversine_m
+
+
+def cumulative_distance_m(points: list[tuple[float | None, float | None]]) -> list[float]:
+    """Distance covered up to each (lat, lng) sample, in metres.
+
+    Measured between positions, so it needs no sampling rate: a stop adds
+    nothing however long it lasts, and a recording gap keeps whatever was ridden
+    through it. A sample with no fix adds nothing, and the next fix measures from
+    the last one. A ride with no GPS stays at zero, which detects no climbs.
+
+    Args:
+        points: (lat, lng) per sample, either of which may be None.
+
+    Returns:
+        Cumulative distance list, same length as input.
+    """
+    distances = []
+    total = 0.0
+    last_fix = None
+    for lat, lng in points:
+        if lat is not None and lng is not None:
+            if last_fix is not None:
+                total += haversine_m(last_fix[0], last_fix[1], lat, lng)
+            last_fix = (lat, lng)
+        distances.append(total)
+    return distances
+
 
 def smooth_altitude(altitudes: list[float], window: int = 20) -> list[float]:
     """Simple moving average smoothing for altitude data.
@@ -122,13 +150,15 @@ def detect_climbs(
     min_gradient: float = 2.0,
     epsilon: float = 10.0,
     time_offsets: list[int] | None = None,
+    continuation_grade: float = 1.0,
 ) -> list[dict]:
     """Detect climbs using RDP simplification of the elevation profile.
 
     1. Builds a (distance, altitude) curve from the smoothed data
     2. Applies RDP to find significant inflection points
-    3. Walks the simplified curve: each uphill segment is a potential climb
-    4. Merges consecutive uphill segments (small dips absorbed by RDP)
+    3. Walks the simplified curve: a segment that rises at the continuation
+       grade or steeper is a potential climb
+    4. Merges consecutive such segments (small dips absorbed by RDP)
     5. Filters by minimum distance and gradient
     6. Classifies using Strava scoring
 
@@ -140,6 +170,10 @@ def detect_climbs(
         min_distance_m: minimum climb length (metres). Default 200m.
         min_gradient: minimum average gradient (%) to qualify.
         time_offsets: actual time_offset values from the stream for duration.
+        continuation_grade: a segment must reach this grade (%) on its own to
+            start or extend a climb. Rising at all is not enough: smoothing
+            alone gives a flat road a slight rise, and merging it dilutes the
+            climb's grade, down to below min_gradient on a long enough approach.
 
     Returns:
         List of dicts with keys: start_idx, end_idx, gain_m, length_m,
@@ -154,24 +188,24 @@ def detect_climbs(
     # Apply RDP to simplify
     simplified = _rdp_with_original_indices(points, epsilon)
 
+    def climbs_on_its_own(segment_start: int) -> bool:
+        # Compared by cross-multiplying: a segment can have no length, when
+        # altitude drifts during a stop.
+        dist_a, alt_a, _ = simplified[segment_start]
+        dist_b, alt_b, _ = simplified[segment_start + 1]
+        rise = alt_b - alt_a
+        return rise > 0 and rise * 100 >= continuation_grade * (dist_b - dist_a)
+
     # Walk the simplified points: find uphill segments
     climbs = []
     i = 0
     while i < len(simplified) - 1:
-        dist_i, alt_i, idx_i = simplified[i]
-        dist_j, alt_j, idx_j = simplified[i + 1]
-
-        if alt_j > alt_i:
+        if climbs_on_its_own(i):
             # Uphill segment — extend through consecutive uphills
             climb_start = i
             climb_end = i + 1
-            while climb_end < len(simplified) - 1:
-                _, alt_next, _ = simplified[climb_end + 1]
-                _, alt_curr, _ = simplified[climb_end]
-                if alt_next > alt_curr:
-                    climb_end += 1
-                else:
-                    break
+            while climb_end < len(simplified) - 1 and climbs_on_its_own(climb_end):
+                climb_end += 1
 
             # Compute climb metrics
             s_dist, s_alt, s_idx = simplified[climb_start]

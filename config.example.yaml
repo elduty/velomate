@@ -52,7 +52,12 @@ display:
 
 # Roads/areas to avoid when planning routes
 # Each entry is a lat,lng point with a radius in meters
-# The route planner will avoid placing waypoints near these areas
+# Routes stay out of these areas: they are sent to the router as exclusions, and
+# waypoints inside one are dropped. If nothing gets past them, or the start or
+# destination is inside one, the plan fails rather than ignoring the zone.
+# Zones too far away for the route's length are left out. Valhalla's public server
+# refuses more than 10 km of perimeter across the rest; a zone of radius 500 is
+# about 3.2 km.
 avoid:
   # - lat: 38.75
   #   lng: -9.33

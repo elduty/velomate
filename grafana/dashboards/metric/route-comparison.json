@@ -33,6 +33,12 @@
       "url": "/d/velomate-progression/all-time-progression",
       "type": "link",
       "icon": "dashboard"
+    },
+    {
+      "title": "Climbs",
+      "url": "/d/velomate-climbs/climbs",
+      "type": "link",
+      "icon": "dashboard"
     }
   ],
   "templating": {

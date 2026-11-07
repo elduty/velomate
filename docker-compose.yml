@@ -53,21 +53,25 @@ services:
 
   velomate-grafana:
     container_name: velomate-grafana
-    image: grafana/grafana:${GRAFANA_VERSION:-12.4.0}
+    build:
+      context: ./grafana
+      args:
+        GRAFANA_VERSION: ${GRAFANA_VERSION:-12.4.0}
+        # The generated dashboard set: metric or imperial. Any other value fails
+        # the build.
+        VELOMATE_UNITS: ${VELOMATE_UNITS:-metric}
     ports:
       - "${GRAFANA_PORT:-3021}:3000"
     volumes:
       - velomate-grafana-data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning
-      # Selects the generated dashboard set: metric or imperial. Use exactly
-      # one of those two — any other value resolves to a nonexistent directory
-      # and Grafana provisions no dashboards at all.
-      - ./grafana/dashboards/${VELOMATE_UNITS:-metric}:/etc/grafana/dashboards
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
       GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:${GRAFANA_PORT:-3021}/}
       GF_SERVER_SERVE_FROM_SUB_PATH: "${GF_SERVER_SERVE_FROM_SUB_PATH:-false}"
       GF_AUTH_ANONYMOUS_ENABLED: "${GF_AUTH_ANONYMOUS_ENABLED:-false}"
+      # Grafana's built-in default is Carto, whose tiles now read "API KEY REQUIRED"
+      # without a key. OpenStreetMap needs none.
+      GF_GEOMAP_DEFAULT_BASELAYER_CONFIG: '${VELOMATE_MAP_BASELAYER:-{"type":"osm-standard","config":{}}}'
       # Passed through so the provisioned datasource (grafana/provisioning/
       # datasources/postgres.yml) can resolve ${POSTGRES_USER}/${POSTGRES_DB}/
       # ${POSTGRES_PASSWORD} — keeps Grafana in sync when these are overridden.

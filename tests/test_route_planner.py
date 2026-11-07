@@ -1,6 +1,7 @@
 """Tests for pure functions in velomate/route_planner.py."""
 
 from datetime import datetime, timedelta
+from unittest.mock import patch
 
 import pytest
 
@@ -13,6 +14,13 @@ from velomate.route_planner import (
     resolve_date,
     _analyze_wind,
 )
+
+
+@pytest.fixture(autouse=True)
+def _road_check_passes():
+    """plan() checks every route over the network. These tests are about the rest."""
+    with patch("velomate.road_safety.check_route", return_value={"hard": [], "penalty": []}):
+        yield
 
 
 # --- parse_duration ---
@@ -105,15 +113,31 @@ class TestAdjustForFitness:
         assert distance == 50.0
         assert "fresh" in note
 
-    def test_neutral(self):
+    def test_detraining(self):
+        distance, note = adjust_for_fitness(50.0, 30.0)
+        assert distance == 50.0
+        assert "detraining" in note
+        assert "push" in note
+
+    def test_transitional(self):
         distance, note = adjust_for_fitness(50.0, 0.0)
         assert distance == 50.0
-        assert "neutral" in note
+        assert "transitional" in note
 
-    def test_fatigued(self):
+    def test_productive_keeps_the_full_distance(self):
         distance, note = adjust_for_fitness(50.0, -15.0)
+        assert distance == 50.0
+        assert "productive" in note
+
+    def test_high_risk_boundary_is_productive(self):
+        distance, note = adjust_for_fitness(50.0, -30.0)
+        assert distance == 50.0
+        assert "productive" in note
+
+    def test_high_risk_reduces_the_distance(self):
+        distance, note = adjust_for_fitness(50.0, -35.0)
         assert distance == 40.0
-        assert "fatigued" in note
+        assert "high risk" in note
 
     def test_none_tsb(self):
         distance, note = adjust_for_fitness(50.0, None)

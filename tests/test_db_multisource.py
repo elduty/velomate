@@ -171,7 +171,7 @@ class TestMergeCarriesSourceIds:
         assert merged["rwgps_id"] == 777
 
     def test_merge_carries_suffer_score_from_existing(self):
-        """Richer RWGPS copy replaces a Strava row via delete-and-reinsert —
+        """Richer RWGPS copy wins the merge over a Strava row —
         the Strava-only suffer_score must survive the merge."""
         existing = (10, 555, "watch", 0, 140, None, None, 90, None, None)
         new = {"rwgps_id": 777, "avg_power": 200, "avg_hr": 142, "distance_m": 50000,
@@ -201,13 +201,15 @@ class TestUpsertActivitySkipPathStamping:
 
 class TestMergePathStreamHandling:
     """When the incoming copy is RICHER than the existing duplicate, the merge
-    keeps the incoming record and deletes the old one — so the caller's freshly
-    fetched (richer) streams must win. upsert_activity must return
-    streams_preserved=False so the caller writes them, instead of silently
-    keeping the deleted duplicate's (weaker/absent) streams."""
+    updates the existing row in place, so the id stays. Without streams of its
+    own the incoming copy leaves the existing ones alone, and upsert_activity
+    returns streams_preserved=False so a caller that fetches its streams later
+    still writes them. The SQL itself is covered on a real database in
+    test_merge_in_place.py."""
 
     def test_new_richer_merge_does_not_preserve_streams(self):
-        """New copy richer -> streams_preserved=False so the caller writes its streams."""
+        """New copy richer -> streams_preserved=False so the caller writes its
+        streams, and the row keeps its id rather than taking a new one."""
         weak_existing = (10, 555, "watch", 0, 140, None, None, 90, None, None)  # HR-only, no power
         rich_new = {
             "rwgps_id": 777, "name": "Ride", "date": "2026-06-01T08:00:00Z",
@@ -217,19 +219,18 @@ class TestMergePathStreamHandling:
             "strava_type": "Ride", "trainer": False,
         }
         conn, cur = _make_conn()
-        cur.fetchall.return_value = []  # deleted duplicate had no streams to restore
         with patch.object(ingestor_db, "find_duplicate", return_value=weak_existing), \
-             patch.object(ingestor_db, "_do_insert", return_value=99), \
+             patch.object(ingestor_db, "_do_insert") as mock_insert, \
              patch.object(ingestor_db, "classify_activity", side_effect=lambda d: d):
             activity_id, streams_preserved = ingestor_db.upsert_activity(conn, rich_new)
-        assert activity_id == 99
+        assert activity_id == 10
         assert streams_preserved is False
+        mock_insert.assert_not_called()
 
-    def test_merge_restores_old_streams_as_fallback(self):
-        """If the incoming richer copy brings no streams of its own, the old
-        duplicate's streams are restored so the merged ride is not left empty.
-        The restore is the fallback; streams_preserved stays False so a caller
-        that DID fetch streams still overwrites them."""
+    def test_merge_without_streams_leaves_the_existing_ones_alone(self):
+        """If the incoming richer copy brings no streams of its own, the merged
+        ride keeps the ones it has, and streams_preserved stays False so a
+        caller that DID fetch streams still overwrites them."""
         weak_existing = (10, 555, "watch", 0, 140, None, None, 90, None, None)
         rich_new = {
             "rwgps_id": 777, "name": "Ride", "date": "2026-06-01T08:00:00Z",
@@ -239,17 +240,15 @@ class TestMergePathStreamHandling:
             "strava_type": "Ride", "trainer": False,
         }
         conn, cur = _make_conn()
-        # Old duplicate has one saved stream row; new activity has none (COUNT=0).
-        cur.fetchall.return_value = [(0, 140, 200, 85, 25.0, 100.0, 38.7, -9.1)]
-        cur.fetchone.return_value = (0,)
         with patch.object(ingestor_db, "find_duplicate", return_value=weak_existing), \
-             patch.object(ingestor_db, "_do_insert", return_value=99), \
              patch.object(ingestor_db, "classify_activity", side_effect=lambda d: d), \
-             patch.object(ingestor_db.psycopg2.extras, "execute_values") as mock_restore:
+             patch.object(ingestor_db.psycopg2.extras, "execute_values") as mock_write:
             activity_id, streams_preserved = ingestor_db.upsert_activity(conn, rich_new)
-        assert activity_id == 99
+        assert activity_id == 10
         assert streams_preserved is False
-        mock_restore.assert_called_once()  # old streams restored as fallback
+        mock_write.assert_not_called()
+        executed = " ".join(str(c.args[0]) for c in cur.execute.call_args_list)
+        assert "activity_streams" not in executed
 
 
 class TestHandleRwgpsDeletion:
@@ -388,8 +387,19 @@ class TestIntervalsIcuPersistence:
         _, sql, _ = self._run_insert(data)
         assert "ON CONFLICT (rwgps_id) WHERE rwgps_id IS NOT NULL" in sql
 
-    def test_icu_columns_are_coalesced_so_a_resync_cannot_null_them(self):
+    def test_analyzed_is_written_as_sent_on_the_intervals_icu_target(self):
+        """Stored and incoming have to compare equal afterwards, or the sync gate
+        stays open on every poll for a ride whose remote value went back to null."""
         _, sql, _ = self._run_insert(self._icu_data())
+        assert "intervals_icu_id = COALESCE(EXCLUDED.intervals_icu_id" in sql
+        assert "intervals_icu_analyzed = EXCLUDED.intervals_icu_analyzed" in sql
+
+    @pytest.mark.parametrize("source_id", [{"strava_id": 555}, {"rwgps_id": 999}],
+                             ids=["strava", "rwgps"])
+    def test_other_sources_cannot_null_a_dual_source_rows_icu_columns(self, source_id):
+        data = {**self._icu_data(), **source_id}
+        data.pop("intervals_icu_id")
+        _, sql, _ = self._run_insert(data)
         assert "intervals_icu_id = COALESCE(EXCLUDED.intervals_icu_id" in sql
         assert "intervals_icu_analyzed = COALESCE(EXCLUDED.intervals_icu_analyzed" in sql
 
@@ -417,7 +427,9 @@ class TestDedupSkipPathStampsIcuColumns:
                 "intervals_icu_analyzed": "2026-08-24T14:26:27.824+00:00",
                 "name": "Ride", "date": "2026-08-24T13:09:25Z",
                 "duration_s": 3600, "distance_m": 30000.0}
-        with patch.object(ingestor_db, "merge_activity_data",
+        # The mock's fetchone would read as a row already holding the id.
+        with patch.object(ingestor_db, "_source_id_on_another_row", return_value=False), \
+             patch.object(ingestor_db, "merge_activity_data",
                           return_value={"_skip_insert": True}):
             ingestor_db.upsert_activity(conn, data)
         for c in cur.execute.call_args_list:
@@ -468,8 +480,8 @@ class TestTenColumnTuple:
     def test_merge_carries_analyzed_forward_within_the_tier(self):
         """Where a merge CAN replace an intervals.icu row — a different
         intervals.icu activity at the same tier winning on richness — the
-        delete-and-reinsert must not lose analyzed, or the sync gate fires on
-        every poll for that ride forever."""
+        merge must not lose analyzed, or the sync gate fires on every poll
+        for that ride forever."""
         ts = "2026-08-24T14:26:27.824000+00:00"
         existing = (7, None, "karoo", 30000.0, 140, None, None, None, "i1", ts)
         richer_icu = {"intervals_icu_id": "i2", "avg_power": 200, "avg_hr": 150,
@@ -536,7 +548,9 @@ class TestSkipPathCarriesElevationAndDistance:
         conn = MagicMock()
         cur = conn.cursor.return_value.__enter__.return_value
         cur.fetchone.return_value = (7, 555, "karoo", 30000.0, 150, 200, None, 80, None, None)
-        with patch.object(ingestor_db, "merge_activity_data",
+        # The mock's fetchone would read as a row already holding the id.
+        with patch.object(ingestor_db, "_source_id_on_another_row", return_value=False), \
+             patch.object(ingestor_db, "merge_activity_data",
                           return_value={"_skip_insert": True}):
             ingestor_db.upsert_activity(conn, data)
         for c in cur.execute.call_args_list:

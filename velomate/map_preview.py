@@ -136,6 +136,20 @@ def preview(coords: list, name: str, waypoints: list | None = None,
             </div>
         </div>"""
 
+    # Busy roads card
+    busy = info.get("busy_roads")
+    if busy:
+        total = format_distance(sum(road["km"] for road in busy), system)
+        names = ", ".join(html.escape(road["road"]) for road in busy[:3])
+        cards_html += f"""
+        <div class="card">
+            <div class="card-icon">⚠️</div>
+            <div class="card-body">
+                <div class="card-value">{total}</div>
+                <div class="card-label">Busy or fast roads · {names}</div>
+            </div>
+        </div>"""
+
     # Weather card
     weather = info.get("weather")
     if weather:

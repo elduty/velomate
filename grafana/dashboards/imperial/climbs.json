@@ -1,0 +1,963 @@
+{
+  "uid": "velomate-climbs",
+  "title": "Climbs",
+  "tags": [
+    "velomate"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "schemaVersion": 39,
+  "version": 1,
+  "graphTooltip": 2,
+  "time": {
+    "from": "now-2y",
+    "to": "now"
+  },
+  "refresh": "",
+  "links": [
+    {
+      "title": "Overview",
+      "url": "/d/velomate-main/overview",
+      "type": "link",
+      "icon": "dashboard"
+    },
+    {
+      "title": "Activity Details",
+      "url": "/d/velomate-activity/activity-details",
+      "type": "link",
+      "icon": "dashboard"
+    },
+    {
+      "title": "All Time Progression",
+      "url": "/d/velomate-progression/all-time-progression",
+      "type": "link",
+      "icon": "dashboard"
+    },
+    {
+      "title": "Route Comparison",
+      "url": "/d/velomate-route-comparison/route-comparison",
+      "type": "link",
+      "icon": "dashboard"
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "segment",
+        "type": "query",
+        "label": "Segment",
+        "datasource": {
+          "type": "postgres",
+          "uid": "velomate"
+        },
+        "query": "SELECT s.id AS __value, COALESCE(s.name, s.auto_name) || ' (' || COUNT(e.id) || ' efforts)' AS __text FROM climb_segments s JOIN climb_efforts e ON e.segment_id = s.id GROUP BY s.id ORDER BY COUNT(DISTINCT e.activity_id) DESC, s.gain_m DESC",
+        "refresh": 2,
+        "sort": 0,
+        "current": {},
+        "options": []
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 900,
+      "type": "row",
+      "title": "All Climb Segments",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "panels": []
+    },
+    {
+      "id": 100,
+      "type": "table",
+      "title": "Climb Segments",
+      "description": "Climbs you have ridden on at least two rides, found automatically from the detected climbs and then matched against the GPS track of every ride.\n\nRecord = fastest elapsed time from the start to the end point. Click a segment to open its leaderboard.\n\nRename a segment: `docker exec velomate-ingestor python3 segments.py rename <id> \"name\"` (`list` shows the ids).",
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "WITH stats AS (\n  SELECT e.segment_id,\n    COUNT(*) AS efforts,\n    COUNT(DISTINCT e.activity_id) AS rides,\n    MIN(e.elapsed_s) AS best,\n    MAX(a.date) AS last_ridden\n  FROM climb_efforts e\n  JOIN activities a ON a.id = e.activity_id\n  GROUP BY e.segment_id\n), best AS (\n  SELECT DISTINCT ON (e.segment_id) e.segment_id, a.date\n  FROM climb_efforts e\n  JOIN activities a ON a.id = e.activity_id\n  ORDER BY e.segment_id, e.elapsed_s, a.date\n)\nSELECT s.id AS \"ID\",\n  COALESCE(s.name, s.auto_name) AS \"Segment\",\n  s.category AS \"Category\",\n  ROUND(((s.length_m) * 3.28084)::numeric, 0) AS \"Length\",\n  ROUND(((s.gain_m) * 3.28084)::numeric, 0) AS \"Gain\",\n  s.avg_grade AS \"Avg Grade (%)\",\n  st.rides AS \"Rides\",\n  st.best AS \"Record\",\n  TO_CHAR(b.date, 'YYYY-MM-DD') AS \"Record Date\",\n  TO_CHAR(st.last_ridden, 'YYYY-MM-DD') AS \"Last Ridden\"\nFROM climb_segments s\nJOIN stats st ON st.segment_id = s.id\nLEFT JOIN best b ON b.segment_id = s.id\nORDER BY st.rides DESC, s.gain_m DESC;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No climb segments yet \u2014 ride a climb twice",
+          "custom": {
+            "align": "center"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ID"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 50
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Segment"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open leaderboard",
+                    "url": "/d/velomate-climbs/climbs?var-segment=${__data.fields.ID}&${__url_time_range}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Segment"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 280
+              },
+              {
+                "id": "custom.align",
+                "value": "left"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Length"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "lengthft"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Gain"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "lengthft"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Record"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dthms"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 901,
+      "type": "row",
+      "title": "Segment: ${segment:text}",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
+      "panels": []
+    },
+    {
+      "id": 101,
+      "title": "Length",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 0,
+        "y": 10
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND(((length_m) * 3.28084)::numeric, 0) AS \"Length\" FROM climb_segments WHERE id = NULLIF('${segment}', '')::integer AND length_m IS NOT NULL;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 28,
+          "titleSize": 14
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "N/A",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-blue"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-blue",
+                "value": null
+              }
+            ]
+          },
+          "unit": "lengthft"
+        }
+      }
+    },
+    {
+      "id": 102,
+      "title": "Elevation Gain",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 5,
+        "y": 10
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND(((gain_m) * 3.28084)::numeric, 0) AS \"Gain\" FROM climb_segments WHERE id = NULLIF('${segment}', '')::integer AND gain_m IS NOT NULL;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 28,
+          "titleSize": 14
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "N/A",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-blue"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-blue",
+                "value": null
+              }
+            ]
+          },
+          "unit": "lengthft"
+        }
+      }
+    },
+    {
+      "id": 103,
+      "title": "Avg Grade",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 10,
+        "y": 10
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT avg_grade AS \"Avg Grade\" FROM climb_segments WHERE id = NULLIF('${segment}', '')::integer AND avg_grade IS NOT NULL;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 28,
+          "titleSize": 14
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "N/A",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-blue"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-blue",
+                "value": null
+              }
+            ]
+          },
+          "unit": "percent"
+        }
+      }
+    },
+    {
+      "id": 105,
+      "title": "Efforts",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 15,
+        "y": 10
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT COUNT(*) AS \"Efforts\" FROM climb_efforts WHERE segment_id = NULLIF('${segment}', '')::integer;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 28,
+          "titleSize": 14
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "N/A",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-blue"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-blue",
+                "value": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 106,
+      "title": "Record",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 10
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT MIN(elapsed_s) AS \"Record\" FROM climb_efforts WHERE segment_id = NULLIF('${segment}', '')::integer\nHAVING MIN(elapsed_s) IS NOT NULL;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 28,
+          "titleSize": 14
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "N/A",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "dark-green"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "dthms"
+        }
+      },
+      "description": "Fastest elapsed time from the segment start to its end point."
+    },
+    {
+      "id": 107,
+      "type": "table",
+      "title": "Leaderboard",
+      "description": "Every time you rode this segment, fastest first.\n\nElapsed = start to end including stops (used for the record). Moving = time spent above 2 km/h. VAM = vertical metres climbed per hour (m/h).\n\nHR and power columns fill in when the ride has those sensors.",
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 17,
+        "h": 11
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  RANK() OVER (ORDER BY e.elapsed_s) AS \"Rank\",\n  TO_CHAR(a.date, 'YYYY-MM-DD') AS \"Date\",\n  a.id AS \"_id\",\n  a.name AS \"Ride\",\n  e.elapsed_s AS \"Elapsed\",\n  e.moving_s AS \"Moving\",\n  e.elapsed_s - MIN(e.elapsed_s) OVER () AS \"Gap to Record\",\n  ROUND(((e.avg_speed_kmh) * 0.621371)::numeric, 1) AS \"Avg Speed\",\n  e.vam_mh AS \"VAM\",\n  e.avg_hr AS \"Avg HR\",\n  e.avg_power AS \"Avg Power\"\nFROM climb_efforts e\nJOIN activities a ON a.id = e.activity_id\nWHERE e.segment_id = NULLIF('${segment}', '')::integer\nORDER BY e.elapsed_s, a.date;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No efforts",
+          "custom": {
+            "align": "center"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "_id"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Ride"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open ride",
+                    "url": "/d/velomate-activity/activity-details?var-activity_id=${__data.fields._id}"
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 180
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Ride"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 240
+              },
+              {
+                "id": "custom.align",
+                "value": "left"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Rank"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "1": {
+                        "text": "\ud83c\udfc6 1",
+                        "color": "dark-green",
+                        "index": 0
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "text"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 60
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Elapsed"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dthms"
+              },
+              {
+                "id": "custom.width",
+                "value": 85
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Moving"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dthms"
+              },
+              {
+                "id": "custom.width",
+                "value": 85
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Gap to Record"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dthms"
+              },
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Avg Speed"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "velocitymph"
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Avg HR"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bpm"
+              },
+              {
+                "id": "custom.width",
+                "value": 75
+              },
+              {
+                "id": "noValue",
+                "value": "\u2013"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Avg Power"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "watt"
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              },
+              {
+                "id": "noValue",
+                "value": "\u2013"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Date"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 95
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "VAM"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 65
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 108,
+      "type": "geomap",
+      "title": "Record Effort",
+      "description": "The segment as ridden on your record effort, coloured by altitude (green low, red high).",
+      "gridPos": {
+        "x": 17,
+        "y": 14,
+        "w": 7,
+        "h": 11
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "WITH best AS (\n  SELECT activity_id, start_offset, end_offset\n  FROM climb_efforts\n  WHERE segment_id = NULLIF('${segment}', '')::integer\n  ORDER BY elapsed_s\n  LIMIT 1\n)\nSELECT s.lat AS \"latitude\", s.lng AS \"longitude\", s.altitude_m AS \"metric\", s.time_offset\nFROM activity_streams s\nJOIN best b ON b.activity_id = s.activity_id\nWHERE s.time_offset BETWEEN b.start_offset AND b.end_offset\n  AND s.lat IS NOT NULL AND s.lng IS NOT NULL\nORDER BY s.time_offset;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "view": {
+          "id": "fit",
+          "lat": 0,
+          "lon": 0,
+          "zoom": 16
+        },
+        "layers": [
+          {
+            "type": "route",
+            "name": "Segment",
+            "config": {
+              "style": {
+                "color": {
+                  "field": "metric",
+                  "fixed": "green"
+                },
+                "opacity": 0.9,
+                "lineWidth": 4
+              }
+            },
+            "location": {
+              "mode": "coords",
+              "latitude": "latitude",
+              "longitude": "longitude"
+            }
+          }
+        ]
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-GrYlRd"
+          },
+          "noValue": "No data"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 109,
+      "type": "timeseries",
+      "title": "Time on Segment",
+      "description": "Elapsed and moving time of every effort. Record at the Time steps down each time you set a new record.\n\nUses the dashboard time range.",
+      "gridPos": {
+        "x": 0,
+        "y": 25,
+        "w": 17,
+        "h": 9
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT a.date + e.start_offset * interval '1 second' AS time,\n  e.elapsed_s AS \"Elapsed\",\n  e.moving_s AS \"Moving\",\n  MIN(e.elapsed_s) OVER (ORDER BY a.date, e.start_offset) AS \"Record at the Time\"\nFROM climb_efforts e\nJOIN activities a ON a.id = e.activity_id\nWHERE e.segment_id = NULLIF('${segment}', '')::integer\n  AND $__timeFilter(a.date)\nORDER BY a.date, e.start_offset;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "dthms",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "pointSize": 7,
+            "showPoints": "always",
+            "spanNulls": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Record at the Time"
+            },
+            "properties": [
+              {
+                "id": "custom.lineInterpolation",
+                "value": "stepAfter"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    10,
+                    10
+                  ]
+                }
+              },
+              {
+                "id": "custom.showPoints",
+                "value": "never"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "dark-green"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 110,
+      "type": "timeseries",
+      "title": "Climbing Pace",
+      "description": "Average speed and VAM (vertical metres per hour, m/h) of every effort. Higher is better for both.\n\nUses the dashboard time range.",
+      "gridPos": {
+        "x": 17,
+        "y": 25,
+        "w": 7,
+        "h": 9
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "velomate"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT a.date + e.start_offset * interval '1 second' AS time,\n  ROUND(((e.avg_speed_kmh) * 0.621371)::numeric, 1) AS \"Avg Speed\",\n  e.vam_mh AS \"VAM\"\nFROM climb_efforts e\nJOIN activities a ON a.id = e.activity_id\nWHERE e.segment_id = NULLIF('${segment}', '')::integer\n  AND $__timeFilter(a.date)\nORDER BY a.date, e.start_offset;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "pointSize": 7,
+            "showPoints": "always",
+            "spanNulls": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Avg Speed"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "velocitymph"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "VAM"
+            },
+            "properties": [
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "unit",
+                "value": "none"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    }
+  ]
+}

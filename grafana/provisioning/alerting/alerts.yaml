@@ -30,9 +30,9 @@ groups:
               type: reduce
               expression: A
               # max (not min) of the last 2 days' TSB: the threshold below fires
-              # only when the *larger* value is < -25, i.e. BOTH days are below
-              # -25 — matching "below -25 for 2+ days". With min, a single bad
-              # day (one value < -25) would trip the alert.
+              # only when the *larger* value is < -30, i.e. BOTH days are below
+              # -30 — matching "below -30 for 2+ days". With min, a single bad
+              # day (one value < -30) would trip the alert.
               reducer: max
           - refId: C
             relativeTimeRange:
@@ -45,10 +45,10 @@ groups:
               conditions:
                 - evaluator:
                     type: lt
-                    params: [-25]
+                    params: [-30]
         for: 0s
         annotations:
-          summary: "TSB is below -25 for 2+ days — you may be overtraining"
+          summary: "TSB is below -30 for 2+ days — high risk, you may be overtraining"
         labels:
           severity: warning
 
@@ -90,3 +90,57 @@ groups:
           summary: "No rides in 5+ days — fitness may be declining"
         labels:
           severity: info
+
+      # Poll health, not ride absence: a rest week still polls clean and keeps
+      # last_successful_poll fresh, so this stays quiet while Detraining fires.
+      # What counts as a clean poll is decided in ingestor/main.py _record_poll.
+      - uid: velomate-ingest-stalled
+        title: Ingestion Stalled
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 604800  # 7 days
+              to: 0
+            datasourceUid: velomate
+            model:
+              # One numeric row in every state, so the rule never goes NoData:
+              # - key present: age of the typed last_synced_at. The text `value`
+              #   is never cast, so it cannot raise an error, which would fire
+              #   (execErrState defaults to Alerting).
+              # - key missing: age of the oldest sync_state row, so a first poll
+              #   that never succeeds still fires instead of reading healthy.
+              # - sync_state empty, the ingestor never ran: NOW(), which is 0.
+              rawSql: "SELECT NOW() AS time, EXTRACT(EPOCH FROM NOW() - COALESCE((SELECT last_synced_at FROM sync_state WHERE key = 'last_successful_poll'), (SELECT MIN(last_synced_at) FROM sync_state), NOW()))::float / 3600 AS hours_since_success;"
+              format: time_series
+          - refId: B
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              expression: A
+              reducer: last
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: B
+              conditions:
+                # 6 h is 36 polls at the default POLL_INTERVAL_MINUTES=10. One
+                # poll can hold the loop for three 900 s Retry-After waits, so
+                # three bad polls in a row come to under 3 h and stay quiet.
+                # Rides recover by themselves within the 14-day sync window, so
+                # nothing is lost by waiting. Evaluated hourly: fires at 6-7 h.
+                - evaluator:
+                    type: gt
+                    params: [6]
+        for: 0s
+        annotations:
+          summary: "No successful poll in 6+ hours — ingestion has stalled, check the ingestor log"
+        labels:
+          severity: warning
