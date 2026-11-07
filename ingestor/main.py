@@ -1,6 +1,7 @@
-"""Polling scheduler for Strava ingestion."""
+"""Polling scheduler: the cloud sources and the watched import folder."""
 
 import os
+import signal
 import sys
 import time
 import traceback
@@ -13,6 +14,7 @@ from db import (backfill_missing_speed, create_schema, get_connection, get_sync_
 from strava import sync_activities, backfill, reclassify_activities
 import rwgps
 import intervals_icu
+import file_import
 from fitness import configured_threshold, recalculate_fitness
 
 # Ingest health, read by the Overview stats and the Ingestion Stalled alert. Those
@@ -21,7 +23,7 @@ from fitness import configured_threshold, recalculate_fitness
 LAST_SUCCESSFUL_POLL_KEY = "last_successful_poll"
 SKIPPED_STUBS_KEY = "intervals_icu_skipped_stubs"
 
-# Enabled sources that have delivered since last_successful_poll last advanced.
+# Health sources that have delivered since last_successful_poll last advanced.
 _delivered = set()
 
 # Rides are committed before recalculation runs, and the next poll sees them as
@@ -72,10 +74,10 @@ def _write_health(conn, key: str, value: str):
 
 
 def _record_poll(conn, source: str, problems: list):
-    """Advance last_successful_poll once every enabled source has delivered.
+    """Advance last_successful_poll once every health source has delivered.
 
     The key is one row, so a healthy source must not hide a dead one: it moves
-    only when the whole enabled set has come good since the last move.
+    only when the whole health set has come good since the last move.
 
     `problems` is what the sync swallowed. Without it a poll where every ride
     failed, or where every ride is an unreadable stub, reaches here exactly like
@@ -85,7 +87,7 @@ def _record_poll(conn, source: str, problems: list):
         print(f"[health] {source} poll not counted as a success: {'; '.join(problems)}")
         return
     _delivered.add(source)
-    if _delivered.issuperset(_enabled_sources()):
+    if _delivered.issuperset(_health_sources()):
         _delivered.clear()
         _write_health(conn, LAST_SUCCESSFUL_POLL_KEY, datetime.now(timezone.utc).isoformat())
 
@@ -123,6 +125,17 @@ def _enabled_sources() -> list:
         sources.append("rwgps")
     if os.environ.get("INTERVALS_ICU_ATHLETE_ID") and os.environ.get("INTERVALS_ICU_API_KEY"):
         sources.append("intervals_icu")
+    return sources
+
+
+def _health_sources() -> list:
+    """What has to deliver before last_successful_poll moves: the cloud sources,
+    plus the folder when it is configured. An unconfigured folder is the empty
+    default volume, which can't stall, so an install that never set
+    VELOMATE_IMPORT_DIR keeps the health set it had."""
+    sources = _enabled_sources()
+    if file_import.folder_configured():
+        sources.append("file")
     return sources
 
 
@@ -190,6 +203,39 @@ def poll_rwgps():
         print(f"[poll] RWGPS: {ingested} new, {deleted} deleted")
     except Exception as e:
         print(f"[poll] RWGPS error: {e}")
+        traceback.print_exc()
+    finally:
+        if conn:
+            conn.close()
+
+
+def poll_folder():
+    """Import new or changed files from the watched folder, then recalculate.
+
+    With no health source at all (no cloud source and no configured folder, so
+    rides arrive only through the upload page) nothing can stall, so the tick
+    itself advances last_successful_poll: the stall alert then means the
+    ingestor stopped.
+    """
+    conn = None
+    try:
+        conn = _get_healthy_conn()
+        if not conn:
+            print("[poll] Folder: skipped — no DB connection")
+            return
+        changed, problems = file_import.scan_folder(conn)
+        _recalculate_if_needed(conn, changed > 0)
+        configured = file_import.folder_configured()
+        if configured:
+            _record_poll(conn, "file", problems)
+        elif problems:
+            print(f"[health] folder pass not counted as a success: {'; '.join(problems)}")
+        elif not _health_sources():
+            _write_health(conn, LAST_SUCCESSFUL_POLL_KEY, datetime.now(timezone.utc).isoformat())
+        if configured or changed or problems:
+            print(f"[poll] Folder: {changed} rides imported or merged")
+    except Exception as e:
+        print(f"[poll] Folder error: {e}")
         traceback.print_exc()
     finally:
         if conn:
@@ -444,14 +490,14 @@ def run():
     if conn:
         conn.close()
 
+    # Never exit for want of a source: the upload page is a separate container
+    # this one can't see, so an exit would crash-loop an upload-only install.
     enabled = _enabled_sources()
-    if not enabled:
-        print("[main] No activity source configured — set STRAVA_CLIENT_ID/"
-              "STRAVA_CLIENT_SECRET/STRAVA_REFRESH_TOKEN, "
-              "RWGPS_API_KEY/RWGPS_AUTH_TOKEN and/or "
-              "INTERVALS_ICU_ATHLETE_ID/INTERVALS_ICU_API_KEY")
-        sys.exit(1)
-    print(f"[main] Enabled sources: {', '.join(enabled)}")
+    if enabled:
+        print(f"[main] Enabled sources: {', '.join(enabled)}")
+    else:
+        print("[main] No cloud source configured — rides arrive only through the "
+              "import folder or the upload page")
 
     # Persist configured FTP/HR to sync_state so dashboards can read them.
     # If either value changed (added, removed, or updated), reset all derived metrics.
@@ -636,9 +682,13 @@ def run():
         # After the daily fitness recalc, so a sweep-driven deletion is picked
         # up by the next one rather than sitting a day stale.
         schedule.every().day.at("00:20").do(_reconcile_intervals_icu)
+    # Always, configured or not: unconfigured it scans the empty default volume,
+    # and with no health source at all its tick is what keeps health moving.
+    schedule.every(interval).minutes.do(poll_folder)
     schedule.every().day.at("00:05").do(_daily_fitness_recalc)
 
-    print(f"[main] Polling {', '.join(enabled)} every {interval}min, fitness recalc daily at 00:05")
+    print(f"[main] Polling {', '.join(enabled + ['file'])} every {interval}min, "
+          f"fitness recalc daily at 00:05")
 
     # Run once immediately
     if "strava" in enabled:
@@ -647,6 +697,7 @@ def run():
         poll_rwgps()
     if "intervals_icu" in enabled:
         poll_intervals_icu()
+    poll_folder()
 
     while True:
         schedule.run_pending()
@@ -664,8 +715,44 @@ def run_reclassify():
         conn.close()
 
 
-if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == "reclassify":
+def run_upload():
+    """Serve the upload page until stopped. Behind Grafana's own logins; the
+    pending fitness recalculation is flushed on Ctrl-C or SIGTERM (docker stop)
+    so a just-uploaded ride is never left without it."""
+    import upload_auth
+    import upload_server
+    grafana_url = os.environ.get("GRAFANA_URL") or "http://velomate-grafana:3000"
+    root_url = os.environ.get("GRAFANA_ROOT_URL") or "http://localhost:3021/"
+    port = int(os.environ.get("UPLOAD_LISTEN_PORT") or 8080)
+    auth = upload_auth.GrafanaAuth(grafana_url)
+    server = upload_server.make_server("0.0.0.0", port, auth=auth,
+                                       grafana_root_url=root_url)
+
+    def _term(signum, frame):
+        raise SystemExit(0)
+
+    signal.signal(signal.SIGTERM, _term)
+    print(f"[upload] Listening on http://0.0.0.0:{port} "
+          f"(signing in against {grafana_url})", flush=True)
+    try:
+        server.serve_forever()
+    except (KeyboardInterrupt, SystemExit):
+        pass
+    finally:
+        server.server_close()
+        server.debouncer.flush()
+        print("[upload] Stopped", flush=True)
+
+
+def dispatch(argv):
+    command = argv[1] if len(argv) > 1 else ""
+    if command == "reclassify":
         run_reclassify()
+    elif command == "upload":
+        run_upload()
     else:
         run()
+
+
+if __name__ == "__main__":
+    dispatch(sys.argv)

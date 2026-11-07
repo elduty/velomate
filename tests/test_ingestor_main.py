@@ -603,17 +603,6 @@ class TestIntervalsIcuSource:
             assert ingestor_main.run_backfill(sources=["intervals_icu"]) == 1
             assert ingestor_main._recalc_pending is True
 
-    def test_startup_names_the_intervals_icu_credentials_when_none_are_set(self, capsys):
-        with patch.dict(os.environ, {}, clear=True), \
-             patch("main.get_connection", return_value=MagicMock()), \
-             patch("main.create_schema"), \
-             patch("main.get_sync_state", return_value=None), \
-             patch("main.has_activities", return_value=False):
-            with pytest.raises(SystemExit):
-                ingestor_main.run()
-        out = capsys.readouterr().out
-        assert "INTERVALS_ICU_ATHLETE_ID" in out and "INTERVALS_ICU_API_KEY" in out
-
     @pytest.mark.parametrize("sync_state, rows, months, expected", [
         # sync_state is what the install has persisted; rows is has_activities.
         pytest.param({"strava_last_activity_epoch": "1", "configured_backfill_months": "12"},
@@ -712,3 +701,187 @@ class TestPositiveIntEnv:
             assert ingestor_main._positive_int_env("X", 90) == 90
         with patch.dict(os.environ, {"X": "-5"}, clear=True):
             assert ingestor_main._positive_int_env("X", 90) == 90
+
+
+# ---------------------------------------------------------------------------
+# The watched folder: startup, health set, poll_folder
+# ---------------------------------------------------------------------------
+
+_STRAVA = {"STRAVA_CLIENT_ID": "1", "STRAVA_CLIENT_SECRET": "2", "STRAVA_REFRESH_TOKEN": "3"}
+
+
+class TestFolderConfigured:
+    @pytest.mark.parametrize("value, expected", [
+        (None, False), ("", False), ("0", False), ("/data/rides", True),
+    ])
+    def test_folder_configured_values(self, value, expected):
+        import file_import
+
+        env = {} if value is None else {"VELOMATE_IMPORT_DIR": value}
+        with patch.dict(os.environ, env, clear=True):
+            assert file_import.folder_configured() is expected
+
+
+class TestHealthSources:
+    def test_health_sources_include_file_only_when_configured(self):
+        with patch.dict(os.environ, _STRAVA, clear=True):
+            assert ingestor_main._health_sources() == ["strava"]
+        with patch.dict(os.environ, {**_STRAVA, "VELOMATE_IMPORT_DIR": "0"}, clear=True):
+            assert ingestor_main._health_sources() == ["strava"]
+        with patch.dict(os.environ, {**_STRAVA, "VELOMATE_IMPORT_DIR": "/data/rides"},
+                        clear=True):
+            assert ingestor_main._health_sources() == ["strava", "file"]
+            # Backfill and startup read the cloud sources only.
+            assert ingestor_main._enabled_sources() == ["strava"]
+
+
+@pytest.fixture()
+def health():
+    """sync_state writes as a dict, with the delivered set reset around each test."""
+    ingestor_main._delivered.clear()
+    ingestor_main._recalc_pending = False
+    state = {}
+    with patch.object(ingestor_main, "set_sync_state",
+                      side_effect=lambda _c, key, value: state.__setitem__(key, value)), \
+         patch.object(ingestor_main, "_get_healthy_conn", return_value=MagicMock()), \
+         patch.object(ingestor_main, "recalculate_fitness") as recalc:
+        state["_recalc"] = recalc
+        yield state
+    ingestor_main._delivered.clear()
+    ingestor_main._recalc_pending = False
+
+
+def _scan(changed=0, problems=()):
+    return patch.object(ingestor_main.file_import, "scan_folder",
+                        return_value=(changed, list(problems)))
+
+
+class TestPollFolder:
+    KEY = ingestor_main.LAST_SUCCESSFUL_POLL_KEY
+
+    def test_empty_health_set_marks_poll_on_tick(self, health):
+        with patch.dict(os.environ, {}, clear=True), _scan():
+            ingestor_main.poll_folder()
+        assert self.KEY in health
+
+    def test_unconfigured_folder_leaves_a_cloud_install_health_alone(self, health):
+        with patch.dict(os.environ, _STRAVA, clear=True), _scan():
+            ingestor_main.poll_folder()
+        assert self.KEY not in health
+        assert ingestor_main._delivered == set()
+
+    def test_configured_folder_has_to_deliver_with_the_cloud(self, health):
+        env = {**_STRAVA, "VELOMATE_IMPORT_DIR": "/data/rides"}
+        with patch.dict(os.environ, env, clear=True), _scan():
+            ingestor_main._record_poll(MagicMock(), "strava", [])
+            assert self.KEY not in health   # the folder hasn't delivered yet
+            ingestor_main.poll_folder()
+        assert self.KEY in health
+
+    def test_configured_folder_alone_delivers(self, health):
+        with patch.dict(os.environ, {"VELOMATE_IMPORT_DIR": "/data/rides"}, clear=True), _scan():
+            ingestor_main.poll_folder()
+        assert self.KEY in health
+
+    @pytest.mark.parametrize("env", [{}, {"VELOMATE_IMPORT_DIR": "/data/rides"}])
+    def test_a_pass_with_problems_does_not_count(self, health, env):
+        with patch.dict(os.environ, env, clear=True), _scan(problems=["a.fit: boom"]):
+            ingestor_main.poll_folder()
+        assert self.KEY not in health
+
+    def test_changed_rides_recalculate(self, health):
+        with patch.dict(os.environ, {}, clear=True), _scan(changed=2):
+            ingestor_main.poll_folder()
+        health["_recalc"].assert_called_once()
+
+    def test_nothing_changed_does_not_recalculate(self, health):
+        with patch.dict(os.environ, {}, clear=True), _scan():
+            ingestor_main.poll_folder()
+        health["_recalc"].assert_not_called()
+
+    def test_a_scan_error_is_contained(self, health):
+        with patch.dict(os.environ, {}, clear=True), \
+             patch.object(ingestor_main.file_import, "scan_folder",
+                          side_effect=RuntimeError("boom")):
+            ingestor_main.poll_folder()   # must not raise
+        assert self.KEY not in health
+
+
+class _LoopStopped(Exception):
+    pass
+
+
+class TestStartupWithoutCloudSource:
+    def _run(self, monkeypatch, env):
+        for name in list(os.environ):
+            if name.startswith(("STRAVA_", "RWGPS_", "INTERVALS_ICU_", "VELOMATE_")):
+                monkeypatch.delenv(name)
+        for name, value in env.items():
+            monkeypatch.setenv(name, value)
+        every = MagicMock()
+        polls = MagicMock()
+        with patch("main.get_connection", return_value=MagicMock()), \
+             patch("main.create_schema"), \
+             patch("main.get_sync_state", return_value=None), \
+             patch("main.set_sync_state"), \
+             patch("main.has_activities", return_value=False), \
+             patch("main.recalculate_fitness"), \
+             patch("main.backfill_missing_speed", return_value=0), \
+             patch("main.run_backfill") as run_backfill, \
+             patch("main.poll_folder", polls.folder), \
+             patch("main.poll_strava", polls.strava), \
+             patch("main.schedule.every", every), \
+             patch("main.schedule.run_pending"), \
+             patch("main.time.sleep", side_effect=_LoopStopped):
+            with pytest.raises(_LoopStopped):
+                ingestor_main.run()
+        scheduled = [c.args[0] for c in every.return_value.minutes.do.call_args_list]
+        return run_backfill, polls, scheduled
+
+    def test_startup_without_any_source_keeps_running(self, monkeypatch, capsys):
+        run_backfill, polls, scheduled = self._run(monkeypatch, {})
+        out = capsys.readouterr().out
+        assert ("[main] No cloud source configured — rides arrive only through the "
+                "import folder or the upload page") in out
+        assert polls.mock_calls == [call.folder()]
+        assert scheduled == [polls.folder]
+        run_backfill.assert_not_called()
+        assert "Polling file every" in out
+
+    def test_folder_is_scanned_after_the_cloud_polls(self, monkeypatch, capsys):
+        _, polls, scheduled = self._run(monkeypatch, {**_STRAVA})
+        assert polls.mock_calls == [call.strava(), call.folder()]
+        assert scheduled == [polls.strava, polls.folder]
+        out = capsys.readouterr().out
+        assert "No cloud source configured" not in out
+        assert "Polling strava, file every" in out
+
+
+class TestUploadDispatch:
+    def test_main_upload_dispatches_to_run_upload(self):
+        with patch("main.run_upload") as up, patch("main.run") as run:
+            ingestor_main.dispatch(["main.py", "upload"])
+        up.assert_called_once_with()
+        run.assert_not_called()
+
+    def test_no_argument_still_runs_the_ingestor(self):
+        with patch("main.run_upload") as up, patch("main.run") as run:
+            ingestor_main.dispatch(["main.py"])
+        run.assert_called_once_with()
+        up.assert_not_called()
+
+    def test_run_upload_flushes_the_debouncer_on_sigterm(self):
+        import signal
+        server = MagicMock()
+        handlers = {}
+        server.serve_forever.side_effect = lambda: handlers[signal.SIGTERM](signal.SIGTERM, None)
+        with patch("upload_server.make_server", return_value=server) as mk, \
+             patch("upload_auth.GrafanaAuth"), \
+             patch("main.signal.signal", side_effect=lambda s, h: handlers.__setitem__(s, h)), \
+             patch.dict(os.environ, {"UPLOAD_LISTEN_PORT": "9999"}):
+            try:
+                ingestor_main.run_upload()
+            except SystemExit:
+                pass
+        assert mk.call_args.args[:2] == ("0.0.0.0", 9999)
+        server.debouncer.flush.assert_called_once_with()

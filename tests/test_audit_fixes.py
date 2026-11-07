@@ -452,13 +452,19 @@ def _make_conn():
 
 # Existing record is richer: power(3) + hr(2) + distance(1) = 6
 # New record is weaker:  hr(2) only = 2
-_RICH_EXISTING = (42, 99999, "karoo", 10000, 150, 250, None, None, None, None)  # id, strava_id, device, dist, hr, power, rwgps_id, suffer_score
+_RICH_EXISTING = (42, 99999, "karoo", 10000, 150, 250, None, None, None, None, None)  # id, strava_id, device, dist, hr, power, rwgps_id, suffer_score, icu_id, icu_analyzed, file_sha256
 _WEAK_NEW = {
     "name": "Morning Ride", "date": "2026-03-18T07:00:00Z", "duration_s": 3600,
     "distance_m": 0, "avg_hr": 155, "avg_power": None, "max_hr": None,
     "max_power": None, "avg_cadence": None, "suffer_score": 42, "tss": 65.0,
     "calories": None, "strava_id": 111111, "device": "strava", "elevation_m": 0,
 }
+
+
+def _update_calls(cursor):
+    """The UPDATE statements run, leaving out the ingest advisory lock and unlock."""
+    return [c for c in cursor.execute.call_args_list
+            if "UPDATE activities" in str(c.args[0])]
 
 
 class TestDedupGapFillN2:
@@ -478,7 +484,7 @@ class TestDedupGapFillN2:
              _patch.object(ingestor_db, "classify_activity", side_effect=lambda d: d):
             ingestor_db.upsert_activity(conn, dict(_WEAK_NEW))
         mock_insert.assert_not_called()
-        cursor.execute.assert_called_once()
+        assert len(_update_calls(cursor)) == 1
 
     def test_update_sql_uses_coalesce(self):
         """UPDATE SQL uses COALESCE so existing non-NULL values are not overwritten."""
@@ -488,8 +494,7 @@ class TestDedupGapFillN2:
              _patch.object(ingestor_db, "_do_insert"), \
              _patch.object(ingestor_db, "classify_activity", side_effect=lambda d: d):
             ingestor_db.upsert_activity(conn, dict(_WEAK_NEW))
-        sql = cursor.execute.call_args[0][0]
-        assert "UPDATE activities" in sql
+        sql = _update_calls(cursor)[0].args[0]
         assert "COALESCE" in sql
 
     def test_update_passes_new_suffer_score(self):
@@ -500,7 +505,7 @@ class TestDedupGapFillN2:
              _patch.object(ingestor_db, "_do_insert"), \
              _patch.object(ingestor_db, "classify_activity", side_effect=lambda d: d):
             ingestor_db.upsert_activity(conn, dict(_WEAK_NEW))
-        params = cursor.execute.call_args[0][1]
+        params = _update_calls(cursor)[0].args[1]
         assert params["suffer_score"] == 42
         assert params["tss"] == 65.0
         assert params["ex_id"] == 42

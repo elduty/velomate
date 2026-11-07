@@ -689,6 +689,13 @@ def reclassify_activities(conn):
             # Delete non-cycling activities
             if strava_type and strava_type not in CYCLING_STRAVA_TYPES:
                 with conn.cursor() as cur:
+                    cur.execute("SELECT file_sha256 FROM activities WHERE id = %s", (db_id,))
+                    held = cur.fetchone()
+                    if held and held[0] is not None:
+                        cur.execute("UPDATE activities SET strava_id = NULL WHERE id = %s", (db_id,))
+                        updated += 1
+                        print(f"  ~ {name[:40]:40s} ({strava_type}) — kept (also from a file)")
+                        continue
                     cur.execute("DELETE FROM activities WHERE id = %s", (db_id,))
                 deleted += 1
                 print(f"  ✕ {name[:40]:40s} ({strava_type}) — deleted")

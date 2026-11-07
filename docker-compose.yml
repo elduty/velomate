@@ -1,3 +1,13 @@
+# Shared by the ingestor and the upload page so the two compute rides with the
+# same database and the same thresholds.
+x-velomate-settings: &velomate-settings
+  DATABASE_URL: postgresql://${POSTGRES_USER:-velomate}:${POSTGRES_PASSWORD}@velomate-postgres:5432/${POSTGRES_DB:-velomate}
+  VELOMATE_MAX_HR: ${VELOMATE_MAX_HR:-0}
+  VELOMATE_FTP: ${VELOMATE_FTP:-0}
+  VELOMATE_RESTING_HR: ${VELOMATE_RESTING_HR:-0}
+  VELOMATE_WEIGHT: ${VELOMATE_WEIGHT:-0}
+  VELOMATE_RESET_RIDE_FTP: ${VELOMATE_RESET_RIDE_FTP:-0}
+
 services:
   velomate-postgres:
     container_name: velomate-postgres
@@ -22,7 +32,7 @@ services:
     container_name: velomate-ingestor
     build: ./ingestor
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-velomate}:${POSTGRES_PASSWORD}@velomate-postgres:5432/${POSTGRES_DB:-velomate}
+      <<: *velomate-settings
       STRAVA_CLIENT_ID: ${STRAVA_CLIENT_ID:-}
       STRAVA_CLIENT_SECRET: ${STRAVA_CLIENT_SECRET:-}
       STRAVA_REFRESH_TOKEN: ${STRAVA_REFRESH_TOKEN:-}
@@ -32,23 +42,23 @@ services:
       INTERVALS_ICU_API_KEY: ${INTERVALS_ICU_API_KEY:-}
       INTERVALS_ICU_SYNC_WINDOW_DAYS: ${INTERVALS_ICU_SYNC_WINDOW_DAYS:-14}
       INTERVALS_ICU_SWEEP_DAYS: ${INTERVALS_ICU_SWEEP_DAYS:-90}
-      VELOMATE_MAX_HR: ${VELOMATE_MAX_HR:-0}
-      VELOMATE_FTP: ${VELOMATE_FTP:-0}
-      VELOMATE_RESTING_HR: ${VELOMATE_RESTING_HR:-0}
-      VELOMATE_WEIGHT: ${VELOMATE_WEIGHT:-0}
-      VELOMATE_RESET_RIDE_FTP: ${VELOMATE_RESET_RIDE_FTP:-0}
       VELOMATE_BACKFILL_MONTHS: ${VELOMATE_BACKFILL_MONTHS:-12}
       POLL_INTERVAL_MINUTES: ${POLL_INTERVAL_MINUTES:-10}
       # Where a rotated Strava refresh token is written if the DB write
       # fails. Defaults inside the velomate-token-data volume so it
       # survives a restart; override only to relocate it.
       VELOMATE_TOKEN_FALLBACK: ${VELOMATE_TOKEN_FALLBACK:-/app/data/.strava_refresh_token}
+      # The watched import folder counts as configured, and joins ingest health,
+      # only when this is set. Unset, the mount below is an empty named volume.
+      VELOMATE_IMPORT_DIR: ${VELOMATE_IMPORT_DIR:-}
       PYTHONUNBUFFERED: "${PYTHONUNBUFFERED:-1}"
     depends_on:
       velomate-postgres:
         condition: service_healthy
     volumes:
       - velomate-token-data:/app/data
+      # Read-only: imported files are never moved or deleted.
+      - ${VELOMATE_IMPORT_DIR:-velomate-import-data}:/app/import:ro
     restart: unless-stopped
 
   velomate-grafana:
@@ -82,7 +92,29 @@ services:
       - velomate-postgres
     restart: unless-stopped
 
+  # Opt-in: only started with COMPOSE_PROFILES=upload. Plain HTTP; put a TLS
+  # reverse proxy in front of it for anything beyond a trusted LAN.
+  velomate-upload:
+    container_name: velomate-upload
+    build: ./ingestor
+    profiles: ["upload"]
+    command: ["python3", "-u", "main.py", "upload"]
+    environment:
+      <<: *velomate-settings
+      GRAFANA_URL: ${GRAFANA_URL:-http://velomate-grafana:3000}
+      GRAFANA_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:${GRAFANA_PORT:-3021}/}
+      PYTHONUNBUFFERED: "${PYTHONUNBUFFERED:-1}"
+    ports:
+      - "${UPLOAD_PORT:-3022}:8080"
+    depends_on:
+      velomate-postgres:
+        condition: service_healthy
+      velomate-grafana:
+        condition: service_started
+    restart: unless-stopped
+
 volumes:
   velomate-postgres-data:
   velomate-grafana-data:
   velomate-token-data:
+  velomate-import-data:

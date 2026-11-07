@@ -122,7 +122,7 @@ class TestRouteAssignment:
 
     def test_route_step_runs_after_ftp_backfill(self):
         """Assert on ORDER, not merely that both steps exist."""
-        src = inspect.getsource(ingestor_fitness.recalculate_fitness)
+        src = inspect.getsource(ingestor_fitness._recalculate_fitness)
         assert "Step 2.7" in src, "route assignment step is missing"
         assert src.index("Step 2:") < src.index("Step 2.7"), (
             "Step 2.7 must come after the ride_ftp backfill in Step 2"
@@ -130,7 +130,7 @@ class TestRouteAssignment:
 
     def test_route_step_runs_before_tss(self):
         """And before Step 3, so the pass keeps its documented order."""
-        src = inspect.getsource(ingestor_fitness.recalculate_fitness)
+        src = inspect.getsource(ingestor_fitness._recalculate_fitness)
         assert src.index("Step 2.7") < src.index("Step 3:")
 
     def test_metrics_version_bumped_for_route_backfill(self):
@@ -140,7 +140,7 @@ class TestRouteAssignment:
     def test_reset_clears_route_signature(self):
         """Signatures are reused when present, so a version reset must clear
         them — otherwise a CELL_DEGREES change would silently have no effect."""
-        src = inspect.getsource(ingestor_fitness.recalculate_fitness)
+        src = inspect.getsource(ingestor_fitness._recalculate_fitness)
         reset = [l for l in src.splitlines() if "UPDATE activities SET tss = NULL" in l]
         assert reset, "metrics reset statement not found"
         assert "route_signature = NULL" in reset[0], (
@@ -150,7 +150,7 @@ class TestRouteAssignment:
     def test_endpoint_query_guards_both_coordinates(self):
         """lat and lng are independently nullable; a lat-without-lng row would
         reach haversine_m as None and abort assignment for the whole library."""
-        src = inspect.getsource(ingestor_fitness.recalculate_fitness)
+        src = inspect.getsource(ingestor_fitness._recalculate_fitness)
         step = src[src.index("Step 2.7"):src.index("Step 3:")]
         endpoints = step[step.index("ORDER BY time_offset LIMIT 1") - 400:]
         assert step.count("lat IS NOT NULL AND lng IS NOT NULL") >= 3, (

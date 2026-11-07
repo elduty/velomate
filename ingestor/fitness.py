@@ -938,6 +938,15 @@ def configured_threshold(conn, name: str, stored_key: str) -> int:
 
 
 def recalculate_fitness(conn):
+    """Recalculate under the ingest lock, so no other process stores a ride or
+    its ledger row halfway through. The lock is re-entrant: a caller already
+    holding it is fine."""
+    import db as _db
+    with _db.ingest_lock(conn):
+        return _recalculate_fitness(conn)
+
+
+def _recalculate_fitness(conn):
     """
     Walk day-by-day from earliest activity, applying EMA:
       CTL = CTL_prev × (1 - 1/42) + tss × (1/42)

@@ -7,9 +7,9 @@
 [![Grafana 12.4](https://img.shields.io/badge/grafana-12.4-orange)](https://grafana.com/)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20VeloMate-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/elduty)
 
-A self-hosted cycling data platform — automatic ride ingestion from **intervals.icu, Strava and/or Ride with GPS**, Grafana dashboards for analytics, and intelligent route planning. **No paid subscription required** — all metrics (fitness, power zones, training load, TRIMP) are computed locally from raw data. intervals.icu is the recommended source: it is free, and it relays Garmin, Wahoo, Zwift, Polar, Suunto and Coros, so VeloMate does not depend on Strava API access — which now requires a paid subscription.
+A self-hosted cycling data platform — automatic ride ingestion from **intervals.icu, Strava and/or Ride with GPS**, or straight from your own **FIT and GPX files**, Grafana dashboards for analytics, and intelligent route planning. **No paid subscription required** — all metrics (fitness, power zones, training load, TRIMP) are computed locally from raw data. intervals.icu is the recommended source: it is free, and it relays Garmin, Wahoo, Zwift, Polar, Suunto and Coros, so VeloMate does not depend on Strava API access — which now requires a paid subscription.
 
-Inspired by [TeslaMate](https://github.com/teslamate-org/teslamate). Works with any device that syncs to intervals.icu, Strava or Ride with GPS.
+Inspired by [TeslaMate](https://github.com/teslamate-org/teslamate). Works with any device that syncs to intervals.icu, Strava or Ride with GPS, or that exports FIT or GPX files.
 
 ![Overview Dashboard](screenshots/overview.png)
 
@@ -17,6 +17,7 @@ Inspired by [TeslaMate](https://github.com/teslamate-org/teslamate). Works with 
 
 ### Data Ingestion
 - Polls intervals.icu (primary), Strava and/or Ride with GPS every 10 minutes (configurable) for new cycling rides — run any source on its own, or several with automatic cross-source deduplication of the same ride
+- Imports FIT and GPX files, gzipped or in zips, from a watched folder or an optional upload page — no cloud account needed, and a file matching a ride you already have only fills its gaps (see [Importing files](#importing-files))
 - **Cycling only** — from intervals.icu: Ride, VirtualRide, GravelRide, MountainBikeRide, EBikeRide, EMountainBikeRide, TrackRide and Cyclocross; from Strava: Ride, VirtualRide, EBikeRide, Handcycle and Velomobile. Runs, swims, walks, strength and everything else are filtered out at sync
 - Classifies rides as: **Outdoor**, **Zwift**, **Indoor** (trainer), or **E-Bike** — dashboards can filter by type
 - Stores full per-second telemetry (HR, power, cadence, speed, altitude, GPS)
@@ -190,23 +191,27 @@ When multiple devices record the same ride (e.g., a bike computer and a watch bo
 
 Across sources, intervals.icu takes precedence, and Strava and Ride with GPS rank equally. The score decides between records of the same rank, so it works with any device brand. Missing fields from the losing record (e.g., HR from a watch when a bike computer wins on power) are merged into the winner. The merge updates the stored ride in place, so its id, route, weight and Strava segment climbs survive.
 
+Imported files rank below every cloud source. A file matching a ride you already have only fills its gaps: an empty column, or a whole stream the ride lacks (power from a head unit on a phone recording, say), and never replaces what the cloud copy has.
+
 ## Architecture
 
 ```
-Any device → intervals.icu / Strava / Ride with GPS → [Ingestor] → PostgreSQL → Grafana dashboards
-                                                           ↑
-                                    VeloMate CLI (route planning + recommendations)
-                                                           ↓
-                                                  Valhalla → GPX file
+Any device → intervals.icu / Strava / Ride with GPS ─┐
+FIT / GPX files → import folder / upload page ───────┴→ [Ingestor] → PostgreSQL → Grafana dashboards
+                                                             ↑
+                                      VeloMate CLI (route planning + recommendations)
+                                                             ↓
+                                                    Valhalla → GPX file
 ```
 
-Three Docker Compose services:
+Three Docker Compose services, plus an optional fourth:
 
 | Service | Image | Port |
 |---------|-------|------|
 | PostgreSQL | `postgres:15` | 5423 |
 | Ingestor | custom Python 3.11 | — |
 | Grafana | custom, on `grafana/grafana:12.4` | 3021 |
+| Upload page (optional, `COMPOSE_PROFILES=upload`) | the ingestor image | 3022 |
 
 The CLI runs locally and connects to the database over the network.
 
@@ -223,9 +228,9 @@ cp .env.example .env
 
 ### 2. Connect an activity source
 
-Configure at least one. Several can run together — the same ride arriving from
-more than one is deduplicated automatically, with intervals.icu taking
-precedence.
+Configure any of them, or none and import files instead. Several can run
+together — the same ride arriving from more than one is deduplicated
+automatically, with intervals.icu taking precedence.
 
 #### intervals.icu (recommended)
 
@@ -303,7 +308,73 @@ python3 -m velomate.cli auth
 When several sources are configured, the same ride arriving from more than one
 is deduplicated automatically, and intervals.icu takes precedence.
 
-At least one source (intervals.icu, Strava or RWGPS) must be configured.
+No cloud source is required: rides can come from files alone (below).
+
+#### Importing files
+
+Set `VELOMATE_IMPORT_DIR` in `.env` to a host folder of ride files, as an
+absolute path (`/srv/rides`) or one starting with `./` (relative to the compose
+file). Any other value, a bare name such as `rides` included, is read by
+Compose as a volume name and the stack won't start. Leave it empty or unset to
+turn the folder off. Compose mounts the folder read-only at `/app/import`, and
+the ingestor scans it at startup and on every poll. The ingestor runs as an
+unprivileged user (`app`), not root, so the folder and everything in it must be
+readable by other users on the host (`chmod -R o+rX /srv/rides`, for example).
+
+It reads `.fit` and `.gpx` files, gzipped or not, including inside `.zip`
+archives, in any subfolder, so a Garmin or Strava bulk export can go in whole.
+Other files are skipped without a mention, `.tcx` and `.tcx.gz` included: a
+Strava export keeps each ride in the format it was uploaded in, so a ride that
+arrived as TCX has to be exported again as FIT or GPX. Symlinks inside the
+folder are skipped. Files are never moved, renamed or deleted. A file is read
+again only when its size or modification time changes, and a pass is
+time-bounded, so a big first load spreads over several polls. The backfill
+window (`VELOMATE_BACKFILL_MONTHS`) doesn't apply to files.
+
+A GPX track's `<type>` decides whether it is a ride. A word naming another
+sport (`running`, `hiking`) makes it `not_cycling`. A number is an activity
+code, and only `1` counts as a ride, so a GPX with any other number is skipped
+as `not_cycling`; import that ride from its FIT file instead. A heart rate
+outside 20-260 bpm, a cadence above 250 rpm or a power above 3,000 W is taken
+as a glitch and dropped from that sample, and a file whose times span more than
+7 days is `failed`.
+
+Each ride file gets one outcome, logged by the ingestor as
+`[file] <name>: <outcome>` and kept in the `imported_files` table:
+
+| Outcome | Meaning |
+|---|---|
+| `imported` | A new ride |
+| `merged` | The ride was already stored from another source, and the file added something it lacked, such as power or heart rate |
+| `duplicate` | The ride was already stored and the file added nothing |
+| `not_cycling` | Not a ride (a run, a walk), so it was skipped |
+| `failed` | The file couldn't be read, with the reason |
+
+A file whose bytes were seen before isn't parsed again, whatever it's called.
+When the folder is set, it counts toward ingest health like a cloud source.
+
+#### Upload page
+
+The second way in is a web page for uploading ride files from a browser. It is
+off by default: an install without it gets no extra container and no extra port.
+Turn it on by setting `COMPOSE_PROFILES=upload` in `.env` and running
+`docker compose up -d --build`. It listens on host port `3022`; set
+`UPLOAD_PORT` to change that.
+
+Sign in with a Grafana login. Only an Editor or Admin in Grafana's main
+organisation can upload, and Grafana's basic auth must stay enabled (it is by
+default) because the page checks your login against it. The page takes the same
+files as the watched folder (`.fit`, `.gpx`, gzipped or in a `.zip`), up to
+500 MB per upload. For anything bigger, use the watched folder above. The
+fitness figures are recalculated shortly after the last upload.
+
+A `.zip` is imported in one request, so a reverse proxy in front of the page
+needs a long read timeout (several minutes for a big archive). For an archive
+with many rides, use the watched folder instead.
+
+The service speaks plain HTTP and sends your login as Basic auth, so keep it on
+a trusted LAN or put a TLS reverse proxy in front of it. The proxy is also the
+place to bound slow clients (read and send timeouts).
 
 ### 3. Start services
 
@@ -436,6 +507,8 @@ TSB       = CTL − ATL                 (training stress balance / form)
 | `athlete_stats` | Daily fitness metrics — CTL, ATL, TSB, weekly volume |
 | `routes` | Legacy — created by schema but not actively written to |
 | `sync_state` | Ingestor bookmarks + configured/estimated FTP + metrics version + ingest health |
+| `imported_files` | Every imported ride file by content hash, with its outcome and the ride it became |
+| `imported_paths` | Watched-folder files already read, by path, size and modification time |
 
 Schema is managed in code (`ingestor/db.py:create_schema()`) using `IF NOT EXISTS` / `ADD COLUMN IF NOT EXISTS`. No migration tool.
 
@@ -452,15 +525,19 @@ Configured via `.env` file:
 | `POSTGRES_USER` | No | Database user (default `velomate`) |
 | `POSTGRES_PORT` | No | Host port mapped to PostgreSQL 5432 (default `5423`) |
 | `POSTGRES_VERSION` | No | PostgreSQL image tag (default `15`) |
-| `STRAVA_CLIENT_ID` | One source required | From strava.com/settings/api |
-| `STRAVA_CLIENT_SECRET` | One source required | From Strava API settings |
-| `STRAVA_REFRESH_TOKEN` | One source required | OAuth refresh token (get via `python3 -m velomate.cli auth`) |
-| `RWGPS_API_KEY` | One source required | From ridewithgps.com → account settings → developers |
-| `RWGPS_AUTH_TOKEN` | One source required | Generated on the RWGPS API client management page |
-| `INTERVALS_ICU_ATHLETE_ID` | One source required | From intervals.icu → Settings → Developer Settings (`iNNNNNN`) |
-| `INTERVALS_ICU_API_KEY` | One source required | On the same Developer Settings page |
+| `STRAVA_CLIENT_ID` | No | From strava.com/settings/api |
+| `STRAVA_CLIENT_SECRET` | No | From Strava API settings |
+| `STRAVA_REFRESH_TOKEN` | No | OAuth refresh token (get via `python3 -m velomate.cli auth`) |
+| `RWGPS_API_KEY` | No | From ridewithgps.com → account settings → developers |
+| `RWGPS_AUTH_TOKEN` | No | Generated on the RWGPS API client management page |
+| `INTERVALS_ICU_ATHLETE_ID` | No | From intervals.icu → Settings → Developer Settings (`iNNNNNN`) |
+| `INTERVALS_ICU_API_KEY` | No | On the same Developer Settings page |
 | `INTERVALS_ICU_SYNC_WINDOW_DAYS` | No | Rolling poll window in days (default `14`) |
 | `INTERVALS_ICU_SWEEP_DAYS` | No | Daily reconciliation window, in days (default `90`). The sweep mirrors deletions and ingests up to 25 rides a day that exist on intervals.icu but not locally |
+| `VELOMATE_IMPORT_DIR` | No | Host folder of FIT/GPX files to import, mounted read-only. Files are never moved or deleted. An absolute path or one starting with `./`; empty or unset turns it off (see [Importing files](#importing-files)) |
+| `COMPOSE_PROFILES` | No | Set to `upload` to start the upload page (see [Upload page](#upload-page)). Empty by default |
+| `UPLOAD_PORT` | No | Host port for the upload page (default `3022`) |
+| `GRAFANA_URL` | No | Where the upload page checks sign-ins (default `http://velomate-grafana:3000`). Change it if Grafana runs elsewhere |
 | `GRAFANA_PASSWORD` | Yes | Grafana admin password |
 | `GRAFANA_PORT` | No | Host port for the Grafana UI (default `3021`) |
 | `GRAFANA_ROOT_URL` | No | Public URL if served behind a reverse proxy (default `http://localhost:3021/`) |

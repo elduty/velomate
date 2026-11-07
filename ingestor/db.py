@@ -1,5 +1,6 @@
 """PostgreSQL connection, schema creation, and upsert helpers."""
 
+import contextlib
 import os
 from datetime import datetime, timezone
 
@@ -187,6 +188,31 @@ def create_schema(conn):
             CREATE UNIQUE INDEX IF NOT EXISTS idx_activities_rwgps_id
                 ON activities(rwgps_id) WHERE rwgps_id IS NOT NULL;
 
+            -- A FIT/GPX file's identity is the SHA-256 of its bytes. It is the
+            -- file source's id, the way rwgps_id is RWGPS's.
+            ALTER TABLE activities ADD COLUMN IF NOT EXISTS file_sha256 TEXT;
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_activities_file_sha256
+                ON activities(file_sha256) WHERE file_sha256 IS NOT NULL;
+
+            -- Ledger of every file seen, whatever came of it.
+            CREATE TABLE IF NOT EXISTS imported_files (
+                sha256      TEXT PRIMARY KEY,
+                name        TEXT NOT NULL,
+                size_bytes  BIGINT NOT NULL,
+                first_seen  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                last_seen   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                via         TEXT NOT NULL,          -- 'folder' | 'upload'
+                outcome     TEXT NOT NULL,          -- imported|merged|duplicate|not_cycling|failed
+                detail      TEXT,
+                activity_id INTEGER REFERENCES activities(id) ON DELETE SET NULL
+            );
+            CREATE TABLE IF NOT EXISTS imported_paths (
+                path        TEXT PRIMARY KEY,       -- path under /app/import
+                size_bytes  BIGINT NOT NULL,
+                mtime_ns    BIGINT NOT NULL,
+                done_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
+
             ALTER TABLE activities ADD COLUMN IF NOT EXISTS intervals_icu_id TEXT;
             CREATE UNIQUE INDEX IF NOT EXISTS idx_activities_intervals_icu_id
                 ON activities(intervals_icu_id) WHERE intervals_icu_id IS NOT NULL;
@@ -298,9 +324,9 @@ def find_duplicate(conn, date_str: str, duration_s: int, distance_m: float = 0,
     - Duration within 15% (handles moving_time vs elapsed_time differences)
     - Distance within 10% (handles different GPS sampling / measurement)
 
-    Returns a 10-column tuple:
+    Returns an 11-column tuple:
         (id, strava_id, device, distance_m, avg_hr, avg_power, rwgps_id,
-         suffer_score, intervals_icu_id, intervals_icu_analyzed)
+         suffer_score, intervals_icu_id, intervals_icu_analyzed, file_sha256)
 
     Unpacked positionally in three places, all in this module
     (_is_same_source_activity, merge_activity_data, upsert_activity), so every
@@ -309,7 +335,7 @@ def find_duplicate(conn, date_str: str, duration_s: int, distance_m: float = 0,
     with conn.cursor() as cur:
         cur.execute("""
             SELECT id, strava_id, device, distance_m, avg_hr, avg_power, rwgps_id,
-                   suffer_score, intervals_icu_id, intervals_icu_analyzed
+                   suffer_score, intervals_icu_id, intervals_icu_analyzed, file_sha256
             FROM activities
             WHERE ABS(EXTRACT(EPOCH FROM (date - %s::timestamptz))) < %s
               AND (
@@ -327,7 +353,8 @@ def _is_same_source_activity(duplicate: tuple, data: dict) -> bool:
     path instead of dedup-merging — without this, every re-synced RWGPS trip
     ('updated' action) would re-enter the dedup merge.
     duplicate = (id, strava_id, device, distance_m, avg_hr, avg_power,
-                 rwgps_id, suffer_score, intervals_icu_id, intervals_icu_analyzed)
+                 rwgps_id, suffer_score, intervals_icu_id, intervals_icu_analyzed,
+                 file_sha256)
     """
     dup_strava_id, dup_rwgps_id, dup_icu_id = duplicate[1], duplicate[6], duplicate[8]
     if data.get("strava_id") is not None:
@@ -336,6 +363,8 @@ def _is_same_source_activity(duplicate: tuple, data: dict) -> bool:
         return dup_rwgps_id == data["rwgps_id"]
     if data.get("intervals_icu_id") is not None:
         return dup_icu_id == data["intervals_icu_id"]
+    if data.get("file_sha256") is not None:
+        return duplicate[10] == data["file_sha256"]
     return False
 
 
@@ -350,7 +379,12 @@ def _is_same_source_activity(duplicate: tuple, data: dict) -> bool:
 # columns but not elevation_m or distance_m, so a thinner Strava row outranking
 # a richer RWGPS copy would drop that copy's elevation and distance. Between
 # equals, richness still decides, exactly as before this change.
-SOURCE_PRIORITY = {"intervals_icu": 2, "strava": 1, "rwgps": 1}
+#
+# A file is tier 0, below every cloud source: a cloud copy of the same ride is
+# the better base. _source_tier keeps default=0 because every stored row carries
+# some source id, so "no id" and "file only" never need telling apart (the entry
+# documents the tier; no "file_id" key is ever looked up).
+SOURCE_PRIORITY = {"intervals_icu": 2, "strava": 1, "rwgps": 1, "file": 0}
 
 
 def _source_tier(record) -> int:
@@ -389,14 +423,14 @@ def merge_activity_data(existing: tuple, new_data: dict) -> dict:
     Uses data richness scoring — whichever record has more useful fields wins.
     """
     (ex_id, ex_strava_id, ex_device, ex_distance, ex_hr, ex_power,
-     ex_rwgps_id, ex_suffer, ex_icu_id, ex_icu_analyzed) = existing
+     ex_rwgps_id, ex_suffer, ex_icu_id, ex_icu_analyzed, ex_file_sha256) = existing
     ex_data = {"avg_power": ex_power, "avg_hr": ex_hr, "distance_m": ex_distance}
 
     # Source precedence decides the base; richness only breaks ties within a
     # tier. Two rows from the SAME source never reach here —
     # _is_same_source_activity diverts them to the ON CONFLICT path.
     ex_record = {"strava_id": ex_strava_id, "rwgps_id": ex_rwgps_id,
-                 "intervals_icu_id": ex_icu_id}
+                 "intervals_icu_id": ex_icu_id, "file_sha256": ex_file_sha256}
     ex_tier, new_tier = _source_tier(ex_record), _source_tier(new_data)
     if new_tier != ex_tier:
         new_wins = new_tier > ex_tier
@@ -417,6 +451,8 @@ def merge_activity_data(existing: tuple, new_data: dict) -> dict:
             merged["strava_id"] = ex_strava_id
         if not merged.get("rwgps_id") and ex_rwgps_id:
             merged["rwgps_id"] = ex_rwgps_id
+        if not merged.get("file_sha256") and ex_file_sha256:
+            merged["file_sha256"] = ex_file_sha256
         # Both intervals.icu columns must survive: a lost analyzed makes the
         # sync gate fire on every poll for that ride, forever.
         if not merged.get("intervals_icu_id") and ex_icu_id:
@@ -458,7 +494,8 @@ def _do_insert(conn, data: dict, now) -> int:
     clear the one a dual-source row holds.
     """
     params = {"strava_id": None, "rwgps_id": None, "intervals_icu_id": None,
-              "intervals_icu_analyzed": None, **data, "synced_at": now}
+              "intervals_icu_analyzed": None, "file_sha256": None,
+              **data, "synced_at": now}
     analyzed_set = ("COALESCE(EXCLUDED.intervals_icu_analyzed, "
                     "activities.intervals_icu_analyzed)")
     if params["strava_id"] is not None:
@@ -466,6 +503,9 @@ def _do_insert(conn, data: dict, now) -> int:
         suffer_set = ",\n                suffer_score = EXCLUDED.suffer_score"
     elif params["rwgps_id"] is not None:
         conflict_target = "(rwgps_id) WHERE rwgps_id IS NOT NULL"
+        suffer_set = ""
+    elif params["file_sha256"] is not None:
+        conflict_target = "(file_sha256) WHERE file_sha256 IS NOT NULL"
         suffer_set = ""
     else:
         conflict_target = "(intervals_icu_id) WHERE intervals_icu_id IS NOT NULL"
@@ -475,12 +515,14 @@ def _do_insert(conn, data: dict, now) -> int:
         cur.execute(f"""
             INSERT INTO activities (
                 strava_id, rwgps_id, intervals_icu_id, intervals_icu_analyzed,
+                file_sha256,
                 name, date, distance_m, duration_s, elevation_m,
                 avg_hr, max_hr, avg_power, max_power, avg_cadence,
                 avg_speed_kmh, calories, suffer_score, device,
                 is_indoor, sport_type, synced_at
             ) VALUES (
                 %(strava_id)s, %(rwgps_id)s, %(intervals_icu_id)s, %(intervals_icu_analyzed)s,
+                %(file_sha256)s,
                 %(name)s, %(date)s, %(distance_m)s, %(duration_s)s, %(elevation_m)s,
                 %(avg_hr)s, %(max_hr)s, %(avg_power)s, %(max_power)s, %(avg_cadence)s,
                 %(avg_speed_kmh)s, %(calories)s, %(suffer_score)s, %(device)s,
@@ -525,11 +567,13 @@ def _source_id_on_another_row(conn, ex_id: int, data: dict) -> int | None:
             WHERE id <> %(ex_id)s
               AND (strava_id = %(strava_id)s
                    OR rwgps_id = %(rwgps_id)s
-                   OR intervals_icu_id = %(intervals_icu_id)s)
+                   OR intervals_icu_id = %(intervals_icu_id)s
+                   OR file_sha256 = %(file_sha256)s)
             LIMIT 1
         """, {"ex_id": ex_id, "strava_id": data.get("strava_id"),
               "rwgps_id": data.get("rwgps_id"),
-              "intervals_icu_id": data.get("intervals_icu_id")})
+              "intervals_icu_id": data.get("intervals_icu_id"),
+              "file_sha256": data.get("file_sha256")})
         row = cur.fetchone()
         return row[0] if row else None
 
@@ -583,7 +627,7 @@ def _merge_in_place(conn, ex_id: int, merged: dict, streams: list | None, now) -
     later poll the ride is unchanged.
     """
     params = {"strava_id": None, "rwgps_id": None, "intervals_icu_id": None,
-              "intervals_icu_analyzed": None, **merged,
+              "intervals_icu_analyzed": None, "file_sha256": None, **merged,
               "synced_at": now, "ex_id": ex_id}
     conn.autocommit = False
     try:
@@ -592,6 +636,7 @@ def _merge_in_place(conn, ex_id: int, merged: dict, streams: list | None, now) -
                 UPDATE activities SET
                     strava_id = COALESCE(%(strava_id)s, strava_id),
                     rwgps_id = COALESCE(%(rwgps_id)s, rwgps_id),
+                    file_sha256 = COALESCE(%(file_sha256)s, file_sha256),
                     intervals_icu_id = COALESCE(%(intervals_icu_id)s, intervals_icu_id),
                     intervals_icu_analyzed = COALESCE(%(intervals_icu_analyzed)s,
                                                       intervals_icu_analyzed),
@@ -655,6 +700,25 @@ def _upsert_row(conn, data: dict, streams: list | None, now) -> tuple[int, bool]
     return activity_id, True
 
 
+# Any fixed bigint. One session lock serialises every writer of the dedup path
+# (the polling sources and the file importer), so two copies of one ride that
+# arrive at once cannot both miss each other in find_duplicate.
+INGEST_LOCK_KEY = 7_365_696_973
+
+
+@contextlib.contextmanager
+def ingest_lock(conn):
+    """Hold the ingest advisory lock for the block. Session locks nest in
+    PostgreSQL, so a caller may hold it around upsert_activity, which takes it too."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT pg_advisory_lock(%s)", (INGEST_LOCK_KEY,))
+    try:
+        yield
+    finally:
+        with conn.cursor() as cur:
+            cur.execute("SELECT pg_advisory_unlock(%s)", (INGEST_LOCK_KEY,))
+
+
 def upsert_activity(conn, data: dict, streams: list | None = None) -> tuple[int, bool]:
     """Insert or update an activity. Returns (activity_id, streams_preserved).
     streams_preserved=True means the caller must NOT overwrite streams — the
@@ -672,8 +736,32 @@ def upsert_activity(conn, data: dict, streams: list | None = None) -> tuple[int,
       Returns False without them: the existing streams stay, and a caller that
       fetches its streams later overwrites them.
     """
+    with ingest_lock(conn):
+        return _upsert_activity_locked(conn, data, streams)
+
+
+def _upsert_activity_locked(conn, data: dict, streams: list | None) -> tuple[int, bool]:
     now = datetime.now(timezone.utc)
     data = classify_activity(data)
+
+    # The same file again, after it was merged onto a cloud ride. Its hash is on
+    # that row, so the ON CONFLICT (file_sha256) path would overwrite the cloud
+    # ride's name, duration, device and sensor columns with the file's, and the
+    # caller would replace its streams. A file never replaces a cloud ride, so
+    # nothing changes. A file-only row re-upserted with its own hash does not
+    # match and keeps the plain re-sync.
+    if data.get("file_sha256") is not None and not any(
+            data.get(k) is not None for k in ("strava_id", "rwgps_id", "intervals_icu_id")):
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT id FROM activities
+                WHERE file_sha256 = %s
+                  AND (strava_id IS NOT NULL OR rwgps_id IS NOT NULL
+                       OR intervals_icu_id IS NOT NULL)
+            """, (data["file_sha256"],))
+            row = cur.fetchone()
+        if row:
+            return row[0], True
 
     # Duplicate detection: check if another activity started within 5 min with similar duration
     if data.get("date") and data.get("duration_s"):
@@ -714,6 +802,7 @@ def upsert_activity(conn, data: dict, streams: list | None = None) -> tuple[int,
                                                     NULLIF(%(distance_m)s, 0), distance_m),
                             strava_id    = COALESCE(strava_id, %(strava_id)s),
                             rwgps_id     = COALESCE(rwgps_id, %(rwgps_id)s),
+                            file_sha256  = COALESCE(file_sha256, %(file_sha256)s),
                             intervals_icu_id = COALESCE(intervals_icu_id, %(intervals_icu_id)s),
                             intervals_icu_analyzed = COALESCE(intervals_icu_analyzed, %(intervals_icu_analyzed)s),
                             synced_at    = %(synced_at)s
@@ -731,6 +820,7 @@ def upsert_activity(conn, data: dict, streams: list | None = None) -> tuple[int,
                         "distance_m":   data.get("distance_m"),
                         "strava_id":    data.get("strava_id"),
                         "rwgps_id":     data.get("rwgps_id"),
+                        "file_sha256":  data.get("file_sha256"),
                         "intervals_icu_id": data.get("intervals_icu_id"),
                         "intervals_icu_analyzed": data.get("intervals_icu_analyzed"),
                         "synced_at":    now,
@@ -851,20 +941,75 @@ def upsert_streams(conn, activity_id: int, streams: list):
         conn.autocommit = True
 
 
+def stream_channels(streams: list) -> set:
+    """The channels a list of stream points carries.
+
+    A zero is a reading, so presence means "not None". GPS needs both lat and
+    lng on one point. Speed counts when GPS is present, because the stream write
+    derives it from the fixes.
+    """
+    found = set()
+    for key, channel in (("hr", "hr"), ("power", "power"), ("cadence", "cadence"),
+                         ("altitude_m", "altitude"), ("speed_kmh", "speed")):
+        if any(s.get(key) is not None for s in streams):
+            found.add(channel)
+    if any(s.get("lat") is not None and s.get("lng") is not None for s in streams):
+        found.update(("gps", "speed"))
+    return found
+
+
+def replace_streams_if_richer(conn, activity_id: int, streams: list) -> bool:
+    """Swap in a file's streams when they carry every stored channel and more.
+
+    A matched cloud ride keeps its streams, except that a file bringing a channel
+    they lack entirely (power on a phone-recorded ride) replaces them. Only a
+    strict superset swaps, so no channel is ever dropped and no timestamps need
+    aligning. Returns True when it swapped.
+    """
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT bool_or(hr IS NOT NULL), bool_or(power IS NOT NULL),
+                   bool_or(cadence IS NOT NULL), bool_or(altitude_m IS NOT NULL),
+                   bool_or(lat IS NOT NULL AND lng IS NOT NULL),
+                   bool_or(speed_kmh IS NOT NULL)
+            FROM activity_streams WHERE activity_id = %s
+        """, (activity_id,))
+        flags = cur.fetchone()
+    stored = {name for name, flag in zip(
+        ("hr", "power", "cadence", "altitude", "gps", "speed"), flags) if flag}
+    if "gps" in stored:
+        stored.add("speed")
+    if not stream_channels(streams) > stored:
+        return False
+    conn.autocommit = False
+    try:
+        with conn.cursor() as cur:
+            _clear_stream_derived(cur, activity_id)
+            _replace_streams(cur, activity_id, streams)
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.autocommit = True
+    return True
+
+
 def handle_rwgps_deletion(conn, rwgps_id: int) -> str:
     """Process a 'deleted' sync item from RWGPS.
 
     Returns "deleted" (RWGPS-only activity removed — CASCADE wipes streams,
     intervals, climbs), "unlinked" (dual-source activity kept, rwgps_id
-    cleared because the ride still exists on Strava), or "not_found".
+    cleared because the ride still exists on Strava or in a file), or "not_found".
     """
     with conn.cursor() as cur:
-        cur.execute("SELECT id, strava_id FROM activities WHERE rwgps_id = %s", (rwgps_id,))
+        cur.execute("SELECT id, strava_id, file_sha256 FROM activities "
+            "WHERE rwgps_id = %s", (rwgps_id,))
         row = cur.fetchone()
         if not row:
             return "not_found"
-        act_id, strava_id = row
-        if strava_id is not None:
+        act_id, strava_id, file_sha256 = row
+        if strava_id is not None or file_sha256 is not None:
             cur.execute("UPDATE activities SET rwgps_id = NULL WHERE id = %s", (act_id,))
             return "unlinked"
         cur.execute("DELETE FROM activities WHERE id = %s", (act_id,))
@@ -879,13 +1024,13 @@ def handle_intervals_icu_deletion(conn, intervals_icu_id: str) -> str:
     cleared), or "not_found". Same rule as handle_rwgps_deletion.
     """
     with conn.cursor() as cur:
-        cur.execute("SELECT id, strava_id, rwgps_id FROM activities "
+        cur.execute("SELECT id, strava_id, rwgps_id, file_sha256 FROM activities "
                     "WHERE intervals_icu_id = %s", (intervals_icu_id,))
         row = cur.fetchone()
         if not row:
             return "not_found"
-        act_id, strava_id, rwgps_id = row
-        if strava_id is not None or rwgps_id is not None:
+        act_id, strava_id, rwgps_id, file_sha256 = row
+        if strava_id is not None or rwgps_id is not None or file_sha256 is not None:
             cur.execute("UPDATE activities SET intervals_icu_id = NULL WHERE id = %s", (act_id,))
             return "unlinked"
         cur.execute("DELETE FROM activities WHERE id = %s", (act_id,))

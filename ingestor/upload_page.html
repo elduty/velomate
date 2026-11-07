@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VeloMate upload</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --fg: #1f2328; --muted: #656d76; --card: #ffffff;
+    --border: #d0d7de; --accent: #3498db; --ok: #2ecc71; --warn: #e67e22;
+    --bad: #e74c3c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111217; --fg: #e6e8eb; --muted: #9aa4af; --card: #181b1f;
+      --border: #2c3138;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px 16px; background: var(--bg); color: var(--fg);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  p.note { color: var(--muted); margin: 0 0 20px; }
+  #drop {
+    border: 2px dashed var(--border); border-radius: 10px; background: var(--card);
+    padding: 36px 16px; text-align: center; cursor: pointer;
+  }
+  #drop.over { border-color: var(--accent); }
+  #drop:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  #status { color: var(--muted); margin: 16px 0 8px; min-height: 1.5em; }
+  ul#results { list-style: none; padding: 0; margin: 0; }
+  ul#results li {
+    background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+    padding: 8px 12px; margin-bottom: 6px; overflow-wrap: anywhere;
+  }
+  .outcome { font-weight: 600; }
+  .imported, .merged { color: var(--ok); }
+  .duplicate, .not_cycling, .busy { color: var(--warn); }
+  .failed, .error { color: var(--bad); }
+  .detail, .ledger { color: var(--muted); }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Upload rides</h1>
+  <p class="note">
+    FIT and GPX files, plain or gzipped (.fit.gz, .gpx.gz), or zip archives of
+    them. Files are sent one at a time. Archives over 500 MB go through the
+    watched folder instead.
+  </p>
+  <div id="drop" tabindex="0" role="button" aria-label="Choose ride files">
+    Drop files here, or click to choose them
+    <input id="files" type="file" multiple accept=".fit,.gpx,.gz,.zip" hidden>
+  </div>
+  <div id="status" aria-live="polite"></div>
+  <ul id="results"></ul>
+</main>
+<script>
+(function () {
+  "use strict";
+  var MAX_BYTES = 500 * 1024 * 1024;
+  var RETRY_MS = 2000;
+  var MAX_RETRIES = 5;
+
+  var drop = document.getElementById("drop");
+  var input = document.getElementById("files");
+  var statusLine = document.getElementById("status");
+  var list = document.getElementById("results");
+  var queue = [];
+  var running = false;
+
+  function span(text, cls) {
+    var s = document.createElement("span");
+    s.textContent = text;
+    if (cls) { s.className = cls; }
+    return s;
+  }
+
+  // Every string from the server or a file name goes in through textContent,
+  // never as markup: ride names come from users' files.
+  function addLine(name, outcome, detail, fromLedger, link) {
+    var li = document.createElement("li");
+    li.appendChild(span(name));
+    li.appendChild(document.createTextNode(": "));
+    li.appendChild(span(outcome.replace("_", " "), "outcome " + outcome));
+    if (detail) {
+      li.appendChild(span(" (" + detail + ")", "detail"));
+    }
+    if (fromLedger) {
+      li.appendChild(span(", already imported", "ledger"));
+    }
+    if (link && /^https?:\/\//i.test(link)) {
+      li.appendChild(document.createTextNode(" "));
+      var a = document.createElement("a");
+      a.href = link;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.textContent = "open ride";
+      li.appendChild(a);
+    }
+    list.appendChild(li);
+  }
+
+  function sleep(ms) {
+    return new Promise(function (resolve) { setTimeout(resolve, ms); });
+  }
+
+  async function send(file) {
+    for (var attempt = 0; ; attempt++) {
+      var response;
+      try {
+        response = await fetch("upload", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "X-Filename": encodeURIComponent(file.name) },
+          body: file
+        });
+      } catch (e) {
+        // A refusal sent before the body was read can arrive as a dropped
+        // connection; nothing is stored twice on a retry (the server knows
+        // every file it has seen).
+        if (attempt < MAX_RETRIES) { await sleep(RETRY_MS); continue; }
+        addLine(file.name, "error", "the connection failed", false, null);
+        return;
+      }
+      var body = null;
+      try { body = await response.json(); } catch (e) { body = null; }
+      if (response.status === 503 && response.headers.get("Retry-After")
+          && attempt < MAX_RETRIES) {
+        statusLine.textContent = "Server busy, retrying " + file.name + "...";
+        await sleep(RETRY_MS);
+        continue;
+      }
+      if (response.ok && body && Array.isArray(body.results)) {
+        if (body.results.length === 0) {
+          addLine(file.name, "failed", "no ride files found in it", false, null);
+        }
+        body.results.forEach(function (r) {
+          addLine(String(r.name), String(r.outcome), r.detail ? String(r.detail) : "",
+                  r.from_ledger === true, r.link ? String(r.link) : null);
+        });
+        return;
+      }
+      if (response.status === 401 || response.status === 403) {
+        // Every further file would send another failed login, and Grafana
+        // locks an account after 5. Drop the queue and ask to sign in again.
+        queue.length = 0;
+        signInAgain(file.name, response.status);
+        return;
+      }
+      var message = body && body.error ? String(body.error)
+                                       : "HTTP " + response.status;
+      addLine(file.name, "error", message, false, null);
+      return;
+    }
+  }
+
+  function signInAgain(name, status) {
+    addLine(name, "error", status === 401 ? "sign in required" : "not allowed", false, null);
+    statusLine.textContent = "";
+    var link = document.createElement("a");
+    link.href = "";
+    link.textContent = "Sign in again";
+    link.addEventListener("click", function (e) {
+      e.preventDefault();
+      location.reload();
+    });
+    statusLine.appendChild(link);
+  }
+
+  async function run() {
+    if (running) { return; }
+    running = true;
+    while (queue.length) {
+      var file = queue.shift();
+      statusLine.textContent = "Uploading " + file.name + " (" + queue.length + " more queued)...";
+      if (file.size > MAX_BYTES) {
+        addLine(file.name, "error",
+                "over 500 MB, put it in the watched folder instead", false, null);
+        continue;
+      }
+      await send(file);
+    }
+    if (!statusLine.querySelector("a")) { statusLine.textContent = "Done."; }
+    running = false;
+  }
+
+  function add(files) {
+    for (var i = 0; i < files.length; i++) { queue.push(files[i]); }
+    run();
+  }
+
+  drop.addEventListener("click", function () { input.click(); });
+  drop.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); input.click(); }
+  });
+  input.addEventListener("click", function (e) { e.stopPropagation(); });
+  input.addEventListener("change", function () {
+    add(input.files);
+    input.value = "";
+  });
+  ["dragenter", "dragover"].forEach(function (type) {
+    drop.addEventListener(type, function (e) {
+      e.preventDefault();
+      drop.classList.add("over");
+    });
+  });
+  ["dragleave", "drop"].forEach(function (type) {
+    drop.addEventListener(type, function (e) {
+      e.preventDefault();
+      drop.classList.remove("over");
+    });
+  });
+  drop.addEventListener("drop", function (e) {
+    if (e.dataTransfer && e.dataTransfer.files) { add(e.dataTransfer.files); }
+  });
+  // A file dropped beside the zone must not navigate the page away.
+  window.addEventListener("dragover", function (e) { e.preventDefault(); });
+  window.addEventListener("drop", function (e) { e.preventDefault(); });
+})();
+</script>
+</body>
+</html>

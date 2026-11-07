@@ -46,7 +46,9 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python3 -m pip install -r requirements.txt
+          # The tests import ingestor modules too, and fitdecode is only in the
+          # ingestor's requirements.
+          python3 -m pip install -r requirements.txt -r ingestor/requirements.txt
           python3 -m pip install pytest pytest-cov
 
       - name: Run tests with coverage

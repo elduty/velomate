@@ -124,9 +124,9 @@ class TestSchemaRwgpsColumn:
 
 
 # (id, strava_id, device, distance_m, avg_hr, avg_power, rwgps_id, suffer_score)
-_STRAVA_ROW = (10, 555, "karoo", 50000, 140, 200, None, 90, None, None)
-_RWGPS_ROW = (11, None, "karoo", 50000, 140, 200, 777, None, None, None)
-_DUAL_ROW = (12, 555, "karoo", 50000, 140, 200, 777, 90, None, None)
+_STRAVA_ROW = (10, 555, "karoo", 50000, 140, 200, None, 90, None, None, None)
+_RWGPS_ROW = (11, None, "karoo", 50000, 140, 200, 777, None, None, None, None)
+_DUAL_ROW = (12, 555, "karoo", 50000, 140, 200, 777, 90, None, None, None)
 
 
 class TestIsSameSourceActivity:
@@ -154,7 +154,7 @@ class TestIsSameSourceActivity:
 class TestMergeCarriesSourceIds:
     def test_merge_keeps_existing_strava_id_when_new_is_rwgps(self):
         """New RWGPS data richer than existing Strava row -> merged dict carries both IDs."""
-        existing = (10, 555, "watch", 0, 140, None, None, 90, None, None)  # HR-only, no power
+        existing = (10, 555, "watch", 0, 140, None, None, 90, None, None, None)  # HR-only, no power
         new = {"rwgps_id": 777, "avg_power": 200, "avg_hr": 142, "distance_m": 50000,
                "avg_cadence": 85, "calories": 900, "elevation_m": 400}
         merged = ingestor_db.merge_activity_data(existing, new)
@@ -163,7 +163,7 @@ class TestMergeCarriesSourceIds:
         assert merged["rwgps_id"] == 777
 
     def test_merge_keeps_existing_rwgps_id_when_new_is_strava(self):
-        existing = (11, None, "watch", 0, 140, None, 777, None, None, None)
+        existing = (11, None, "watch", 0, 140, None, 777, None, None, None, None)
         new = {"strava_id": 555, "avg_power": 200, "avg_hr": 142, "distance_m": 50000,
                "avg_cadence": 85, "calories": 900, "elevation_m": 400}
         merged = ingestor_db.merge_activity_data(existing, new)
@@ -173,7 +173,7 @@ class TestMergeCarriesSourceIds:
     def test_merge_carries_suffer_score_from_existing(self):
         """Richer RWGPS copy wins the merge over a Strava row —
         the Strava-only suffer_score must survive the merge."""
-        existing = (10, 555, "watch", 0, 140, None, None, 90, None, None)
+        existing = (10, 555, "watch", 0, 140, None, None, 90, None, None, None)
         new = {"rwgps_id": 777, "avg_power": 200, "avg_hr": 142, "distance_m": 50000,
                "avg_cadence": 85, "calories": 900, "elevation_m": 400}
         merged = ingestor_db.merge_activity_data(existing, new)
@@ -184,7 +184,7 @@ class TestUpsertActivitySkipPathStamping:
     def test_weaker_rwgps_duplicate_stamps_rwgps_id_on_existing_row(self):
         """Existing Strava row richer -> incoming RWGPS copy is skipped, but the
         UPDATE must stamp rwgps_id onto the surviving row."""
-        rich_existing = (10, 555, "karoo", 50000, 140, 200, None, 90, None, None)
+        rich_existing = (10, 555, "karoo", 50000, 140, 200, None, 90, None, None, None)
         weak_new = {"rwgps_id": 777, "name": "Ride", "date": "2026-06-01T08:00:00Z",
                     "duration_s": 7200, "distance_m": 50000, "avg_hr": 140,
                     "strava_type": "Ride", "trainer": False}
@@ -193,8 +193,10 @@ class TestUpsertActivitySkipPathStamping:
             activity_id, streams_preserved = ingestor_db.upsert_activity(conn, weak_new)
         assert activity_id == 10
         assert streams_preserved is True
-        sql = cur.execute.call_args[0][0]
-        params = cur.execute.call_args[0][1]
+        # The advisory unlock runs after the UPDATE, so pick the UPDATE out.
+        update = next(c for c in cur.execute.call_args_list
+                      if "UPDATE activities" in str(c.args[0]))
+        sql, params = update.args[0], update.args[1]
         assert "rwgps_id" in sql and "COALESCE(rwgps_id" in sql
         assert params["rwgps_id"] == 777
 
@@ -210,7 +212,7 @@ class TestMergePathStreamHandling:
     def test_new_richer_merge_does_not_preserve_streams(self):
         """New copy richer -> streams_preserved=False so the caller writes its
         streams, and the row keeps its id rather than taking a new one."""
-        weak_existing = (10, 555, "watch", 0, 140, None, None, 90, None, None)  # HR-only, no power
+        weak_existing = (10, 555, "watch", 0, 140, None, None, 90, None, None, None)  # HR-only, no power
         rich_new = {
             "rwgps_id": 777, "name": "Ride", "date": "2026-06-01T08:00:00Z",
             "duration_s": 7200, "distance_m": 50000, "avg_hr": 142, "avg_power": 210,
@@ -231,7 +233,7 @@ class TestMergePathStreamHandling:
         """If the incoming richer copy brings no streams of its own, the merged
         ride keeps the ones it has, and streams_preserved stays False so a
         caller that DID fetch streams still overwrites them."""
-        weak_existing = (10, 555, "watch", 0, 140, None, None, 90, None, None)
+        weak_existing = (10, 555, "watch", 0, 140, None, None, 90, None, None, None)
         rich_new = {
             "rwgps_id": 777, "name": "Ride", "date": "2026-06-01T08:00:00Z",
             "duration_s": 7200, "distance_m": 50000, "avg_hr": 142, "avg_power": 210,
@@ -253,13 +255,13 @@ class TestMergePathStreamHandling:
 
 class TestHandleRwgpsDeletion:
     def test_rwgps_only_row_is_deleted(self):
-        conn, cur = _make_conn(fetchone_val=(11, None))  # (id, strava_id)
+        conn, cur = _make_conn(fetchone_val=(11, None, None))  # (id, strava_id, file_sha256)
         assert ingestor_db.handle_rwgps_deletion(conn, 777) == "deleted"
         delete_sql = cur.execute.call_args[0][0]
         assert "DELETE FROM activities" in delete_sql
 
     def test_dual_source_row_is_unlinked(self):
-        conn, cur = _make_conn(fetchone_val=(12, 555))
+        conn, cur = _make_conn(fetchone_val=(12, 555, None))
         assert ingestor_db.handle_rwgps_deletion(conn, 777) == "unlinked"
         update_sql = cur.execute.call_args[0][0]
         assert "SET rwgps_id = NULL" in update_sql
@@ -312,13 +314,13 @@ class TestIntervalsIcuDeletion:
     def test_single_source_row_is_deleted(self):
         conn = MagicMock()
         cur = conn.cursor.return_value.__enter__.return_value
-        cur.fetchone.return_value = (7, None, None)
+        cur.fetchone.return_value = (7, None, None, None)
         assert ingestor_db.handle_intervals_icu_deletion(conn, "i1") == "deleted"
 
     def test_dual_source_row_is_unlinked_not_deleted(self):
         conn = MagicMock()
         cur = conn.cursor.return_value.__enter__.return_value
-        cur.fetchone.return_value = (7, 555, None)
+        cur.fetchone.return_value = (7, 555, None, None)
         assert ingestor_db.handle_intervals_icu_deletion(conn, "i1") == "unlinked"
         assert any("SET intervals_icu_id = NULL" in str(c.args[0])
                    for c in cur.execute.call_args_list)
@@ -422,7 +424,7 @@ class TestDedupSkipPathStampsIcuColumns:
         conn = MagicMock()
         cur = conn.cursor.return_value.__enter__.return_value
         # a richer existing row -> merge_activity_data returns _skip_insert
-        cur.fetchone.return_value = (7, 555, "karoo", 30000.0, 150, 200, None, 80, None, None)
+        cur.fetchone.return_value = (7, 555, "karoo", 30000.0, 150, 200, None, 80, None, None, None)
         data = {"intervals_icu_id": "i1",
                 "intervals_icu_analyzed": "2026-08-24T14:26:27.824+00:00",
                 "name": "Ride", "date": "2026-08-24T13:09:25Z",
@@ -450,7 +452,8 @@ class TestDedupSkipPathStampsIcuColumns:
 
 class TestTenColumnTuple:
     """find_duplicate's tuple widens 8 -> 10, carrying intervals_icu_id and
-    intervals_icu_analyzed. It is unpacked positionally in three places, all in
+    intervals_icu_analyzed (and 10 -> 11 with file_sha256; the ten-column
+    fixtures here carry a trailing None for it). It is unpacked positionally in three places, all in
     db.py, so every site changes together."""
 
     def test_find_duplicate_selects_both_intervals_icu_columns(self):
@@ -463,7 +466,7 @@ class TestTenColumnTuple:
         assert "intervals_icu_analyzed" in sql
 
     def test_same_source_guard_recognises_intervals_icu(self):
-        dup = (7, None, "karoo", 30000.0, 140, 120, None, None, "i179264457", None)
+        dup = (7, None, "karoo", 30000.0, 140, 120, None, None, "i179264457", None, None)
         assert ingestor_db._is_same_source_activity(dup, {"intervals_icu_id": "i179264457"}) is True
         assert ingestor_db._is_same_source_activity(dup, {"intervals_icu_id": "iOTHER"}) is False
 
@@ -472,7 +475,7 @@ class TestTenColumnTuple:
         from a Strava copy: the row is not replaced at all, so it keeps both of
         its columns. The skip-path COALESCE UPDATE then stamps the Strava id."""
         ts = "2026-08-24T14:26:27.824000+00:00"
-        existing = (7, None, "karoo", 30000.0, 140, 120, None, None, "i179264457", ts)
+        existing = (7, None, "karoo", 30000.0, 140, 120, None, None, "i179264457", ts, None)
         merged = ingestor_db.merge_activity_data(existing, {
             "strava_id": 555, "avg_power": 200, "avg_hr": 150, "distance_m": 30000.0})
         assert merged.get("_skip_insert") is True
@@ -483,7 +486,7 @@ class TestTenColumnTuple:
         merge must not lose analyzed, or the sync gate fires on every poll
         for that ride forever."""
         ts = "2026-08-24T14:26:27.824000+00:00"
-        existing = (7, None, "karoo", 30000.0, 140, None, None, None, "i1", ts)
+        existing = (7, None, "karoo", 30000.0, 140, None, None, None, "i1", ts, None)
         richer_icu = {"intervals_icu_id": "i2", "avg_power": 200, "avg_hr": 150,
                       "distance_m": 30000.0, "avg_cadence": 85, "calories": 900}
         merged = ingestor_db.merge_activity_data(existing, richer_icu)
@@ -495,7 +498,7 @@ class TestSourcePrecedence:
     def test_intervals_icu_wins_over_a_richer_strava_row(self):
         """Primacy is explicit, not emergent: the Strava row scores higher on
         richness and must still lose the merge base."""
-        rich_strava = (7, 555, "karoo", 30000.0, 150, 200, None, 80, None, None)
+        rich_strava = (7, 555, "karoo", 30000.0, 150, 200, None, 80, None, None, None)
         icu_incoming = {"intervals_icu_id": "i1", "avg_power": None,
                         "avg_hr": None, "distance_m": 30000.0}
         merged = ingestor_db.merge_activity_data(rich_strava, icu_incoming)
@@ -507,14 +510,14 @@ class TestSourcePrecedence:
     def test_merged_row_keeps_its_tier_against_a_lower_source(self):
         """A row carrying intervals_icu_id + strava_id must outrank an incoming
         rwgps row — the max-priority rule, not bottom-tier."""
-        merged_row = (7, 555, "karoo", 30000.0, 150, 200, None, 80, "i1", None)
+        merged_row = (7, 555, "karoo", 30000.0, 150, 200, None, 80, "i1", None, None)
         rwgps_incoming = {"rwgps_id": 999, "avg_power": 210, "avg_hr": 151,
                           "distance_m": 30000.0}
         merged = ingestor_db.merge_activity_data(merged_row, rwgps_incoming)
         assert merged.get("_skip_insert") is True, "lower-priority source must not win"
 
     def test_same_tier_falls_back_to_richness(self):
-        existing = (7, None, "karoo", 30000.0, 150, 200, None, None, None, None)
+        existing = (7, None, "karoo", 30000.0, 150, 200, None, None, None, None, None)
         poor = {"distance_m": 30000.0}
         assert ingestor_db.merge_activity_data(existing, poor).get("_skip_insert") is True
 
@@ -531,7 +534,7 @@ class TestSourcePrecedence:
 
     def test_same_tier_still_decided_by_richness(self):
         """Strava vs RWGPS behaviour is unchanged by the precedence work."""
-        thin_strava = (10, 555, "watch", 0, 140, None, None, 90, None, None)
+        thin_strava = (10, 555, "watch", 0, 140, None, None, 90, None, None, None)
         rich_rwgps = {"rwgps_id": 777, "avg_power": 200, "avg_hr": 142,
                       "distance_m": 50000, "avg_cadence": 85, "calories": 900}
         merged = ingestor_db.merge_activity_data(thin_strava, rich_rwgps)
@@ -547,7 +550,7 @@ class TestSkipPathCarriesElevationAndDistance:
     def _skip_update(self, data):
         conn = MagicMock()
         cur = conn.cursor.return_value.__enter__.return_value
-        cur.fetchone.return_value = (7, 555, "karoo", 30000.0, 150, 200, None, 80, None, None)
+        cur.fetchone.return_value = (7, 555, "karoo", 30000.0, 150, 200, None, 80, None, None, None)
         # The mock's fetchone would read as a row already holding the id.
         with patch.object(ingestor_db, "_source_id_on_another_row", return_value=False), \
              patch.object(ingestor_db, "merge_activity_data",

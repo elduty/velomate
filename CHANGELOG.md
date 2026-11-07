@@ -1,5 +1,34 @@
 # Changelog
 
+## v1.10.0 — 2026-11-07
+
+Rides can now come straight from FIT and GPX files, through a watched folder or an optional upload page, with no cloud account. Nothing changes for an install that turns neither on, and no metric is recalculated.
+
+### New Features
+
+- **Import FIT and GPX files from a folder.** Set `VELOMATE_IMPORT_DIR` to a host folder and the ingestor reads it at startup and on every poll. It takes `.fit` and `.gpx`, gzipped or not and inside `.zip` archives, so a Garmin or Strava bulk export can go in whole. The folder is mounted read-only and files are never moved or deleted. Each ride file gets one outcome, logged as `[file] <name>: <outcome>` and kept in a new `imported_files` table, and the same bytes are never parsed twice. One bad file doesn't stop the files after it, and a big first load spreads over several polls. Asked for in issue 2 by lparolari, DonkeyShine and TheMBeat, whose fork imported FIT files first.
+- **Upload page.** Set `COMPOSE_PROFILES=upload` to start a small page on port 3022 where you drag in the same files and see one line per ride, with a link to its Activity Details. Sign in with a Grafana login that is Editor or Admin. It speaks plain HTTP, so put a TLS reverse proxy in front of it for anything beyond a trusted LAN. Without the profile there is no extra container or port.
+- **A file never duplicates a ride you already have.** Files rank below intervals.icu, Strava and Ride with GPS, so a file matching a stored ride only fills its gaps: an empty column, or a whole stream the ride lacks, such as head-unit power on a phone recording. If the cloud copy arrives after the file, the cloud copy becomes the base.
+- **VeloMate runs with no cloud source.** Startup no longer stops when no intervals.icu, Strava or Ride with GPS credentials are set.
+
+### Changed
+
+- **A delete from a cloud source keeps a ride that a file also holds.** Ride with GPS and intervals.icu deletes, and Strava's `reclassify`, now unlink that source instead of deleting the ride.
+- **Fitness recalculation and every ride write take a database lock**, so the ingestor and the upload page never write at once. A single ingestor never waits on it.
+- **Ingest health counts the import folder when it's set**, so a stuck folder raises the Ingestion Stalled alert like a stuck cloud source. A rest week still doesn't.
+- The ingestor image adds the `fitdecode` package.
+
+### Upgrading
+
+```bash
+git pull && docker compose up -d --build
+```
+
+- No `METRICS_VERSION` bump: your stored numbers don't change. The new tables and the `file_sha256` column add themselves on the first start.
+- Both ways in are off until you turn them on. For the folder, set `VELOMATE_IMPORT_DIR` to an absolute path or one starting with `./`. Any other value, such as a bare `rides`, is read by Compose as a volume name and the stack won't start. The folder must be readable by the container's unprivileged user. For the upload page, set `COMPOSE_PROFILES=upload`, and `UPLOAD_PORT` to change the port. See the README's "Importing files" and "Upload page" sections.
+
+3,890 tests, including the file import's real-PostgreSQL tests and a check of the upload sign-in against a real Grafana 12.4.
+
 ## v1.9.0 — 2026-11-06
 
 Climb segments and a road safety check for planned routes, on top of a long run of correctness fixes. Power bests, Form, intervals, climbs, power zones and VO2max all change, some of them visibly, and a stalled pipeline can no longer look healthy.
